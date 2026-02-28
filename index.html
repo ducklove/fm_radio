@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인터넷 라디오</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid #2a2a4a;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .player-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #1a1a2e, #0a3d62);
+            border-bottom: 1px solid #2a2a4a;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-height: 72px;
+            backdrop-filter: blur(10px);
+        }
+
+        .player-bar .now-playing {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .player-bar .now-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 2px;
+        }
+
+        .player-bar .now-station {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-bar .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-play-main {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background: #4a9eff;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-play-main:hover {
+            background: #3a8eef;
+            transform: scale(1.05);
+        }
+
+        .btn-play-main:active {
+            transform: scale(0.95);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .volume-control svg {
+            width: 20px;
+            height: 20px;
+            fill: #888;
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4a9eff;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4a9eff;
+            cursor: pointer;
+            border: none;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        .group {
+            margin-bottom: 32px;
+        }
+
+        .group-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
+        .station-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .station {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s;
+            position: relative;
+        }
+
+        .station:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .station.active {
+            background: rgba(74, 158, 255, 0.1);
+        }
+
+        .station.active .station-name {
+            color: #4a9eff;
+        }
+
+        .station-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: #fff;
+            flex-shrink: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .station-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .station-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ddd;
+            transition: color 0.15s;
+        }
+
+        .station-desc {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .station-eq {
+            display: none;
+            gap: 2px;
+            align-items: flex-end;
+            height: 16px;
+        }
+
+        .station.active .station-eq {
+            display: flex;
+        }
+
+        .station.active.playing .station-eq .eq-bar {
+            animation-play-state: running;
+        }
+
+        .eq-bar {
+            width: 3px;
+            background: #4a9eff;
+            border-radius: 1px;
+            animation: eq 0.8s ease-in-out infinite alternate;
+            animation-play-state: paused;
+        }
+
+        .eq-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
+        .eq-bar:nth-child(2) { height: 12px; animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { height: 8px; animation-delay: 0.4s; }
+        .eq-bar:nth-child(4) { height: 14px; animation-delay: 0.1s; }
+
+        @keyframes eq {
+            0% { height: 4px; }
+            100% { height: 16px; }
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(74, 158, 255, 0.3);
+            border-top: 2px solid #4a9eff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .station.loading .loading-spinner {
+            display: block;
+        }
+
+        .station.loading .station-eq {
+            display: none !important;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            header { padding: 16px; }
+            header h1 { font-size: 1.2rem; }
+            .player-bar { padding: 12px 16px; gap: 12px; }
+            .player-bar .now-station { font-size: 0.95rem; }
+            .volume-slider { width: 70px; }
+            main { padding: 16px 12px; }
+            .station { padding: 12px; gap: 10px; }
+            .station-icon { width: 38px; height: 38px; font-size: 0.6rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Internet Radio</h1>
+    </header>
+
+    <div class="player-bar">
+        <button class="btn-play-main" id="btnPlay" onclick="togglePlay()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path id="playIcon" d="M8 5v14l11-7z"/>
+            </svg>
+        </button>
+        <div class="now-playing">
+            <div class="now-label">Now Playing</div>
+            <div class="now-station" id="nowStation">방송을 선택하세요</div>
+        </div>
+        <div class="volume-control">
+            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+        </div>
+    </div>
+
+    <main>
+        <div class="group">
+            <div class="group-title">KBS</div>
+            <div class="station-list" id="kbsList"></div>
+        </div>
+        <div class="group">
+            <div class="group-title">MBC</div>
+            <div class="station-list" id="mbcList"></div>
+        </div>
+        <div class="group">
+            <div class="group-title">SBS</div>
+            <div class="station-list" id="sbsList"></div>
+        </div>
+        <div class="group">
+            <div class="group-title">기타</div>
+            <div class="station-list" id="etcList"></div>
+        </div>
+    </main>
+
+    <audio id="audioPlayer" crossorigin="anonymous"></audio>
+
+    <script>
+        const stations = [
+            // KBS
+            { id: 'kbs1fm', name: 'KBS 1FM', desc: '클래식 FM', group: 'kbs', color: '#1a5276', type: 'kbs-api', apiUrl: 'https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/24' },
+            { id: 'kbs2fm', name: 'KBS 2FM', desc: 'Cool FM', group: 'kbs', color: '#1a6b5c', type: 'kbs-api', apiUrl: 'https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/25' },
+            { id: 'kbs1r', name: 'KBS 1라디오', desc: '뉴스·시사', group: 'kbs', color: '#4a235a', type: 'kbs-api', apiUrl: 'https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/21' },
+            { id: 'kbs2r', name: 'KBS 2라디오', desc: '해피FM', group: 'kbs', color: '#7b241c', type: 'kbs-api', apiUrl: 'https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/22' },
+            { id: 'kbs3r', name: 'KBS 3라디오', desc: '사회교육방송', group: 'kbs', color: '#1b4f72', type: 'kbs-api', apiUrl: 'https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/23' },
+            // MBC
+            { id: 'mbcsfm', name: 'MBC 표준FM', desc: 'MBC Standard FM', group: 'mbc', color: '#b71c1c', type: 'mbc-api', apiUrl: 'https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=sfm' },
+            { id: 'mbcfm4u', name: 'MBC FM4U', desc: 'MBC FM for You', group: 'mbc', color: '#e65100', type: 'mbc-api', apiUrl: 'https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=mfm' },
+            // SBS
+            { id: 'sbslove', name: 'SBS 러브FM', desc: '103.5MHz', group: 'sbs', color: '#0d47a1', type: 'sbs-api', apiUrl: 'https://apis.sbs.co.kr/play-api/1.0/livestream/lovepc/lovefm?protocol=hls&ssl=Y' },
+            { id: 'sbspower', name: 'SBS 파워FM', desc: '107.7MHz', group: 'sbs', color: '#1565c0', type: 'sbs-api', apiUrl: 'https://apis.sbs.co.kr/play-api/1.0/livestream/powerpc/powerfm?protocol=hls&ssl=Y' },
+            // 기타
+            { id: 'ebsfm', name: 'EBS FM', desc: '104.5MHz', group: 'etc', color: '#2e7d32', type: 'direct', streamUrl: 'https://ebsonair.ebs.co.kr/fmradiofamilypc/familypc1m/playlist.m3u8' },
+            { id: 'ytn', name: 'YTN 라디오', desc: '94.5MHz', group: 'etc', color: '#f57f17', type: 'direct', streamUrl: 'https://radiolive.ytn.co.kr/radio/_definst_/20211118_fmlive/playlist.m3u8' },
+            { id: 'gugak', name: '국악방송', desc: '99.1MHz', group: 'etc', color: '#6a1b9a', type: 'direct', streamUrl: 'https://mgugaklive.nowcdn.co.kr/gugakradio/gugakradio.stream/playlist.m3u8' },
+            { id: 'tbn', name: 'TBN 경인교통방송', desc: '교통정보', group: 'etc', color: '#00695c', type: 'direct', streamUrl: 'http://radio2.tbn.or.kr:1935/gyeongin/myStream/playlist.m3u8' },
+        ];
+
+        const audio = document.getElementById('audioPlayer');
+        const btnPlay = document.getElementById('btnPlay');
+        const playIcon = document.getElementById('playIcon');
+        const nowStation = document.getElementById('nowStation');
+        const volumeSlider = document.getElementById('volumeSlider');
+
+        let currentStation = null;
+        let isPlaying = false;
+        let hls = null;
+
+        audio.volume = 0.8;
+
+        function renderStations() {
+            const groups = { kbs: 'kbsList', mbc: 'mbcList', sbs: 'sbsList', etc: 'etcList' };
+            for (const [group, listId] of Object.entries(groups)) {
+                const list = document.getElementById(listId);
+                const groupStations = stations.filter(s => s.group === group);
+                list.innerHTML = groupStations.map(s => `
+                    <div class="station" id="st-${s.id}" onclick="selectStation('${s.id}')">
+                        <div class="station-icon" style="background:${s.color}">${s.name.split(' ').pop().substring(0, 4)}</div>
+                        <div class="station-info">
+                            <div class="station-name">${s.name}</div>
+                            <div class="station-desc">${s.desc}</div>
+                        </div>
+                        <div class="loading-spinner"></div>
+                        <div class="station-eq">
+                            <div class="eq-bar"></div>
+                            <div class="eq-bar"></div>
+                            <div class="eq-bar"></div>
+                            <div class="eq-bar"></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function getStreamUrl(station) {
+            if (station.type === 'direct') {
+                return station.streamUrl;
+            }
+
+            const resp = await fetch(station.apiUrl);
+
+            if (station.type === 'kbs-api') {
+                const data = await resp.json();
+                if (data.channel_item && data.channel_item.length > 0) {
+                    return data.channel_item[0].service_url;
+                }
+                throw new Error('KBS 스트림 URL을 가져올 수 없습니다');
+            }
+
+            if (station.type === 'mbc-api' || station.type === 'sbs-api') {
+                const url = (await resp.text()).trim();
+                if (url.startsWith('http')) {
+                    return url;
+                }
+                throw new Error('스트림 URL을 가져올 수 없습니다');
+            }
+
+            throw new Error('알 수 없는 스트림 타입');
+        }
+
+        function playStream(url) {
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                });
+                hls.loadSource(url);
+                hls.attachMedia(audio);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    audio.play();
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        console.error('HLS fatal error:', data.type);
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            hls.startLoad();
+                        } else {
+                            stopPlay();
+                        }
+                    }
+                });
+            } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+                audio.src = url;
+                audio.play();
+            } else {
+                alert('이 브라우저는 HLS 스트리밍을 지원하지 않습니다.');
+            }
+        }
+
+        async function selectStation(id) {
+            const station = stations.find(s => s.id === id);
+            if (!station) return;
+
+            document.querySelectorAll('.station').forEach(el => {
+                el.classList.remove('active', 'playing', 'loading');
+            });
+
+            const stEl = document.getElementById(`st-${id}`);
+            stEl.classList.add('active', 'loading');
+            currentStation = station;
+            nowStation.textContent = station.name;
+
+            try {
+                const url = await getStreamUrl(station);
+                stEl.classList.remove('loading');
+                stEl.classList.add('playing');
+                playStream(url);
+                isPlaying = true;
+                updatePlayButton();
+            } catch (e) {
+                stEl.classList.remove('loading');
+                nowStation.textContent = `${station.name} - 연결 실패`;
+                console.error(e);
+            }
+        }
+
+        function togglePlay() {
+            if (!currentStation) return;
+            if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+            } else {
+                audio.play();
+                isPlaying = true;
+            }
+            updatePlayButton();
+            updateActiveStation();
+        }
+
+        function stopPlay() {
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            audio.pause();
+            audio.src = '';
+            isPlaying = false;
+            updatePlayButton();
+            updateActiveStation();
+        }
+
+        function updatePlayButton() {
+            if (isPlaying) {
+                playIcon.setAttribute('d', 'M6 19h4V5H6v14zm8-14v14h4V5h-4z');
+            } else {
+                playIcon.setAttribute('d', 'M8 5v14l11-7z');
+            }
+        }
+
+        function updateActiveStation() {
+            document.querySelectorAll('.station').forEach(el => {
+                el.classList.remove('playing');
+            });
+            if (currentStation && isPlaying) {
+                const el = document.getElementById(`st-${currentStation.id}`);
+                if (el) el.classList.add('playing');
+            }
+        }
+
+        function setVolume(val) {
+            audio.volume = val / 100;
+        }
+
+        audio.addEventListener('pause', () => {
+            isPlaying = false;
+            updatePlayButton();
+            updateActiveStation();
+        });
+
+        audio.addEventListener('playing', () => {
+            isPlaying = true;
+            updatePlayButton();
+            updateActiveStation();
+        });
+
+        renderStations();
+    </script>
+</body>
+</html>
