@@ -71,7 +71,7 @@
                 linear-gradient(180deg, rgba(18, 17, 16, 0.92), rgba(18, 17, 16, 0.74)),
                 #2a2623;
             margin-bottom: 18px;
-            min-height: 240px;
+            min-height: 300px;
         }
 
         .site-banner {
@@ -83,61 +83,21 @@
             filter: saturate(0.8) sepia(0.18) contrast(1.02);
         }
 
-        .hero-status {
+        .hero-player-wrap {
             position: absolute;
             left: 24px;
             right: 24px;
             bottom: 24px;
-            max-width: 420px;
-            border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(12, 12, 12, 0.62);
-            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
-            backdrop-filter: blur(10px);
-        }
-
-        .hero-status-body {
-            padding: 18px 20px;
-        }
-
-        .hero-status-label {
-            display: block;
-            color: #dfb287;
-            font-size: 0.72rem;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .hero-status-name {
-            font-size: clamp(1.3rem, 2vw, 1.9rem);
-            font-weight: 700;
-            letter-spacing: -0.04em;
-            color: #f5eee6;
-            line-height: 1.1;
-        }
-
-        .hero-status-meta {
-            margin-top: 8px;
-            color: #bdb3a8;
-            font-size: 0.9rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .player-bar {
-            position: sticky;
-            top: 12px;
-            z-index: 10;
             display: grid;
             grid-template-columns: auto minmax(0, 1fr) auto;
             gap: 16px;
             align-items: center;
             padding: 16px 18px;
-            margin-bottom: 20px;
             border-radius: var(--radius-lg);
-            background: rgba(23, 20, 18, 0.9);
+            background: rgba(23, 20, 18, 0.78);
             border: 1px solid var(--line);
             box-shadow: var(--shadow);
             backdrop-filter: blur(14px);
@@ -416,25 +376,20 @@
 
             .hero-visual {
                 border-radius: 18px;
-                min-height: 190px;
+                min-height: 230px;
             }
 
-            .hero-status {
+            .hero-player-wrap {
                 left: 12px;
                 right: 12px;
                 bottom: 12px;
-                max-width: none;
-            }
-
-            .hero-status-body {
-                padding: 14px 16px;
             }
 
             .player-bar {
                 grid-template-columns: 1fr;
                 align-items: stretch;
                 gap: 12px;
-                padding: 14px;
+                padding: 14px 14px;
             }
 
             .player-subtext {
@@ -469,32 +424,26 @@
     <div class="page-shell">
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
             <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
-            <div class="hero-status">
-                <div class="hero-status-body">
-                    <span class="hero-status-label">On Air</span>
-                    <div class="hero-status-name" id="heroNowStation">방송을 선택하세요</div>
-                    <div class="hero-status-meta" id="heroNowMeta">채널을 선택하면 이곳에 현재 재생 정보가 표시됩니다.</div>
-                </div>
+            <div class="hero-player-wrap">
+                <section class="player-bar" aria-label="현재 재생 플레이어">
+                    <div class="player-main">
+                        <button class="btn-play-main" id="btnPlay" type="button" aria-label="재생 또는 일시정지" onclick="togglePlay()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path id="playIcon" d="M8 5v14l11-7z"></path>
+                            </svg>
+                        </button>
+                        <div class="now-playing">
+                            <div class="now-label">Now Playing</div>
+                            <div class="now-station" id="nowStation">방송을 선택하세요</div>
+                            <div class="player-subtext" id="playerSubtext">원하는 채널을 누르면 바로 연결을 시도합니다.</div>
+                        </div>
+                    </div>
+                    <label class="volume-control" for="volumeSlider">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path></svg>
+                        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" aria-label="볼륨" oninput="setVolume(this.value)">
+                    </label>
+                </section>
             </div>
-        </section>
-
-        <section class="player-bar" aria-label="현재 재생 플레이어">
-            <div class="player-main">
-                <button class="btn-play-main" id="btnPlay" type="button" aria-label="재생 또는 일시정지" onclick="togglePlay()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path id="playIcon" d="M8 5v14l11-7z"></path>
-                    </svg>
-                </button>
-                <div class="now-playing">
-                    <div class="now-label">Now Playing</div>
-                    <div class="now-station" id="nowStation">방송을 선택하세요</div>
-                    <div class="player-subtext" id="playerSubtext">원하는 채널을 누르면 바로 연결을 시도합니다.</div>
-                </div>
-            </div>
-            <label class="volume-control" for="volumeSlider">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path></svg>
-                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" aria-label="볼륨" oninput="setVolume(this.value)">
-            </label>
         </section>
 
         <main>
@@ -556,8 +505,6 @@
         const playIcon = document.getElementById("playIcon");
         const nowStation = document.getElementById("nowStation");
         const playerSubtext = document.getElementById("playerSubtext");
-        const heroNowStation = document.getElementById("heroNowStation");
-        const heroNowMeta = document.getElementById("heroNowMeta");
 
         let currentStation = null;
         let isPlaying = false;
@@ -689,8 +636,6 @@
             stationElement.classList.add("active", "loading");
             currentStation = station;
             nowStation.textContent = station.name;
-            heroNowStation.textContent = station.name;
-            heroNowMeta.textContent = `${station.desc} 스트림에 연결 중입니다.`;
             playerSubtext.textContent = `${station.desc} 스트림에 연결 중입니다.`;
             applyStationTheme(station);
 
@@ -704,8 +649,6 @@
             } catch (error) {
                 stationElement.classList.remove("loading");
                 nowStation.textContent = `${station.name} 연결 실패`;
-                heroNowStation.textContent = `${station.name} 연결 실패`;
-                heroNowMeta.textContent = "스트림 응답을 받지 못했습니다.";
                 playerSubtext.textContent = "스트림 응답이 없거나 브라우저 정책 때문에 재생이 차단되었습니다.";
                 console.error(error);
             }
@@ -717,18 +660,15 @@
             if (isPlaying) {
                 audio.pause();
                 isPlaying = false;
-                heroNowMeta.textContent = `${currentStation.name} 재생을 일시정지했습니다.`;
                 playerSubtext.textContent = `${currentStation.name} 재생을 일시정지했습니다.`;
             } else {
                 audio.play().then(() => {
                     isPlaying = true;
-                    heroNowMeta.textContent = `${currentStation.name} 재생 중입니다.`;
                     playerSubtext.textContent = `${currentStation.name} 재생 중입니다.`;
                     updatePlayButton();
                     updateActiveStation();
                 }).catch(() => {
                     isPlaying = false;
-                    heroNowMeta.textContent = "브라우저가 재생을 차단했습니다. 다시 시도해 주세요.";
                     playerSubtext.textContent = "브라우저가 재생을 차단했습니다. 다시 시도해 주세요.";
                     updatePlayButton();
                 });
@@ -786,8 +726,6 @@
             updatePlayButton();
             updateActiveStation();
             if (currentStation) {
-                heroNowStation.textContent = currentStation.name;
-                heroNowMeta.textContent = `${currentStation.name} 재생 중입니다.`;
                 playerSubtext.textContent = `${currentStation.name} 재생 중입니다.`;
             }
         });
