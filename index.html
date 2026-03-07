@@ -455,6 +455,14 @@
 
             <section class="group">
                 <div class="group-header">
+                    <div class="group-title">MBC</div>
+                    <div class="group-note">2개 채널</div>
+                </div>
+                <div class="station-list" id="mbcList"></div>
+            </section>
+
+            <section class="group">
+                <div class="group-header">
                     <div class="group-title">CBS</div>
                     <div class="group-note">2개 채널</div>
                 </div>
@@ -489,6 +497,8 @@
             { id: "kbs1r", name: "KBS 1라디오", desc: "뉴스·시사", group: "kbs", color: "#5d6877", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/21" },
             { id: "kbs2r", name: "KBS 2라디오", desc: "해피FM", group: "kbs", color: "#8a4335", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/22" },
             { id: "kbs3r", name: "KBS 3라디오", desc: "사회교육방송", group: "kbs", color: "#596f6a", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/23" },
+            { id: "mbcsfm", name: "MBC 표준FM", desc: "95.9MHz", group: "mbc", color: "#3b6d9e", type: "mbc-api", apiUrl: "https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=sfm" },
+            { id: "mbcfm4u", name: "MBC FM4U", desc: "91.9MHz", group: "mbc", color: "#2e8b7a", type: "mbc-api", apiUrl: "https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=mfm" },
             { id: "cbsstd", name: "CBS 표준FM", desc: "98.1MHz", group: "cbs", color: "#6d7f49", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs981/_definst_/cbs981.stream/playlist.m3u8" },
             { id: "cbsmusic", name: "CBS 음악FM", desc: "93.9MHz", group: "cbs", color: "#5c6f8d", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs939/_definst_/cbs939.stream/playlist.m3u8" },
             { id: "sbslove", name: "SBS 러브FM", desc: "103.5MHz", group: "sbs", color: "#5e667d", type: "sbs-api", apiUrl: "https://apis.sbs.co.kr/play-api/1.0/livestream/lovepc/lovefm?protocol=hls&ssl=Y" },
@@ -516,7 +526,7 @@
         }
 
         function renderStations() {
-            const groups = { kbs: "kbsList", cbs: "cbsList", sbs: "sbsList", etc: "etcList" };
+            const groups = { kbs: "kbsList", mbc: "mbcList", cbs: "cbsList", sbs: "sbsList", etc: "etcList" };
 
             for (const [group, listId] of Object.entries(groups)) {
                 const list = document.getElementById(listId);
@@ -563,6 +573,14 @@
                     return url;
                 }
                 throw new Error("스트림 URL을 가져올 수 없습니다");
+            }
+
+            if (station.type === "mbc-api") {
+                const url = (await response.text()).trim();
+                if (url.startsWith("http")) {
+                    return url;
+                }
+                throw new Error("MBC 스트림 URL을 가져올 수 없습니다");
             }
 
             throw new Error("알 수 없는 스트림 타입");
