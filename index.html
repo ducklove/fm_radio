@@ -61,14 +61,99 @@
             padding: 18px 0 40px;
         }
 
-        .site-banner {
-            width: 100%;
-            display: block;
+        .hero-visual {
+            position: relative;
+            overflow: hidden;
             border-radius: 28px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: var(--shadow);
-            background: #2a2623;
+            background:
+                linear-gradient(180deg, rgba(18, 17, 16, 0.92), rgba(18, 17, 16, 0.74)),
+                #2a2623;
             margin-bottom: 18px;
+            min-height: 240px;
+        }
+
+        .site-banner {
+            width: 100%;
+            display: block;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.3;
+            filter: saturate(0.8) sepia(0.18) contrast(1.02);
+        }
+
+        .hero-console {
+            position: absolute;
+            left: 24px;
+            right: 24px;
+            bottom: 24px;
+            max-width: 560px;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(12, 12, 12, 0.78);
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(10px);
+        }
+
+        .console-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .console-dots {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .console-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .console-dot.red { background: #ff6b5f; }
+        .console-dot.yellow { background: #f2c14e; }
+        .console-dot.green { background: #62c370; }
+
+        .console-title {
+            color: #bfb6ab;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+        }
+
+        .console-body {
+            padding: 16px 18px 18px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 0.92rem;
+            line-height: 1.7;
+            color: #ebe2d8;
+        }
+
+        .console-line {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .console-prompt {
+            color: #f0b37f;
+        }
+
+        .console-value {
+            color: #8fd3ff;
+        }
+
+        .console-muted {
+            color: #9f968d;
         }
 
         .player-bar {
@@ -363,7 +448,24 @@
             }
 
             .site-banner {
+                border-radius: 0;
+            }
+
+            .hero-visual {
                 border-radius: 18px;
+                min-height: 190px;
+            }
+
+            .hero-console {
+                left: 12px;
+                right: 12px;
+                bottom: 12px;
+                max-width: none;
+            }
+
+            .console-body {
+                padding: 14px 14px 16px;
+                font-size: 0.84rem;
             }
 
             .player-bar {
@@ -403,7 +505,24 @@
 </head>
 <body>
     <div class="page-shell">
-        <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
+        <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
+            <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
+            <div class="hero-console" aria-hidden="true">
+                <div class="console-topbar">
+                    <div class="console-dots">
+                        <span class="console-dot red"></span>
+                        <span class="console-dot yellow"></span>
+                        <span class="console-dot green"></span>
+                    </div>
+                    <div class="console-title">fm-radio.live</div>
+                </div>
+                <div class="console-body">
+                    <span class="console-line"><span class="console-prompt">$</span> tune --favorites</span>
+                    <span class="console-line"><span class="console-value">KBS</span>, <span class="console-value">CBS</span>, <span class="console-value">SBS</span>, <span class="console-value">EBS</span>, <span class="console-value">YTN</span>, <span class="console-value">극동방송</span></span>
+                    <span class="console-line console-muted">Select a station below to start streaming.</span>
+                </div>
+            </div>
+        </section>
 
         <section class="player-bar" aria-label="현재 재생 플레이어">
             <div class="player-main">
@@ -435,14 +554,6 @@
 
             <section class="group">
                 <div class="group-header">
-                    <div class="group-title">MBC</div>
-                    <div class="group-note">프록시 필요</div>
-                </div>
-                <div class="station-list" id="mbcList"></div>
-            </section>
-
-            <section class="group">
-                <div class="group-header">
                     <div class="group-title">CBS</div>
                     <div class="group-note">2개 채널</div>
                 </div>
@@ -460,13 +571,13 @@
             <section class="group">
                 <div class="group-header">
                     <div class="group-title">기타</div>
-                    <div class="group-note">5개 채널</div>
+                    <div class="group-note">4개 채널</div>
                 </div>
                 <div class="station-list" id="etcList"></div>
             </section>
         </main>
 
-        <p class="footer-note">MBC는 참고하신 방식대로 서버 측 프록시가 있어야 안정적으로 재생됩니다. CPBC는 이번 반영에서 검증 가능한 스트림을 찾지 못해 제외했습니다.</p>
+        <p class="footer-note">CPBC는 이번 반영에서 검증 가능한 스트림을 찾지 못해 제외했습니다.</p>
     </div>
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
@@ -478,8 +589,6 @@
             { id: "kbs1r", name: "KBS 1라디오", desc: "뉴스·시사", group: "kbs", color: "#5d6877", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/21" },
             { id: "kbs2r", name: "KBS 2라디오", desc: "해피FM", group: "kbs", color: "#8a4335", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/22" },
             { id: "kbs3r", name: "KBS 3라디오", desc: "사회교육방송", group: "kbs", color: "#596f6a", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/23" },
-            { id: "mbcsfm", name: "MBC 표준FM", desc: "MBC Standard FM", group: "mbc", color: "#91483b", type: "mbc-api", apiUrl: "https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=sfm" },
-            { id: "mbcfm4u", name: "MBC FM4U", desc: "MBC FM for You", group: "mbc", color: "#b1653a", type: "mbc-api", apiUrl: "https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=mfm" },
             { id: "cbsstd", name: "CBS 표준FM", desc: "98.1MHz", group: "cbs", color: "#6d7f49", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs981/_definst_/cbs981.stream/playlist.m3u8" },
             { id: "cbsmusic", name: "CBS 음악FM", desc: "93.9MHz", group: "cbs", color: "#5c6f8d", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs939/_definst_/cbs939.stream/playlist.m3u8" },
             { id: "sbslove", name: "SBS 러브FM", desc: "103.5MHz", group: "sbs", color: "#5e667d", type: "sbs-api", apiUrl: "https://apis.sbs.co.kr/play-api/1.0/livestream/lovepc/lovefm?protocol=hls&ssl=Y" },
@@ -487,7 +596,6 @@
             { id: "ebsfm", name: "EBS FM", desc: "104.5MHz", group: "etc", color: "#65735d", type: "direct", streamUrl: "https://ebsonair.ebs.co.kr/fmradiofamilypc/familypc1m/playlist.m3u8" },
             { id: "ytn", name: "YTN 라디오", desc: "94.5MHz", group: "etc", color: "#9b6e34", type: "direct", streamUrl: "https://radiolive.ytn.co.kr/radio/_definst_/20211118_fmlive/playlist.m3u8" },
             { id: "gugak", name: "국악방송", desc: "99.1MHz", group: "etc", color: "#7d5b78", type: "direct", streamUrl: "https://mgugaklive.nowcdn.co.kr/gugakradio/gugakradio.stream/playlist.m3u8" },
-            { id: "tbn", name: "TBN 경인교통방송", desc: "교통정보", group: "etc", color: "#556d66", type: "direct", streamUrl: "http://radio2.tbn.or.kr:1935/gyeongin/myStream/playlist.m3u8" },
             { id: "febc", name: "극동방송", desc: "FEBC Seoul", group: "etc", color: "#8b5d3f", type: "direct", streamUrl: "https://mlive3.febc.net/live5/mplive/playlist.m3u8" }
         ];
 
@@ -508,7 +616,7 @@
         }
 
         function renderStations() {
-            const groups = { kbs: "kbsList", mbc: "mbcList", cbs: "cbsList", sbs: "sbsList", etc: "etcList" };
+            const groups = { kbs: "kbsList", cbs: "cbsList", sbs: "sbsList", etc: "etcList" };
 
             for (const [group, listId] of Object.entries(groups)) {
                 const list = document.getElementById(listId);
@@ -539,16 +647,7 @@
                 return station.streamUrl;
             }
 
-            let response;
-
-            try {
-                response = await fetch(station.apiUrl);
-            } catch (error) {
-                if (station.type === "mbc-api") {
-                    throw new Error("MBC API is blocked by browser CORS policy");
-                }
-                throw error;
-            }
+            const response = await fetch(station.apiUrl);
 
             if (station.type === "kbs-api") {
                 const data = await response.json();
@@ -558,10 +657,10 @@
                 throw new Error("KBS 스트림 URL을 가져올 수 없습니다");
             }
 
-            if (station.type === "mbc-api" || station.type === "sbs-api") {
-                const url = (await response.text()).trim();
-                if (url.startsWith("http")) {
-                    return url;
+                if (station.type === "sbs-api") {
+                    const url = (await response.text()).trim();
+                    if (url.startsWith("http")) {
+                        return url;
                 }
                 throw new Error("스트림 URL을 가져올 수 없습니다");
             }
@@ -648,13 +747,7 @@
             } catch (error) {
                 stationElement.classList.remove("loading");
                 nowStation.textContent = `${station.name} 연결 실패`;
-
-                if (station.type === "mbc-api") {
-                    playerSubtext.textContent = "MBC는 현재 브라우저 CORS 정책 때문에 이 정적 페이지에서 직접 연결되지 않습니다.";
-                } else {
-                    playerSubtext.textContent = "스트림 응답이 없거나 브라우저 정책 때문에 재생이 차단되었습니다.";
-                }
-
+                playerSubtext.textContent = "스트림 응답이 없거나 브라우저 정책 때문에 재생이 차단되었습니다.";
                 console.error(error);
             }
         }
