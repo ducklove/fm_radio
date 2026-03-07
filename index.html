@@ -61,10 +61,6 @@
             padding: 18px 0 40px;
         }
 
-        .site-header {
-            margin-bottom: 18px;
-        }
-
         .site-banner {
             width: 100%;
             display: block;
@@ -72,33 +68,7 @@
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: var(--shadow);
             background: #2a2623;
-        }
-
-        .site-title {
-            padding: 18px 4px 8px;
-        }
-
-        .site-kicker {
-            display: block;
-            color: #dfb287;
-            font-size: 0.78rem;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .site-title h1 {
-            font-size: clamp(2rem, 4vw, 3.1rem);
-            letter-spacing: -0.05em;
-            line-height: 0.95;
-            margin-bottom: 10px;
-        }
-
-        .site-title p {
-            color: var(--muted);
-            font-size: 1rem;
-            line-height: 1.6;
-            max-width: 42rem;
+            margin-bottom: 18px;
         }
 
         .player-bar {
@@ -396,10 +366,6 @@
                 border-radius: 18px;
             }
 
-            .site-title {
-                padding-top: 14px;
-            }
-
             .player-bar {
                 grid-template-columns: 1fr;
                 align-items: stretch;
@@ -437,14 +403,7 @@
 </head>
 <body>
     <div class="page-shell">
-        <header class="site-header">
-            <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
-            <div class="site-title">
-                <span class="site-kicker">FM Radio Collection</span>
-                <h1>FM 라디오 모음</h1>
-                <p>복잡한 장식 없이, 위에는 튜너 이미지와 제목만 두고 아래에서 바로 방송국을 고를 수 있게 정리했습니다.</p>
-            </div>
-        </header>
+        <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
 
         <section class="player-bar" aria-label="현재 재생 플레이어">
             <div class="player-main">
@@ -477,9 +436,17 @@
             <section class="group">
                 <div class="group-header">
                     <div class="group-title">MBC</div>
-                    <div class="group-note">브라우저 제한 가능</div>
+                    <div class="group-note">프록시 필요</div>
                 </div>
                 <div class="station-list" id="mbcList"></div>
+            </section>
+
+            <section class="group">
+                <div class="group-header">
+                    <div class="group-title">CBS</div>
+                    <div class="group-note">2개 채널</div>
+                </div>
+                <div class="station-list" id="cbsList"></div>
             </section>
 
             <section class="group">
@@ -493,13 +460,13 @@
             <section class="group">
                 <div class="group-header">
                     <div class="group-title">기타</div>
-                    <div class="group-note">4개 채널</div>
+                    <div class="group-note">5개 채널</div>
                 </div>
                 <div class="station-list" id="etcList"></div>
             </section>
         </main>
 
-        <p class="footer-note">MBC는 현재 정적 페이지에서 직접 요청 시 CORS 정책으로 연결이 실패할 수 있습니다.</p>
+        <p class="footer-note">MBC는 참고하신 방식대로 서버 측 프록시가 있어야 안정적으로 재생됩니다. CPBC는 이번 반영에서 검증 가능한 스트림을 찾지 못해 제외했습니다.</p>
     </div>
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
@@ -513,12 +480,15 @@
             { id: "kbs3r", name: "KBS 3라디오", desc: "사회교육방송", group: "kbs", color: "#596f6a", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/23" },
             { id: "mbcsfm", name: "MBC 표준FM", desc: "MBC Standard FM", group: "mbc", color: "#91483b", type: "mbc-api", apiUrl: "https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=sfm" },
             { id: "mbcfm4u", name: "MBC FM4U", desc: "MBC FM for You", group: "mbc", color: "#b1653a", type: "mbc-api", apiUrl: "https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel=mfm" },
+            { id: "cbsstd", name: "CBS 표준FM", desc: "98.1MHz", group: "cbs", color: "#6d7f49", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs981/_definst_/cbs981.stream/playlist.m3u8" },
+            { id: "cbsmusic", name: "CBS 음악FM", desc: "93.9MHz", group: "cbs", color: "#5c6f8d", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs939/_definst_/cbs939.stream/playlist.m3u8" },
             { id: "sbslove", name: "SBS 러브FM", desc: "103.5MHz", group: "sbs", color: "#5e667d", type: "sbs-api", apiUrl: "https://apis.sbs.co.kr/play-api/1.0/livestream/lovepc/lovefm?protocol=hls&ssl=Y" },
             { id: "sbspower", name: "SBS 파워FM", desc: "107.7MHz", group: "sbs", color: "#6e7b98", type: "sbs-api", apiUrl: "https://apis.sbs.co.kr/play-api/1.0/livestream/powerpc/powerfm?protocol=hls&ssl=Y" },
             { id: "ebsfm", name: "EBS FM", desc: "104.5MHz", group: "etc", color: "#65735d", type: "direct", streamUrl: "https://ebsonair.ebs.co.kr/fmradiofamilypc/familypc1m/playlist.m3u8" },
             { id: "ytn", name: "YTN 라디오", desc: "94.5MHz", group: "etc", color: "#9b6e34", type: "direct", streamUrl: "https://radiolive.ytn.co.kr/radio/_definst_/20211118_fmlive/playlist.m3u8" },
             { id: "gugak", name: "국악방송", desc: "99.1MHz", group: "etc", color: "#7d5b78", type: "direct", streamUrl: "https://mgugaklive.nowcdn.co.kr/gugakradio/gugakradio.stream/playlist.m3u8" },
-            { id: "tbn", name: "TBN 경인교통방송", desc: "교통정보", group: "etc", color: "#556d66", type: "direct", streamUrl: "http://radio2.tbn.or.kr:1935/gyeongin/myStream/playlist.m3u8" }
+            { id: "tbn", name: "TBN 경인교통방송", desc: "교통정보", group: "etc", color: "#556d66", type: "direct", streamUrl: "http://radio2.tbn.or.kr:1935/gyeongin/myStream/playlist.m3u8" },
+            { id: "febc", name: "극동방송", desc: "FEBC Seoul", group: "etc", color: "#8b5d3f", type: "direct", streamUrl: "https://mlive3.febc.net/live5/mplive/playlist.m3u8" }
         ];
 
         const audio = document.getElementById("audioPlayer");
@@ -538,7 +508,7 @@
         }
 
         function renderStations() {
-            const groups = { kbs: "kbsList", mbc: "mbcList", sbs: "sbsList", etc: "etcList" };
+            const groups = { kbs: "kbsList", mbc: "mbcList", cbs: "cbsList", sbs: "sbsList", etc: "etcList" };
 
             for (const [group, listId] of Object.entries(groups)) {
                 const list = document.getElementById(listId);
