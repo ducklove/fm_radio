@@ -1,10 +1,15 @@
-const http = require("http");
+const fs = require("fs");
 const https = require("https");
 
 const ALLOWED_CHANNELS = new Set(["sfm", "mfm"]);
 const PORT = 3689;
 
-http.createServer((req, res) => {
+const options = {
+    cert: fs.readFileSync("/etc/letsencrypt/live/cantabile.tplinkdns.com/fullchain.pem"),
+    key: fs.readFileSync("/etc/letsencrypt/live/cantabile.tplinkdns.com/privkey.pem"),
+};
+
+https.createServer(options, (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
@@ -13,7 +18,7 @@ http.createServer((req, res) => {
         return res.end();
     }
 
-    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const url = new URL(req.url, `https://localhost:${PORT}`);
     const channel = url.searchParams.get("channel");
 
     if (!channel || !ALLOWED_CHANNELS.has(channel)) {
@@ -35,5 +40,5 @@ http.createServer((req, res) => {
         res.end("Failed to fetch MBC stream URL");
     });
 }).listen(PORT, () => {
-    console.log(`MBC proxy running on http://localhost:${PORT}`);
+    console.log(`MBC proxy running on https://localhost:${PORT}`);
 });
