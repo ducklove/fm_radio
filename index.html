@@ -362,6 +362,17 @@
             to { transform: rotate(360deg); }
         }
 
+        .dial-knob {
+            position: absolute;
+            right: 6%;
+            top: 30%;
+            width: 5%;
+            height: 50%;
+            cursor: pointer;
+            z-index: 2;
+            border-radius: 50%;
+        }
+
         @media (max-width: 720px) {
             .page-shell {
                 width: min(100% - 18px, 100%);
@@ -422,6 +433,7 @@
     <div class="page-shell">
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
             <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
+            <div class="dial-knob" onclick="playEasterEgg()" title=""></div>
             <div class="hero-player-wrap">
                 <section class="player-bar" aria-label="현재 재생 플레이어">
                     <div class="player-main">
@@ -725,6 +737,32 @@
                 const element = document.getElementById(`st-${currentStation.id}`);
                 if (element) element.classList.add("playing");
             }
+        }
+
+        function playEasterEgg() {
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+
+            document.querySelectorAll(".station").forEach((element) => {
+                element.classList.remove("active", "playing", "loading");
+            });
+
+            currentStation = { id: "pyongyang", name: "평양 FM", desc: "조선중앙방송", color: "#8b2020" };
+            nowStation.textContent = "평양 FM";
+            playerSubtext.textContent = "조선중앙방송에 연결 중입니다.";
+            applyStationTheme(currentStation);
+
+            audio.src = "https://listen7.myradio24.com/69366";
+            audio.play().then(() => {
+                isPlaying = true;
+                updatePlayButton();
+            }).catch(() => {
+                isPlaying = false;
+                updatePlayButton();
+                playerSubtext.textContent = "연결에 실패했습니다.";
+            });
         }
 
         function setVolume(value) {
