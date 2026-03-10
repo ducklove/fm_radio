@@ -681,6 +681,11 @@
                 playStream(url);
                 isPlaying = true;
                 updatePlayButton();
+                gtag('event', 'play_station', {
+                    station_id: station.id,
+                    station_name: station.name,
+                    station_group: station.group
+                });
             } catch (error) {
                 stationElement.classList.remove("loading");
                 nowStation.textContent = `${station.name} 연결 실패`;
