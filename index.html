@@ -770,6 +770,11 @@
             audio.play().then(() => {
                 isPlaying = true;
                 updatePlayButton();
+                gtag('event', 'play_station', {
+                    station_id: 'pyongyang',
+                    station_name: '평양 FM',
+                    station_group: 'easter_egg'
+                });
             }).catch(() => {
                 isPlaying = false;
                 updatePlayButton();
