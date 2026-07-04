@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#121110">
     <title>FM 라디오 모음</title>
-    <meta name="description" content="KBS, MBC, SBS와 주요 FM 라디오를 한 화면에서 바로 재생하고 녹음까지 할 수 있는 FM 라디오 모음">
+    <meta name="description" content="KBS, MBC, SBS와 주요 FM 라디오를 한 화면에서 바로 재생하고 녹음, 즐겨찾기, 취침 타이머까지 지원하는 FM 라디오 모음">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%BB%3C/text%3E%3C/svg%3E">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8GLTG1KYZ"></script>
     <script>
@@ -153,11 +153,24 @@
             filter: saturate(0.8) sepia(0.18) contrast(1.02);
         }
 
+        .vu-canvas {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 92px;
+            pointer-events: none;
+            opacity: 0.85;
+            z-index: 1;
+        }
+
         .hero-player-wrap {
             position: absolute;
             left: 24px;
             right: 24px;
             bottom: 14px;
+            z-index: 2;
         }
 
         .player-bar {
@@ -239,7 +252,8 @@
             flex-shrink: 0;
         }
 
-        .btn-rec {
+        .btn-rec,
+        .btn-timer {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -255,7 +269,8 @@
             transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, opacity 0.18s ease;
         }
 
-        .btn-rec:hover:not(:disabled) {
+        .btn-rec:hover:not(:disabled),
+        .btn-timer:hover {
             background: rgba(255, 255, 255, 0.09);
             border-color: rgba(255, 255, 255, 0.16);
         }
@@ -263,6 +278,23 @@
         .btn-rec:disabled {
             opacity: 0.38;
             cursor: not-allowed;
+        }
+
+        .btn-timer svg {
+            width: 15px;
+            height: 15px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        .btn-timer #timerLabel {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .btn-timer.armed {
+            border-color: var(--accent-strong);
+            color: #f6ead9;
+            background: rgba(255, 255, 255, 0.07);
         }
 
         .rec-dot {
@@ -391,18 +423,48 @@
         }
 
         .station {
-            width: 100%;
+            display: flex;
+            align-items: stretch;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid transparent;
+            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .station-main {
+            flex: 1;
+            min-width: 0;
             display: grid;
             grid-template-columns: auto minmax(0, 1fr) auto;
             align-items: center;
             gap: 14px;
-            padding: 13px 14px;
-            border-radius: var(--radius-md);
+            padding: 13px 4px 13px 14px;
+            border-radius: var(--radius-md) 0 0 var(--radius-md);
             text-align: left;
             cursor: pointer;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid transparent;
-            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .station-fav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            flex-shrink: 0;
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            color: rgba(255, 255, 255, 0.26);
+            cursor: pointer;
+            transition: color 0.18s ease;
+        }
+
+        .station-fav svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .station-fav:hover,
+        .station-fav.faved {
+            color: #f0c064;
         }
 
         .station:hover {
@@ -637,7 +699,7 @@
 
             .hero-visual {
                 border-radius: 18px;
-                min-height: 198px;
+                min-height: 252px;
             }
 
             .hero-player-wrap {
@@ -658,12 +720,23 @@
             }
 
             .player-side {
+                flex-wrap: wrap;
                 justify-content: space-between;
             }
 
-            .volume-control {
+            .btn-rec,
+            .btn-timer {
                 flex: 1;
                 justify-content: center;
+            }
+
+            .volume-control {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+
+            .vu-canvas {
+                height: 64px;
             }
 
             .volume-slider {
@@ -678,7 +751,7 @@
                 grid-template-columns: 1fr;
             }
 
-            .station {
+            .station-main {
                 grid-template-columns: auto minmax(0, 1fr);
             }
 
@@ -715,6 +788,7 @@
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
             <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
             <div class="dial-knob" onclick="playEasterEgg()" title=""></div>
+            <canvas class="vu-canvas" id="vuCanvas" aria-hidden="true"></canvas>
             <div class="hero-player-wrap">
                 <section class="player-bar" aria-label="현재 재생 플레이어">
                     <div class="player-main">
@@ -734,6 +808,10 @@
                             <span class="rec-dot" aria-hidden="true"></span>
                             <span class="rec-time" id="recTime">REC</span>
                         </button>
+                        <button class="btn-timer" id="btnTimer" type="button" aria-label="취침 타이머 설정" onclick="cycleSleepTimer()">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+                            <span id="timerLabel">타이머</span>
+                        </button>
                         <label class="volume-control" for="volumeSlider">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path></svg>
                             <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" aria-label="볼륨" oninput="setVolume(this.value)">
@@ -744,6 +822,14 @@
         </section>
 
         <main>
+            <section class="group" id="favGroup" hidden>
+                <div class="group-header">
+                    <div class="group-title">즐겨찾기</div>
+                    <div class="group-note" id="favNote"></div>
+                </div>
+                <div class="station-list" id="favList"></div>
+            </section>
+
             <section class="group">
                 <div class="group-header">
                     <div class="group-title">KBS</div>
@@ -829,20 +915,56 @@
         const recordingsGroup = document.getElementById("recordingsGroup");
         const recordingsNote = document.getElementById("recordingsNote");
         const recordingList = document.getElementById("recordingList");
+        const btnTimer = document.getElementById("btnTimer");
+        const timerLabel = document.getElementById("timerLabel");
+        const vuCanvas = document.getElementById("vuCanvas");
+        const vuCtx = vuCanvas.getContext("2d");
+        const favGroup = document.getElementById("favGroup");
+        const favNote = document.getElementById("favNote");
+        const favList = document.getElementById("favList");
 
         let currentStation = null;
         let isPlaying = false;
         let hls = null;
+        let streamLoaded = false;
         let volumeLevel = 0.8;
+        let accentColor = "#d36a42";
+        let favorites = loadJson("fmRadio.favorites", []);
 
-        // 녹음용 오디오 그래프: source → gain(청취 볼륨) → 스피커, source → recDest(원음 레벨) → MediaRecorder
+        // 오디오 그래프: source → gain(청취 볼륨) → 스피커, source → recDest(원음 레벨) → MediaRecorder, source → analyser(VU)
         let audioCtx = null;
         let gainNode = null;
         let recDest = null;
+        let analyser = null;
+        let vuRaf = null;
+        let vuData = null;
         let recorder = null;
         let recStartMs = 0;
         let recTimerId = null;
         let recordingCount = 0;
+        let recDb = null;
+
+        const SLEEP_STEPS = [0, 15, 30, 60, 90];
+        let sleepIndex = 0;
+        let sleepDeadline = 0;
+        let sleepTicker = null;
+
+        function loadJson(key, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : fallback;
+            } catch (error) {
+                return fallback;
+            }
+        }
+
+        function saveJson(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (error) {
+                console.error(error);
+            }
+        }
 
         audio.volume = volumeLevel;
 
@@ -858,14 +980,11 @@
             return lastWord.substring(0, 4).toUpperCase();
         }
 
-        function renderStations() {
-            const groups = { kbs: "kbsList", mbc: "mbcList", cbs: "cbsList", sbs: "sbsList", etc: "etcList" };
-
-            for (const [group, listId] of Object.entries(groups)) {
-                const list = document.getElementById(listId);
-                const groupStations = stations.filter((station) => station.group === group);
-                list.innerHTML = groupStations.map((station) => `
-                    <button class="station" id="st-${station.id}" type="button" onclick="selectStation('${station.id}')">
+        function stationCard(station) {
+            const faved = favorites.includes(station.id);
+            return `
+                <div class="station" data-station="${station.id}">
+                    <button class="station-main" type="button" onclick="selectStation('${station.id}')">
                         <div class="station-icon" style="background:linear-gradient(135deg, ${shadeColor(station.color, 16)}, ${shadeColor(station.color, -18)})">${stationInitial(station.name)}</div>
                         <div class="station-info">
                             <div class="station-name">${station.name}</div>
@@ -881,8 +1000,57 @@
                             </div>
                         </div>
                     </button>
-                `).join("");
+                    <button class="station-fav${faved ? " faved" : ""}" type="button" aria-pressed="${faved}" aria-label="${station.name} 즐겨찾기 ${faved ? "해제" : "추가"}" onclick="toggleFavorite('${station.id}')">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.3l-6.2 3.7 1.6-7.1L2 9.2l7.2-.6L12 2l2.8 6.6 7.2.6-5.4 4.7 1.6 7.1z"></path></svg>
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderStations() {
+            const groups = { kbs: "kbsList", mbc: "mbcList", cbs: "cbsList", sbs: "sbsList", etc: "etcList" };
+
+            for (const [group, listId] of Object.entries(groups)) {
+                const list = document.getElementById(listId);
+                const groupStations = stations.filter((station) => station.group === group);
+                list.innerHTML = groupStations.map((station) => stationCard(station)).join("");
             }
+
+            const favStations = favorites
+                .map((id) => stations.find((station) => station.id === id))
+                .filter(Boolean);
+            favGroup.hidden = favStations.length === 0;
+            favNote.textContent = `${favStations.length}개 채널`;
+            favList.innerHTML = favStations.map((station) => stationCard(station)).join("");
+
+            reapplyStationState();
+        }
+
+        function cardsOf(id) {
+            return document.querySelectorAll(`[data-station="${id}"]`);
+        }
+
+        function reapplyStationState() {
+            if (!currentStation) return;
+            cardsOf(currentStation.id).forEach((element) => {
+                element.classList.add("active");
+                if (isPlaying) element.classList.add("playing");
+            });
+        }
+
+        function toggleFavorite(id) {
+            const index = favorites.indexOf(id);
+            if (index >= 0) {
+                favorites.splice(index, 1);
+            } else {
+                favorites.push(id);
+            }
+            saveJson("fmRadio.favorites", favorites);
+            renderStations();
+            gtag('event', 'toggle_favorite', {
+                station_id: id,
+                favorited: index < 0
+            });
         }
 
         async function getStreamUrl(station) {
@@ -921,6 +1089,7 @@
 
         function applyStationTheme(station) {
             const accent = station ? station.color : "#d36a42";
+            accentColor = accent;
             document.documentElement.style.setProperty("--accent", accent);
             document.documentElement.style.setProperty("--accent-strong", shadeColor(accent, 18));
         }
@@ -942,6 +1111,10 @@
             }
 
             if (typeof Hls !== "undefined" && Hls.isSupported()) {
+                // MSE 경로에서는 미리 그래프를 만들어 VU 미터를 켠다.
+                // (Safari 네이티브 HLS는 MediaElementSource와 충돌할 수 있어 제외)
+                ensureAudioGraph();
+                streamLoaded = true;
                 hls = new Hls({
                     enableWorker: true,
                     lowLatencyMode: true
@@ -964,6 +1137,7 @@
                     }
                 });
             } else if (audio.canPlayType("application/vnd.apple.mpegurl")) {
+                streamLoaded = true;
                 audio.src = url;
                 audio.play().catch(() => {
                     isPlaying = false;
@@ -984,8 +1158,7 @@
                 element.classList.remove("active", "playing", "loading");
             });
 
-            const stationElement = document.getElementById(`st-${id}`);
-            stationElement.classList.add("active", "loading");
+            cardsOf(id).forEach((element) => element.classList.add("active", "loading"));
             currentStation = station;
             nowStation.textContent = station.name;
             playerSubtext.textContent = `${station.desc} 스트림에 연결 중입니다.`;
@@ -993,19 +1166,22 @@
 
             try {
                 const url = await getStreamUrl(station);
-                stationElement.classList.remove("loading");
-                stationElement.classList.add("playing");
+                cardsOf(id).forEach((element) => {
+                    element.classList.remove("loading");
+                    element.classList.add("playing");
+                });
                 playStream(url);
                 isPlaying = true;
                 updatePlayButton();
                 updateMediaSession();
+                saveJson("fmRadio.lastStation", station.id);
                 gtag('event', 'play_station', {
                     station_id: station.id,
                     station_name: station.name,
                     station_group: station.group
                 });
             } catch (error) {
-                stationElement.classList.remove("loading");
+                cardsOf(id).forEach((element) => element.classList.remove("loading"));
                 nowStation.textContent = `${station.name} 연결 실패`;
                 playerSubtext.textContent = "스트림 응답이 없거나 브라우저 정책 때문에 재생이 차단되었습니다.";
                 console.error(error);
@@ -1020,6 +1196,10 @@
                 isPlaying = false;
                 playerSubtext.textContent = `${currentStation.name} 재생을 일시정지했습니다.`;
             } else {
+                if (!streamLoaded) {
+                    selectStation(currentStation.id);
+                    return;
+                }
                 audio.play().then(() => {
                     isPlaying = true;
                     playerSubtext.textContent = `${currentStation.name} 재생 중입니다.`;
@@ -1047,6 +1227,7 @@
 
             audio.pause();
             audio.src = "";
+            streamLoaded = false;
             isPlaying = false;
             updatePlayButton();
             updateActiveStation();
@@ -1067,8 +1248,7 @@
             });
 
             if (currentStation && isPlaying) {
-                const element = document.getElementById(`st-${currentStation.id}`);
-                if (element) element.classList.add("playing");
+                cardsOf(currentStation.id).forEach((element) => element.classList.add("playing"));
             }
         }
 
@@ -1090,6 +1270,7 @@
             applyStationTheme(currentStation);
 
             audio.src = "https://listen7.myradio24.com/69366";
+            streamLoaded = true;
             audio.play().then(() => {
                 isPlaying = true;
                 updatePlayButton();
@@ -1128,16 +1309,25 @@
                 const source = audioCtx.createMediaElementSource(audio);
                 gainNode = audioCtx.createGain();
                 recDest = audioCtx.createMediaStreamDestination();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 128;
+                analyser.smoothingTimeConstant = 0.8;
                 source.connect(gainNode).connect(audioCtx.destination);
                 source.connect(recDest);
+                source.connect(analyser);
                 gainNode.gain.value = volumeLevel;
                 audio.volume = 1;
+                if (audioCtx.state === "suspended") {
+                    audioCtx.resume();
+                }
+                if (isPlaying) startVu();
                 return true;
             } catch (error) {
                 console.error(error);
                 audioCtx = null;
                 gainNode = null;
                 recDest = null;
+                analyser = null;
                 return false;
             }
         }
@@ -1188,11 +1378,20 @@
             rec.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) chunks.push(event.data);
             };
-            rec.onstop = () => {
+            rec.onstop = async () => {
                 if (!chunks.length) return;
                 const durationMs = Date.now() - startMs;
                 const type = rec.mimeType || chunks[0].type || "audio/webm";
-                addRecordingItem(new Blob(chunks, { type }), station, startDate, durationMs, type);
+                const record = {
+                    stationId: station.id,
+                    stationName: station.name,
+                    startedAt: startDate.toISOString(),
+                    durationMs,
+                    type,
+                    blob: new Blob(chunks, { type })
+                };
+                record.dbId = await persistRecording(record);
+                addRecordingItem(record);
                 playerSubtext.textContent = `${station.name} 녹음 1건을 저장 목록에 추가했습니다.`;
                 gtag('event', 'record_save', {
                     station_id: station.id,
@@ -1263,15 +1462,16 @@
             btnRec.disabled = !recorder && !(currentStation && isPlaying);
         }
 
-        function addRecordingItem(blob, station, startDate, durationMs, mimeType) {
+        function addRecordingItem(record) {
             recordingCount += 1;
-            const url = URL.createObjectURL(blob);
-            const ext = recFileExtension(mimeType);
+            const startDate = new Date(record.startedAt);
+            const url = URL.createObjectURL(record.blob);
+            const ext = recFileExtension(record.type);
             const pad = (value) => String(value).padStart(2, "0");
             const stamp = `${startDate.getFullYear()}${pad(startDate.getMonth() + 1)}${pad(startDate.getDate())}_${pad(startDate.getHours())}${pad(startDate.getMinutes())}${pad(startDate.getSeconds())}`;
-            const safeName = station.name.replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "-");
+            const safeName = record.stationName.replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "-");
             const fileName = `${safeName}_${stamp}.${ext}`;
-            const startLabel = `${pad(startDate.getHours())}:${pad(startDate.getMinutes())} 시작`;
+            const startLabel = `${startDate.getMonth() + 1}/${startDate.getDate()} ${pad(startDate.getHours())}:${pad(startDate.getMinutes())} 시작`;
 
             const item = document.createElement("div");
             item.className = "recording";
@@ -1285,11 +1485,11 @@
 
             const name = document.createElement("div");
             name.className = "rec-name";
-            name.textContent = station.name;
+            name.textContent = record.stationName;
 
             const meta = document.createElement("div");
             meta.className = "rec-meta";
-            meta.textContent = `${startLabel} · ${formatDuration(durationMs)} · ${formatSize(blob.size)}`;
+            meta.textContent = `${startLabel} · ${formatDuration(record.durationMs)} · ${formatSize(record.blob.size)}`;
 
             const preview = document.createElement("audio");
             preview.controls = true;
@@ -1314,6 +1514,7 @@
             remove.addEventListener("click", () => {
                 preview.pause();
                 URL.revokeObjectURL(url);
+                deleteRecording(record.dbId);
                 item.remove();
                 recordingCount -= 1;
                 updateRecordingsNote();
@@ -1327,7 +1528,161 @@
 
         function updateRecordingsNote() {
             recordingsGroup.hidden = recordingCount === 0;
-            recordingsNote.textContent = `${recordingCount}개 · 페이지를 닫으면 목록이 사라집니다. 필요한 파일은 저장해 두세요.`;
+            const keepNote = recDb
+                ? "녹음 파일은 이 브라우저에 보관됩니다."
+                : "페이지를 닫으면 목록이 사라집니다. 필요한 파일은 저장해 두세요.";
+            recordingsNote.textContent = `${recordingCount}개 · ${keepNote}`;
+        }
+
+        function openRecordingDb() {
+            if (!window.indexedDB) return;
+            try {
+                const request = indexedDB.open("fm-radio", 1);
+                request.onupgradeneeded = () => {
+                    request.result.createObjectStore("recordings", { keyPath: "id", autoIncrement: true });
+                };
+                request.onsuccess = () => {
+                    recDb = request.result;
+                    restoreRecordings();
+                    updateRecordingsNote();
+                };
+                request.onerror = () => {
+                    console.error(request.error);
+                };
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function persistRecording(record) {
+            return new Promise((resolve) => {
+                if (!recDb) return resolve(null);
+                try {
+                    const request = recDb
+                        .transaction("recordings", "readwrite")
+                        .objectStore("recordings")
+                        .add(record);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => resolve(null);
+                } catch (error) {
+                    console.error(error);
+                    resolve(null);
+                }
+            });
+        }
+
+        function deleteRecording(dbId) {
+            if (!recDb || dbId == null) return;
+            try {
+                recDb.transaction("recordings", "readwrite").objectStore("recordings").delete(dbId);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function restoreRecordings() {
+            try {
+                const request = recDb.transaction("recordings").objectStore("recordings").getAll();
+                request.onsuccess = () => {
+                    for (const saved of request.result) {
+                        addRecordingItem({ ...saved, dbId: saved.id });
+                    }
+                };
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // ----- 취침 타이머 -----
+
+        function cycleSleepTimer() {
+            sleepIndex = (sleepIndex + 1) % SLEEP_STEPS.length;
+            const minutes = SLEEP_STEPS[sleepIndex];
+
+            clearInterval(sleepTicker);
+            sleepTicker = null;
+
+            if (!minutes) {
+                sleepDeadline = 0;
+                btnTimer.classList.remove("armed");
+                btnTimer.setAttribute("aria-label", "취침 타이머 설정");
+                timerLabel.textContent = "타이머";
+                return;
+            }
+
+            sleepDeadline = Date.now() + minutes * 60000;
+            btnTimer.classList.add("armed");
+            btnTimer.setAttribute("aria-label", `취침 타이머 ${minutes}분, 누르면 변경`);
+            updateSleepLabel();
+            sleepTicker = setInterval(() => {
+                if (Date.now() >= sleepDeadline) {
+                    expireSleepTimer();
+                } else {
+                    updateSleepLabel();
+                }
+            }, 1000);
+
+            gtag('event', 'set_sleep_timer', { minutes });
+        }
+
+        function updateSleepLabel() {
+            timerLabel.textContent = formatDuration(sleepDeadline - Date.now());
+        }
+
+        function expireSleepTimer() {
+            clearInterval(sleepTicker);
+            sleepTicker = null;
+            sleepIndex = 0;
+            sleepDeadline = 0;
+            btnTimer.classList.remove("armed");
+            btnTimer.setAttribute("aria-label", "취침 타이머 설정");
+            timerLabel.textContent = "타이머";
+            stopPlay();
+            playerSubtext.textContent = "취침 타이머가 끝나 재생을 정지했습니다.";
+        }
+
+        // ----- VU 미터 -----
+
+        function startVu() {
+            if (!analyser || vuRaf) return;
+            vuData = new Uint8Array(analyser.frequencyBinCount);
+            vuRaf = requestAnimationFrame(drawVu);
+        }
+
+        function stopVu() {
+            if (vuRaf) cancelAnimationFrame(vuRaf);
+            vuRaf = null;
+            vuCtx.setTransform(1, 0, 0, 1, 0, 0);
+            vuCtx.clearRect(0, 0, vuCanvas.width, vuCanvas.height);
+        }
+
+        function drawVu() {
+            vuRaf = requestAnimationFrame(drawVu);
+
+            const dpr = window.devicePixelRatio || 1;
+            const width = vuCanvas.clientWidth;
+            const height = vuCanvas.clientHeight;
+            if (vuCanvas.width !== Math.round(width * dpr) || vuCanvas.height !== Math.round(height * dpr)) {
+                vuCanvas.width = Math.round(width * dpr);
+                vuCanvas.height = Math.round(height * dpr);
+            }
+
+            vuCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            vuCtx.clearRect(0, 0, width, height);
+            analyser.getByteFrequencyData(vuData);
+
+            const bars = 48;
+            const gap = 3;
+            const barWidth = (width - gap * (bars - 1)) / bars;
+            vuCtx.fillStyle = accentColor;
+            for (let i = 0; i < bars; i++) {
+                // 라디오 음성 대역이 몰려 있는 저·중역(하위 72% bin)만 사용
+                const value = vuData[Math.floor((i / bars) * vuData.length * 0.72)] / 255;
+                const barHeight = Math.max(2, value * (height - 6));
+                vuCtx.globalAlpha = 0.22 + value * 0.6;
+                vuCtx.fillRect(i * (barWidth + gap), height - barHeight, barWidth, barHeight);
+            }
+            vuCtx.globalAlpha = 1;
         }
 
         // ----- Media Session / 시계 -----
@@ -1363,15 +1718,28 @@
         setInterval(tickClock, 1000);
         tickClock();
 
+        function stepStation(delta) {
+            let index = currentStation ? stations.findIndex((item) => item.id === currentStation.id) : -1;
+            index = (index + delta + stations.length) % stations.length;
+            selectStation(stations[index].id);
+        }
+
         document.addEventListener("keydown", (event) => {
-            if (event.code === "Space" && event.target === document.body) {
+            const onBody = event.target === document.body;
+            const onStation = event.target.closest && event.target.closest(".station");
+
+            if (event.code === "Space" && onBody) {
                 event.preventDefault();
                 togglePlay();
+            } else if ((event.code === "ArrowDown" || event.code === "ArrowUp") && (onBody || onStation)) {
+                event.preventDefault();
+                stepStation(event.code === "ArrowDown" ? 1 : -1);
             }
         });
 
         audio.addEventListener("pause", () => {
             stopRecording();
+            stopVu();
             isPlaying = false;
             updatePlayButton();
             updateActiveStation();
@@ -1381,13 +1749,31 @@
             isPlaying = true;
             updatePlayButton();
             updateActiveStation();
+            if (audioCtx && audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
+            startVu();
             if (currentStation) {
                 playerSubtext.textContent = `${currentStation.name} 재생 중입니다.`;
             }
         });
 
+        function restoreLastStation() {
+            const lastId = loadJson("fmRadio.lastStation", null);
+            const station = stations.find((item) => item.id === lastId);
+            if (!station) return;
+
+            currentStation = station;
+            nowStation.textContent = station.name;
+            playerSubtext.textContent = "마지막으로 듣던 채널입니다. 재생 버튼을 누르면 연결합니다.";
+            applyStationTheme(station);
+            reapplyStationState();
+        }
+
         renderStations();
+        restoreLastStation();
         updateRecButton();
+        openRecordingDb();
     </script>
 </body>
 </html>
