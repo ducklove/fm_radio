@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>FM 라디오 미니 플레이어</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%BB%3C/text%3E%3C/svg%3E">
+    <script>
+        document.documentElement.dataset.theme =
+            new URLSearchParams(location.search).get("theme") === "light" ? "light" : "dark";
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8GLTG1KYZ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-S8GLTG1KYZ');
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
+    <style>
+        :root {
+            --bg: #171412;
+            --panel: rgba(255, 248, 240, 0.05);
+            --line: rgba(255, 244, 232, 0.12);
+            --text: #f7f0e7;
+            --muted: #b9aea1;
+            --accent: #d36a42;
+        }
+
+        :root[data-theme="light"] {
+            --bg: #faf6f1;
+            --panel: rgba(30, 24, 18, 0.05);
+            --line: rgba(30, 24, 18, 0.14);
+            --text: #2b2118;
+            --muted: #7d7166;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+            color: inherit;
+        }
+
+        button {
+            border: 0;
+            background: none;
+            cursor: pointer;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .widget {
+            width: 100%;
+            max-width: 460px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-play {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #fff8f2;
+            background: radial-gradient(circle at 30% 30%, var(--accent) 0%, var(--accent) 60%, rgba(0, 0, 0, 0.35) 130%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 6px 14px rgba(0, 0, 0, 0.25);
+            transition: transform 0.15s ease;
+        }
+
+        .btn-play:active {
+            transform: scale(0.96);
+        }
+
+        .btn-play.loading {
+            opacity: 0.7;
+        }
+
+        .info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .w-station {
+            font-size: 0.98rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .w-status {
+            margin-top: 2px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .eq {
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            height: 18px;
+            flex-shrink: 0;
+            visibility: hidden;
+        }
+
+        .eq.on {
+            visibility: visible;
+        }
+
+        .eq i {
+            width: 3px;
+            border-radius: 999px;
+            background: var(--accent);
+            animation: eq 0.8s ease-in-out infinite alternate;
+        }
+
+        .eq i:nth-child(1) { height: 7px; animation-delay: 0s; }
+        .eq i:nth-child(2) { height: 15px; animation-delay: 0.2s; }
+        .eq i:nth-child(3) { height: 10px; animation-delay: 0.35s; }
+
+        @keyframes eq {
+            0% { height: 4px; opacity: 0.55; }
+            100% { height: 18px; opacity: 1; }
+        }
+
+        select {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            cursor: pointer;
+        }
+
+        :root[data-theme="dark"] select option,
+        :root[data-theme="dark"] select optgroup {
+            background: #201c19;
+            color: #f7f0e7;
+        }
+
+        .vol {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .vol svg {
+            width: 16px;
+            height: 16px;
+            fill: var(--muted);
+            flex-shrink: 0;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 92px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--accent), var(--line));
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            background: #fff8f0;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            background: #fff8f0;
+            cursor: pointer;
+        }
+
+        .home-link {
+            color: var(--muted);
+            font-size: 0.72rem;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .home-link:hover {
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+    <div class="widget" role="application" aria-label="FM 라디오 미니 플레이어">
+        <div class="row">
+            <button class="btn-play" id="btnPlay" type="button" aria-label="재생 또는 일시정지">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path id="playIcon" d="M8 5v14l11-7z"></path>
+                </svg>
+            </button>
+            <div class="info">
+                <div class="w-station" id="wStation"></div>
+                <div class="w-status" id="wStatus">재생 버튼을 눌러 시작하세요.</div>
+            </div>
+            <div class="eq" id="eq" aria-hidden="true"><i></i><i></i><i></i></div>
+        </div>
+        <div class="row">
+            <select id="stationSelect" aria-label="채널 선택"></select>
+            <div class="vol">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path></svg>
+                <input type="range" id="volume" min="0" max="100" value="80" aria-label="볼륨">
+            </div>
+            <a class="home-link" href="index.html" target="_blank" rel="noopener">전체 페이지 ↗</a>
+        </div>
+    </div>
+
+    <audio id="audioPlayer" crossorigin="anonymous"></audio>
+
+    <script src="stations.js"></script>
+    <script>
+        const params = new URLSearchParams(location.search);
+        const stations = FMRadio.stations;
+        const audio = document.getElementById("audioPlayer");
+        const btnPlay = document.getElementById("btnPlay");
+        const playIcon = document.getElementById("playIcon");
+        const wStation = document.getElementById("wStation");
+        const wStatus = document.getElementById("wStatus");
+        const eq = document.getElementById("eq");
+        const select = document.getElementById("stationSelect");
+        const volume = document.getElementById("volume");
+
+        let current = stations.find((item) => item.id === params.get("station")) || stations[0];
+        let isPlaying = false;
+        let isLoading = false;
+        let loadedId = null;
+        let hls = null;
+
+        audio.volume = 0.8;
+
+        for (const [group, label] of Object.entries(FMRadio.groupLabels)) {
+            const groupStations = stations.filter((item) => item.group === group);
+            if (!groupStations.length) continue;
+            const optgroup = document.createElement("optgroup");
+            optgroup.label = label;
+            for (const station of groupStations) {
+                const option = document.createElement("option");
+                option.value = station.id;
+                option.textContent = `${station.name} · ${station.desc}`;
+                optgroup.append(option);
+            }
+            select.append(optgroup);
+        }
+
+        function applyStation() {
+            select.value = current.id;
+            wStation.textContent = current.name;
+            document.documentElement.style.setProperty("--accent", current.color);
+        }
+
+        function setStatus(text) {
+            wStatus.textContent = text;
+        }
+
+        function updateUi() {
+            playIcon.setAttribute("d", isPlaying ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z");
+            btnPlay.classList.toggle("loading", isLoading);
+            eq.classList.toggle("on", isPlaying);
+        }
+
+        function stopStream() {
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            audio.pause();
+            audio.removeAttribute("src");
+            loadedId = null;
+        }
+
+        function playBlocked() {
+            isPlaying = false;
+            isLoading = false;
+            setStatus("재생 버튼을 눌러 시작하세요.");
+            updateUi();
+            broadcastState();
+        }
+
+        function startStream(url) {
+            if (url.includes(".m3u8") && typeof Hls !== "undefined" && Hls.isSupported()) {
+                hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+                hls.loadSource(url);
+                hls.attachMedia(audio);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    audio.play().catch(playBlocked);
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            hls.startLoad();
+                        } else {
+                            stopStream();
+                            isLoading = false;
+                            setStatus("스트림 오류 — 다시 시도해 주세요.");
+                            updateUi();
+                        }
+                    }
+                });
+            } else {
+                audio.src = url;
+                audio.play().catch(playBlocked);
+            }
+            loadedId = current.id;
+        }
+
+        async function play() {
+            if (isLoading) return;
+            isLoading = true;
+            setStatus("연결 중…");
+            updateUi();
+
+            try {
+                const url = await FMRadio.getStreamUrl(current);
+                stopStream();
+                startStream(url);
+                gtag('event', 'play_station', {
+                    station_id: current.id,
+                    station_name: current.name,
+                    station_group: current.group,
+                    context: 'widget'
+                });
+            } catch (error) {
+                console.error(error);
+                isLoading = false;
+                setStatus("연결 실패 — 잠시 후 다시 시도해 주세요.");
+                updateUi();
+                broadcastState();
+            }
+        }
+
+        function toggle() {
+            if (isPlaying) {
+                audio.pause();
+            } else if (loadedId === current.id && (hls || audio.src)) {
+                audio.play().catch(playBlocked);
+            } else {
+                play();
+            }
+        }
+
+        function setStation(id, autoplay) {
+            const station = stations.find((item) => item.id === id);
+            if (!station) return;
+            const changed = station.id !== current.id;
+            current = station;
+            applyStation();
+            if (autoplay) {
+                play();
+            } else if (changed) {
+                stopStream();
+                isPlaying = false;
+                setStatus("재생 버튼을 눌러 시작하세요.");
+                updateUi();
+                broadcastState();
+            }
+        }
+
+        function setVolume(value) {
+            const level = Math.max(0, Math.min(100, Number(value)));
+            if (Number.isNaN(level)) return;
+            audio.volume = level / 100;
+            volume.value = level;
+            broadcastState();
+        }
+
+        // ----- 외부 연동(postMessage) -----
+
+        function stateMessage(type) {
+            return {
+                type: type || "fmRadio:state",
+                station: current.id,
+                stationName: current.name,
+                playing: isPlaying,
+                loading: isLoading,
+                volume: Math.round(audio.volume * 100)
+            };
+        }
+
+        function broadcastState() {
+            const message = stateMessage();
+            try {
+                if (window.parent && window.parent !== window) window.parent.postMessage(message, "*");
+                if (window.opener) window.opener.postMessage(message, "*");
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        window.addEventListener("message", (event) => {
+            const data = event.data;
+            if (!data || typeof data.type !== "string" || !data.type.startsWith("fmRadio:")) return;
+
+            switch (data.type) {
+                case "fmRadio:play":
+                    if (data.station) setStation(data.station, true);
+                    else toggle();
+                    break;
+                case "fmRadio:pause":
+                    if (isPlaying) audio.pause();
+                    break;
+                case "fmRadio:toggle":
+                    toggle();
+                    break;
+                case "fmRadio:setStation":
+                    setStation(data.station, data.autoplay === true);
+                    break;
+                case "fmRadio:setVolume":
+                    setVolume(data.value);
+                    break;
+                case "fmRadio:getState":
+                    if (event.source) event.source.postMessage(stateMessage(), "*");
+                    break;
+            }
+        });
+
+        // ----- 이벤트 -----
+
+        btnPlay.addEventListener("click", toggle);
+        select.addEventListener("change", () => setStation(select.value, isPlaying || isLoading));
+        volume.addEventListener("input", () => setVolume(volume.value));
+
+        audio.addEventListener("playing", () => {
+            isPlaying = true;
+            isLoading = false;
+            setStatus(`${current.name} 재생 중`);
+            updateUi();
+            broadcastState();
+        });
+
+        audio.addEventListener("pause", () => {
+            isPlaying = false;
+            isLoading = false;
+            setStatus("일시정지됨");
+            updateUi();
+            broadcastState();
+        });
+
+        if ("mediaSession" in navigator) {
+            try {
+                navigator.mediaSession.setActionHandler("play", toggle);
+                navigator.mediaSession.setActionHandler("pause", toggle);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        applyStation();
+        updateUi();
+
+        try {
+            if (window.parent && window.parent !== window) window.parent.postMessage(stateMessage("fmRadio:ready"), "*");
+            if (window.opener) window.opener.postMessage(stateMessage("fmRadio:ready"), "*");
+        } catch (error) {
+            console.error(error);
+        }
+
+        if (params.get("autoplay") === "1") {
+            play();
+        }
+    </script>
+</body>
+</html>

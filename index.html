@@ -119,16 +119,38 @@
             text-overflow: ellipsis;
         }
 
-        .live-clock {
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .live-clock,
+        .mini-open {
             font-size: 0.92rem;
             font-weight: 600;
-            font-variant-numeric: tabular-nums;
             color: #e2d7ca;
             padding: 8px 14px;
             border-radius: 999px;
             border: 1px solid var(--line);
             background: var(--panel-soft);
             flex-shrink: 0;
+        }
+
+        .live-clock {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .mini-open {
+            font-size: 0.84rem;
+            cursor: pointer;
+            transition: background 0.18s ease, border-color 0.18s ease;
+        }
+
+        .mini-open:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.16);
         }
 
         .hero-visual {
@@ -664,6 +686,11 @@
             text-align: center;
         }
 
+        .footer-link {
+            color: #dfb287;
+            margin-left: 8px;
+        }
+
         .dial-knob {
             position: absolute;
             right: 4%;
@@ -782,7 +809,10 @@
                     <div class="brand-sub">KBS · MBC · CBS · SBS와 주요 FM을 한 화면에서</div>
                 </div>
             </div>
-            <div class="live-clock" id="liveClock" aria-label="현재 시각">--:--:--</div>
+            <div class="header-actions">
+                <button class="mini-open" type="button" onclick="openWidget()" title="작은 창으로 열어 들으면서 다른 일을 할 수 있습니다">미니 플레이어 ↗</button>
+                <div class="live-clock" id="liveClock" aria-label="현재 시각">--:--:--</div>
+            </div>
         </header>
 
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
@@ -881,29 +911,16 @@
 
         <footer class="site-footer">
             방송 스트림의 저작권은 각 방송사에 있습니다. 녹음 파일은 개인 감상 용도로만 이용해 주세요.
+            <a class="footer-link" href="embed.html">위젯·임베드 안내</a>
         </footer>
     </div>
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
+    <script src="stations.js"></script>
     <script>
-        const stations = [
-            { id: "kbs1fm", name: "KBS 1FM", desc: "클래식 FM", group: "kbs", color: "#7b6a57", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/24" },
-            { id: "kbs2fm", name: "KBS 2FM", desc: "Cool FM", group: "kbs", color: "#9b5d44", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/25" },
-            { id: "kbs1r", name: "KBS 1라디오", desc: "뉴스·시사", group: "kbs", color: "#5d6877", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/21" },
-            { id: "kbs2r", name: "KBS 2라디오", desc: "해피FM", group: "kbs", color: "#8a4335", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/22" },
-            { id: "kbs3r", name: "KBS 3라디오", desc: "사회교육방송", group: "kbs", color: "#596f6a", type: "kbs-api", apiUrl: "https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/23" },
-            { id: "mbcsfm", name: "MBC 표준FM", desc: "95.9MHz", group: "mbc", color: "#3b6d9e", type: "mbc-api", apiUrl: "https://cantabile.tplinkdns.com:3689/?channel=sfm" },
-            { id: "mbcfm4u", name: "MBC FM4U", desc: "91.9MHz", group: "mbc", color: "#2e8b7a", type: "mbc-api", apiUrl: "https://cantabile.tplinkdns.com:3689/?channel=mfm" },
-            { id: "cbsstd", name: "CBS 표준FM", desc: "98.1MHz", group: "cbs", color: "#6d7f49", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs981/_definst_/cbs981.stream/playlist.m3u8" },
-            { id: "cbsmusic", name: "CBS 음악FM", desc: "93.9MHz", group: "cbs", color: "#5c6f8d", type: "direct", streamUrl: "https://m-aac.cbs.co.kr/mweb_cbs939/_definst_/cbs939.stream/playlist.m3u8" },
-            { id: "sbslove", name: "SBS 러브FM", desc: "103.5MHz", group: "sbs", color: "#5e667d", type: "sbs-api", apiUrl: "https://apis.sbs.co.kr/play-api/1.0/livestream/lovepc/lovefm?protocol=hls&ssl=Y" },
-            { id: "sbspower", name: "SBS 파워FM", desc: "107.7MHz", group: "sbs", color: "#6e7b98", type: "sbs-api", apiUrl: "https://apis.sbs.co.kr/play-api/1.0/livestream/powerpc/powerfm?protocol=hls&ssl=Y" },
-            { id: "ebsfm", name: "EBS FM", desc: "104.5MHz", group: "etc", color: "#65735d", type: "direct", streamUrl: "https://ebsonair.ebs.co.kr/fmradiofamilypc/familypc1m/playlist.m3u8" },
-            { id: "ytn", name: "YTN 라디오", desc: "94.5MHz", group: "etc", color: "#9b6e34", type: "direct", streamUrl: "https://radiolive.ytn.co.kr/radio/_definst_/20211118_fmlive/playlist.m3u8" },
-            { id: "gugak", name: "국악방송", desc: "99.1MHz", group: "etc", color: "#7d5b78", type: "direct", streamUrl: "https://mgugaklive.nowcdn.co.kr/gugakradio/gugakradio.stream/playlist.m3u8" },
-            { id: "febc", name: "극동방송", desc: "FEBC Seoul", group: "etc", color: "#8b5d3f", type: "direct", streamUrl: "https://mlive3.febc.net/live5/mplive/playlist.m3u8" }
-        ];
+        const stations = FMRadio.stations;
+        const getStreamUrl = FMRadio.getStreamUrl;
 
         const audio = document.getElementById("audioPlayer");
         const playIcon = document.getElementById("playIcon");
@@ -1051,40 +1068,6 @@
                 station_id: id,
                 favorited: index < 0
             });
-        }
-
-        async function getStreamUrl(station) {
-            if (station.type === "direct") {
-                return station.streamUrl;
-            }
-
-            const response = await fetch(station.apiUrl);
-
-            if (station.type === "kbs-api") {
-                const data = await response.json();
-                if (data.channel_item && data.channel_item.length > 0) {
-                    return data.channel_item[0].service_url;
-                }
-                throw new Error("KBS 스트림 URL을 가져올 수 없습니다");
-            }
-
-            if (station.type === "sbs-api") {
-                const url = (await response.text()).trim();
-                if (url.startsWith("http")) {
-                    return url;
-                }
-                throw new Error("스트림 URL을 가져올 수 없습니다");
-            }
-
-            if (station.type === "mbc-api") {
-                const url = (await response.text()).trim();
-                if (url.startsWith("http")) {
-                    return url;
-                }
-                throw new Error("MBC 스트림 URL을 가져올 수 없습니다");
-            }
-
-            throw new Error("알 수 없는 스트림 타입");
         }
 
         function applyStationTheme(station) {
@@ -1757,6 +1740,16 @@
                 playerSubtext.textContent = `${currentStation.name} 재생 중입니다.`;
             }
         });
+
+        function openWidget() {
+            const param = currentStation && stations.some((item) => item.id === currentStation.id)
+                ? `?station=${currentStation.id}`
+                : "";
+            window.open(`widget.html${param}`, "fmRadioWidget", "width=400,height=220,resizable=yes");
+            gtag('event', 'open_widget', {
+                station_id: currentStation ? currentStation.id : null
+            });
+        }
 
         function restoreLastStation() {
             const lastId = loadJson("fmRadio.lastStation", null);

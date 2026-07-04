@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FM 라디오 위젯 · 임베드 안내</title>
+    <meta name="description" content="FM 라디오 미니 플레이어를 iframe이나 팝업 창으로 내 사이트에 넣고 postMessage로 제어하는 방법">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%BB%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <style>
+        :root {
+            --bg: #121110;
+            --panel: rgba(30, 27, 24, 0.9);
+            --panel-soft: rgba(255, 248, 240, 0.05);
+            --line: rgba(255, 244, 232, 0.1);
+            --text: #f7f0e7;
+            --muted: #b9aea1;
+            --accent: #d36a42;
+            --accent-strong: #ec8255;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Pretendard Variable", Pretendard, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            background: linear-gradient(180deg, #201a16 0%, #131110 30%, #0d0d0d 100%);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .shell {
+            width: min(860px, calc(100% - 28px));
+            margin: 0 auto;
+            padding: 26px 0 60px;
+        }
+
+        a {
+            color: #dfb287;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+        }
+
+        .back:hover {
+            color: var(--text);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+
+        .lead {
+            color: var(--muted);
+            margin-bottom: 26px;
+        }
+
+        section {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 22px;
+            margin-bottom: 18px;
+        }
+
+        h2 {
+            font-size: 1.05rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2::before {
+            content: "";
+            width: 4px;
+            height: 15px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+        }
+
+        p {
+            font-size: 0.92rem;
+            color: #d9cfc3;
+            margin-bottom: 10px;
+        }
+
+        .preview {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            overflow: hidden;
+            background: #171412;
+            margin: 12px 0;
+        }
+
+        .preview iframe {
+            display: block;
+            width: 100%;
+            height: 200px;
+            border: 0;
+        }
+
+        .code-block {
+            position: relative;
+            margin: 10px 0 4px;
+        }
+
+        pre {
+            background: #0d0c0b;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            font-size: 0.8rem;
+            line-height: 1.55;
+        }
+
+        code {
+            font-family: "SF Mono", Consolas, "D2Coding", monospace;
+            color: #e8ddcf;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font: inherit;
+            font-size: 0.72rem;
+            color: #e2d7ca;
+            background: var(--panel-soft);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 12px;
+            cursor: pointer;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+            margin: 8px 0;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td code {
+            color: #efb98a;
+            font-size: 0.8rem;
+        }
+
+        .note {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <a class="back" href="index.html">← FM 라디오 모음으로 돌아가기</a>
+        <h1>위젯 · 임베드 안내</h1>
+        <p class="lead">미니 플레이어를 iframe으로 내 사이트에 넣거나, 작은 팝업 창으로 띄우거나, postMessage로 다른 서비스와 연동할 수 있습니다.</p>
+
+        <section>
+            <h2>미리보기</h2>
+            <div class="preview">
+                <iframe src="widget.html?station=kbs1fm" title="FM 라디오 미니 플레이어 미리보기" allow="autoplay"></iframe>
+            </div>
+            <p class="note">위 위젯은 실제로 동작합니다. 채널을 고르고 재생해 보세요.</p>
+        </section>
+
+        <section>
+            <h2>1. iframe으로 넣기</h2>
+            <p>아래 코드를 복사해 원하는 페이지에 붙여넣으세요. <code>allow="autoplay"</code>를 주면 위젯 안의 재생 제어가 원활합니다.</p>
+            <div class="code-block">
+                <button class="copy-btn" type="button">복사</button>
+                <pre><code id="snippetIframe"></code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>2. 작은 팝업 창으로 열기</h2>
+            <p>버튼이나 링크에서 아래처럼 호출하면 미니 플레이어가 작은 별도 창으로 열립니다.</p>
+            <div class="code-block">
+                <button class="copy-btn" type="button">복사</button>
+                <pre><code id="snippetPopup"></code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>3. URL 파라미터</h2>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>파라미터</th><th>값</th><th>설명</th></tr>
+                    <tr><td><code>station</code></td><td>채널 ID</td><td>시작 채널을 지정합니다. 예: <code>kbs1fm</code>, <code>kbs2fm</code>, <code>kbs1r</code>, <code>kbs2r</code>, <code>kbs3r</code>, <code>mbcsfm</code>, <code>mbcfm4u</code>, <code>cbsstd</code>, <code>cbsmusic</code>, <code>sbslove</code>, <code>sbspower</code>, <code>ebsfm</code>, <code>ytn</code>, <code>gugak</code>, <code>febc</code></td></tr>
+                    <tr><td><code>autoplay</code></td><td><code>1</code></td><td>로드 즉시 재생을 시도합니다. 브라우저 정책상 차단되면 재생 버튼 대기 상태로 남습니다.</td></tr>
+                    <tr><td><code>theme</code></td><td><code>dark</code>(기본) / <code>light</code></td><td>밝은 배경의 사이트에 넣을 때 <code>light</code>를 사용하세요.</td></tr>
+                </table>
+            </div>
+        </section>
+
+        <section>
+            <h2>4. postMessage로 제어하기 (연동 API)</h2>
+            <p>iframe이나 팝업으로 연 위젯에 메시지를 보내 제어하고, 위젯이 보내는 상태 이벤트를 받을 수 있습니다.</p>
+
+            <p><strong>보낼 수 있는 명령</strong></p>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>type</th><th>추가 필드</th><th>동작</th></tr>
+                    <tr><td><code>fmRadio:play</code></td><td><code>station</code>(선택)</td><td>재생. <code>station</code>을 주면 해당 채널로 전환 후 재생</td></tr>
+                    <tr><td><code>fmRadio:pause</code></td><td>—</td><td>일시정지</td></tr>
+                    <tr><td><code>fmRadio:toggle</code></td><td>—</td><td>재생/일시정지 전환</td></tr>
+                    <tr><td><code>fmRadio:setStation</code></td><td><code>station</code>, <code>autoplay</code>(불리언)</td><td>채널 전환. <code>autoplay: true</code>면 바로 재생</td></tr>
+                    <tr><td><code>fmRadio:setVolume</code></td><td><code>value</code> (0–100)</td><td>볼륨 설정</td></tr>
+                    <tr><td><code>fmRadio:getState</code></td><td>—</td><td>현재 상태를 <code>fmRadio:state</code>로 회신</td></tr>
+                </table>
+            </div>
+
+            <p><strong>위젯이 보내는 이벤트</strong> — <code>fmRadio:ready</code>(로드 완료), <code>fmRadio:state</code>(상태 변경·회신). 두 이벤트 모두 <code>station</code>, <code>stationName</code>, <code>playing</code>, <code>loading</code>, <code>volume</code> 필드를 담고 있습니다.</p>
+
+            <div class="code-block">
+                <button class="copy-btn" type="button">복사</button>
+                <pre><code id="snippetApi"></code></pre>
+            </div>
+            <p class="note">주의: 최초 재생은 브라우저 자동재생 정책 때문에 사용자의 클릭 등 제스처 안에서 명령을 보내야 확실하게 동작합니다.</p>
+        </section>
+    </div>
+
+    <script>
+        const widgetUrl = new URL("widget.html", location.href).href;
+
+        document.getElementById("snippetIframe").textContent =
+`<iframe
+  src="${widgetUrl}?station=kbs1fm"
+  width="380" height="200"
+  style="border:0; border-radius:14px;"
+  allow="autoplay"
+  title="FM 라디오 위젯"></iframe>`;
+
+        document.getElementById("snippetPopup").textContent =
+`<button onclick="window.open(
+  '${widgetUrl}?station=kbs1fm',
+  'fmRadioWidget',
+  'width=400,height=220,resizable=yes'
+)">라디오 열기</button>`;
+
+        document.getElementById("snippetApi").textContent =
+`const frame = document.querySelector('iframe'); // 위젯 iframe
+
+// 상태 이벤트 수신
+window.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || typeof data.type !== 'string' || !data.type.startsWith('fmRadio:')) return;
+  if (data.type === 'fmRadio:state' || data.type === 'fmRadio:ready') {
+    console.log(data.stationName, data.playing ? '재생 중' : '정지', '볼륨', data.volume);
+  }
+});
+
+// 명령 보내기 (버튼 클릭 등 사용자 제스처 안에서)
+frame.contentWindow.postMessage({ type: 'fmRadio:play', station: 'kbs1fm' }, '*');
+frame.contentWindow.postMessage({ type: 'fmRadio:setVolume', value: 40 }, '*');
+frame.contentWindow.postMessage({ type: 'fmRadio:getState' }, '*');`;
+
+        document.querySelectorAll(".copy-btn").forEach((button) => {
+            button.addEventListener("click", async () => {
+                const code = button.parentElement.querySelector("code").textContent;
+                try {
+                    await navigator.clipboard.writeText(code);
+                    button.textContent = "복사됨!";
+                } catch (error) {
+                    button.textContent = "복사 실패";
+                }
+                setTimeout(() => { button.textContent = "복사"; }, 1600);
+            });
+        });
+    </script>
+</body>
+</html>
