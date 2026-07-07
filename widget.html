@@ -227,6 +227,28 @@
             cursor: pointer;
         }
 
+        .row-seek[hidden] {
+            display: none;
+        }
+
+        .row-seek input[type="range"] {
+            flex: 1;
+            width: auto;
+        }
+
+        .t-label {
+            font-size: 0.68rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--muted);
+            flex-shrink: 0;
+            min-width: 4ch;
+            text-align: center;
+        }
+
+        :root[data-skin="tuner"] .t-label {
+            color: #a3937d;
+        }
+
         .home-link,
         .skin-link {
             color: var(--muted);
@@ -807,8 +829,15 @@
                 <div class="knob-cap" id="knobCap"><span class="knob-dot"></span></div>
             </div>
         </div>
+        <div class="row row-seek" id="seekRow" hidden>
+            <span class="t-label" id="tCur">0:00</span>
+            <input type="range" id="seek" min="0" max="1000" value="0" aria-label="재생 위치">
+            <span class="t-label" id="tDur">--:--</span>
+        </div>
         <div class="row">
-            <select id="stationSelect" aria-label="채널 선택"></select>
+            <select id="stationSelect" aria-label="채널 선택">
+                <option id="mediaOption" value="__media__" hidden>♪</option>
+            </select>
             <div class="vol">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path></svg>
                 <input type="range" id="volume" min="0" max="100" value="80" aria-label="볼륨">
@@ -822,7 +851,8 @@
         </div>
     </div>
 
-    <audio id="audioPlayer" crossorigin="anonymous"></audio>
+    <!-- crossorigin을 붙이지 않는다: CORS 헤더 없는 서버의 MP3도 재생돼야 한다 (위젯은 Web Audio 캡처를 쓰지 않음) -->
+    <audio id="audioPlayer"></audio>
 
     <script src="stations.js"></script>
     <script>
@@ -844,6 +874,11 @@
         const meterNeedle = document.getElementById("meterNeedle");
         const tuningKnob = document.getElementById("tuningKnob");
         const knobCap = document.getElementById("knobCap");
+        const seekRow = document.getElementById("seekRow");
+        const seek = document.getElementById("seek");
+        const tCur = document.getElementById("tCur");
+        const tDur = document.getElementById("tDur");
+        const mediaOption = document.getElementById("mediaOption");
 
         const skin = document.documentElement.dataset.skin;
         const TUNER_ACCENT = "#e8b06a";
@@ -855,6 +890,8 @@
         let isLoading = false;
         let loadedId = null;
         let hls = null;
+        let media = null; // MP3 모드: { url, title } — null이면 라디오 모드
+        let seekDragging = false;
 
         audio.volume = 0.8;
 
@@ -982,7 +1019,9 @@
         function playBlocked() {
             isPlaying = false;
             isLoading = false;
-            setStatus("재생 버튼을 눌러 시작하세요.");
+            setStatus(audio.error
+                ? "파일을 불러올 수 없습니다. 주소를 확인해 주세요."
+                : "재생 버튼을 눌러 시작하세요.");
             updateUi();
             broadcastState();
         }
@@ -1042,7 +1081,7 @@
         function toggle() {
             if (isPlaying) {
                 audio.pause();
-            } else if (loadedId === current.id && (hls || audio.src)) {
+            } else if (media || (loadedId === current.id && (hls || audio.src))) {
                 audio.play().catch(playBlocked);
             } else {
                 play();
@@ -1052,7 +1091,8 @@
         function setStation(id, autoplay) {
             const station = stations.find((item) => item.id === id);
             if (!station) return;
-            const changed = station.id !== current.id;
+            const changed = station.id !== current.id || media !== null;
+            if (media) exitMediaMode();
             current = station;
             applyStation();
             if (autoplay) {
@@ -1066,6 +1106,94 @@
             }
         }
 
+        // ----- MP3(미디어) 모드 -----
+
+        function formatTime(seconds) {
+            const total = Math.max(0, Math.floor(seconds || 0));
+            const minutes = Math.floor(total / 60);
+            const secs = String(total % 60).padStart(2, "0");
+            return `${minutes}:${secs}`;
+        }
+
+        function mediaTitleFromUrl(url) {
+            try {
+                const base = decodeURIComponent(new URL(url, location.href).pathname.split("/").pop() || "");
+                return base.replace(/\.[a-z0-9]{2,5}$/i, "") || "오디오 파일";
+            } catch (error) {
+                return "오디오 파일";
+            }
+        }
+
+        function playMedia(url, title, autoplay) {
+            if (!url || typeof url !== "string") return;
+
+            stopStream();
+            media = { url, title: (title && String(title).trim()) || mediaTitleFromUrl(url) };
+
+            mediaOption.hidden = false;
+            mediaOption.textContent = `♪ ${media.title}`;
+            select.value = "__media__";
+            wStation.textContent = media.title;
+            setStatus(autoplay ? "불러오는 중…" : "재생 버튼을 눌러 시작하세요.");
+            seekRow.hidden = false;
+            seek.value = 0;
+            tCur.textContent = "0:00";
+            tDur.textContent = "--:--";
+
+            if (skin === "tuner") {
+                freqDigits.textContent = "0:00";
+                dialNeedle.style.left = "0%";
+                knobCap.style.transform = "rotate(-135deg)";
+            }
+
+            audio.src = url;
+            if (autoplay) {
+                audio.play().catch(playBlocked);
+            }
+            updateUi();
+            updateSkinLink();
+            broadcastState();
+
+            gtag('event', 'play_media', { media_title: media.title });
+        }
+
+        function exitMediaMode() {
+            media = null;
+            audio.pause();
+            audio.removeAttribute("src");
+            mediaOption.hidden = true;
+            seekRow.hidden = true;
+            isPlaying = false;
+        }
+
+        function updateSeekUi() {
+            if (!media) return;
+            const duration = audio.duration;
+            const hasDuration = Number.isFinite(duration) && duration > 0;
+
+            tCur.textContent = formatTime(audio.currentTime);
+            tDur.textContent = hasDuration ? formatTime(duration) : "--:--";
+            if (!seekDragging && hasDuration) {
+                seek.value = Math.round((audio.currentTime / duration) * 1000);
+            }
+
+            if (skin === "tuner") {
+                freqDigits.textContent = formatTime(audio.currentTime);
+                if (hasDuration) {
+                    const pct = (audio.currentTime / duration) * 100;
+                    dialNeedle.style.left = `${pct}%`;
+                    knobCap.style.transform = `rotate(${(-135 + pct * 2.7).toFixed(1)}deg)`;
+                }
+            }
+        }
+
+        function seekTo(seconds) {
+            if (!media || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            audio.currentTime = Math.max(0, Math.min(audio.duration, seconds));
+            updateSeekUi();
+            broadcastState();
+        }
+
         function setVolume(value) {
             const level = Math.max(0, Math.min(100, Number(value)));
             if (Number.isNaN(level)) return;
@@ -1077,14 +1205,22 @@
         // ----- 외부 연동(postMessage) -----
 
         function stateMessage(type) {
-            return {
+            const message = {
                 type: type || "fmRadio:state",
-                station: current.id,
-                stationName: current.name,
+                mode: media ? "media" : "radio",
+                station: media ? null : current.id,
+                stationName: media ? media.title : current.name,
                 playing: isPlaying,
                 loading: isLoading,
                 volume: Math.round(audio.volume * 100)
             };
+            if (media) {
+                message.title = media.title;
+                message.url = media.url;
+                message.currentTime = audio.currentTime || 0;
+                message.duration = Number.isFinite(audio.duration) ? audio.duration : null;
+            }
+            return message;
         }
 
         function broadcastState() {
@@ -1118,6 +1254,16 @@
                 case "fmRadio:setVolume":
                     setVolume(data.value);
                     break;
+                case "fmRadio:playMedia":
+                    playMedia(data.url, data.title, data.autoplay !== false);
+                    break;
+                case "fmRadio:seek":
+                    if (typeof data.time === "number") {
+                        seekTo(data.time);
+                    } else if (typeof data.fraction === "number" && Number.isFinite(audio.duration)) {
+                        seekTo(data.fraction * audio.duration);
+                    }
+                    break;
                 case "fmRadio:getState":
                     if (event.source) event.source.postMessage(stateMessage(), "*");
                     break;
@@ -1127,31 +1273,98 @@
         // ----- 이벤트 -----
 
         btnPlay.addEventListener("click", toggle);
-        select.addEventListener("change", () => setStation(select.value, isPlaying || isLoading));
+        select.addEventListener("change", () => {
+            if (select.value === "__media__") return;
+            setStation(select.value, isPlaying || isLoading);
+        });
         volume.addEventListener("input", () => setVolume(volume.value));
+
+        seek.addEventListener("pointerdown", () => { seekDragging = true; });
+        seek.addEventListener("input", () => {
+            if (media && Number.isFinite(audio.duration)) {
+                tCur.textContent = formatTime((seek.value / 1000) * audio.duration);
+            }
+        });
+        seek.addEventListener("change", () => {
+            seekDragging = false;
+            if (media && Number.isFinite(audio.duration)) {
+                seekTo((seek.value / 1000) * audio.duration);
+            }
+        });
+
+        audio.addEventListener("loadedmetadata", () => updateSeekUi());
+        audio.addEventListener("timeupdate", () => updateSeekUi());
+
+        audio.addEventListener("ended", () => {
+            if (!media) return;
+            isPlaying = false;
+            setStatus("재생이 끝났습니다.");
+            updateUi();
+            broadcastState();
+            try {
+                if (window.parent && window.parent !== window) window.parent.postMessage(stateMessage("fmRadio:ended"), "*");
+                if (window.opener) window.opener.postMessage(stateMessage("fmRadio:ended"), "*");
+            } catch (error) {
+                console.error(error);
+            }
+        });
+
+        audio.addEventListener("error", () => {
+            if (!media) return;
+            isPlaying = false;
+            isLoading = false;
+            setStatus("파일을 불러올 수 없습니다. 주소를 확인해 주세요.");
+            updateUi();
+            broadcastState();
+        });
 
         let lastKnobStep = 0;
 
         tuningKnob.addEventListener("wheel", (event) => {
             event.preventDefault();
+            if (media) {
+                seekTo((audio.currentTime || 0) + (event.deltaY > 0 ? 10 : -10));
+                return;
+            }
             const now = Date.now();
             if (now - lastKnobStep < 250) return;
             lastKnobStep = now;
             stepStation(event.deltaY > 0 ? 1 : -1);
         }, { passive: false });
 
-        tuningKnob.addEventListener("click", () => stepStation(1));
+        tuningKnob.addEventListener("click", () => {
+            if (media) {
+                seekTo((audio.currentTime || 0) + 10);
+                return;
+            }
+            stepStation(1);
+        });
         tuningKnob.addEventListener("keydown", (event) => {
             if (event.code === "Enter" || event.code === "Space") {
                 event.preventDefault();
-                stepStation(1);
+                if (media) {
+                    seekTo((audio.currentTime || 0) + 10);
+                } else {
+                    stepStation(1);
+                }
             }
         });
 
         audio.addEventListener("playing", () => {
             isPlaying = true;
             isLoading = false;
-            setStatus(`${current.name} 재생 중`);
+            setStatus(`${media ? media.title : current.name} 재생 중`);
+            if ("mediaSession" in navigator) {
+                try {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: media ? media.title : current.name,
+                        artist: media ? "MP3 재생" : (current.desc || "FM 라디오"),
+                        album: "FM 라디오 미니 플레이어"
+                    });
+                } catch (error) {
+                    console.error(error);
+                }
+            }
             updateUi();
             broadcastState();
         });
@@ -1159,7 +1372,13 @@
         audio.addEventListener("pause", () => {
             isPlaying = false;
             isLoading = false;
-            setStatus("일시정지됨");
+            if (audio.error) {
+                setStatus("파일을 불러올 수 없습니다. 주소를 확인해 주세요.");
+            } else if (media && audio.ended) {
+                setStatus("재생이 끝났습니다.");
+            } else {
+                setStatus("일시정지됨");
+            }
             updateUi();
             broadcastState();
         });
@@ -1187,7 +1406,10 @@
             console.error(error);
         }
 
-        if (params.get("autoplay") === "1") {
+        const bootMedia = params.get("mp3") || params.get("media");
+        if (bootMedia) {
+            playMedia(bootMedia, params.get("title"), params.get("autoplay") === "1");
+        } else if (params.get("autoplay") === "1") {
             play();
         }
     </script>

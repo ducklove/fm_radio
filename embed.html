@@ -259,6 +259,8 @@
                     <tr><td><code>autoplay</code></td><td><code>1</code></td><td>로드 즉시 재생을 시도합니다. 브라우저 정책상 차단되면 재생 버튼 대기 상태로 남습니다.</td></tr>
                     <tr><td><code>theme</code></td><td><code>dark</code>(기본) / <code>light</code></td><td>밝은 배경의 사이트에 넣을 때 <code>light</code>를 사용하세요. (기본형 스킨에만 적용)</td></tr>
                     <tr><td><code>skin</code></td><td><code>tuner</code></td><td>빈티지 FM 튜너 디자인 — 주파수 다이얼·바늘·LED 주파수 표시창·STEREO 램프가 있는 페이스플레이트로 표시됩니다. 권장 크기 460×280.</td></tr>
+                    <tr><td><code>mp3</code></td><td>오디오 파일 URL</td><td>라디오 대신 MP3(또는 브라우저가 재생 가능한 오디오) 파일을 여는 미디어 모드로 시작합니다. 탐색(시크) 바가 나타나고, 튜너 스킨에서는 바늘이 재생 진행률을 따라 움직입니다.</td></tr>
+                    <tr><td><code>title</code></td><td>표시할 제목</td><td><code>mp3</code>와 함께 사용. 생략하면 파일명이 제목이 됩니다.</td></tr>
                 </table>
             </div>
         </section>
@@ -276,17 +278,29 @@
                     <tr><td><code>fmRadio:toggle</code></td><td>—</td><td>재생/일시정지 전환</td></tr>
                     <tr><td><code>fmRadio:setStation</code></td><td><code>station</code>, <code>autoplay</code>(불리언)</td><td>채널 전환. <code>autoplay: true</code>면 바로 재생</td></tr>
                     <tr><td><code>fmRadio:setVolume</code></td><td><code>value</code> (0–100)</td><td>볼륨 설정</td></tr>
+                    <tr><td><code>fmRadio:playMedia</code></td><td><code>url</code>, <code>title</code>(선택), <code>autoplay</code>(기본 true)</td><td>MP3 등 오디오 파일을 불러와 재생 (미디어 모드 진입)</td></tr>
+                    <tr><td><code>fmRadio:seek</code></td><td><code>time</code>(초) 또는 <code>fraction</code>(0–1)</td><td>미디어 모드에서 재생 위치 이동</td></tr>
                     <tr><td><code>fmRadio:getState</code></td><td>—</td><td>현재 상태를 <code>fmRadio:state</code>로 회신</td></tr>
                 </table>
             </div>
 
-            <p><strong>위젯이 보내는 이벤트</strong> — <code>fmRadio:ready</code>(로드 완료), <code>fmRadio:state</code>(상태 변경·회신). 두 이벤트 모두 <code>station</code>, <code>stationName</code>, <code>playing</code>, <code>loading</code>, <code>volume</code> 필드를 담고 있습니다.</p>
+            <p><strong>위젯이 보내는 이벤트</strong> — <code>fmRadio:ready</code>(로드 완료), <code>fmRadio:state</code>(상태 변경·회신), <code>fmRadio:ended</code>(미디어 재생 완료). 모든 이벤트에 <code>mode</code>(<code>radio</code>/<code>media</code>), <code>station</code>, <code>stationName</code>, <code>playing</code>, <code>loading</code>, <code>volume</code> 필드가 있고, 미디어 모드에서는 <code>title</code>, <code>url</code>, <code>currentTime</code>, <code>duration</code>이 추가됩니다.</p>
 
             <div class="code-block">
                 <button class="copy-btn" type="button">복사</button>
                 <pre><code id="snippetApi"></code></pre>
             </div>
             <p class="note">주의: 최초 재생은 브라우저 자동재생 정책 때문에 사용자의 클릭 등 제스처 안에서 명령을 보내야 확실하게 동작합니다.</p>
+        </section>
+
+        <section>
+            <h2>5. MP3 플레이어로 쓰기 (미디어 모드)</h2>
+            <p>라디오 대신 임의의 오디오 파일 주소를 넘기면 위젯이 MP3 플레이어가 됩니다. 탐색 바와 경과/전체 시간이 표시되고, 튜너 스킨에서는 LED 창이 경과 시간을, 다이얼 바늘이 재생 진행률을 보여주며 노브를 돌리면 ±10초 탐색됩니다. 재생이 끝나면 <code>fmRadio:ended</code> 이벤트가 옵니다. 미디어 모드에서 채널을 선택하면 다시 라디오로 돌아옵니다.</p>
+            <div class="code-block">
+                <button class="copy-btn" type="button">복사</button>
+                <pre><code id="snippetMedia"></code></pre>
+            </div>
+            <p class="note">파일 서버가 Range 요청을 지원해야 탐색이 원활합니다. 브라우저가 재생할 수 있는 형식(mp3, m4a, ogg, wav 등)이면 모두 동작합니다.</p>
         </section>
     </div>
 
@@ -340,6 +354,29 @@ window.addEventListener('message', (event) => {
 frame.contentWindow.postMessage({ type: 'fmRadio:play', station: 'kbs1fm' }, '*');
 frame.contentWindow.postMessage({ type: 'fmRadio:setVolume', value: 40 }, '*');
 frame.contentWindow.postMessage({ type: 'fmRadio:getState' }, '*');`;
+
+        document.getElementById("snippetMedia").textContent =
+`<!-- 방법 1: URL 파라미터로 바로 열기 (mp3·title 값은 URL 인코딩) -->
+<iframe
+  src="${widgetUrl}?skin=tuner&mp3=${encodeURIComponent("https://example.com/podcast.mp3")}&title=${encodeURIComponent("팟캐스트 12화")}"
+  width="460" height="280" style="border:0" allow="autoplay"></iframe>
+
+<!-- 방법 2: postMessage로 동적으로 재생/제어 -->
+<script>
+  const frame = document.querySelector('iframe');
+  // 재생 시작 (버튼 클릭 등 사용자 제스처 안에서)
+  frame.contentWindow.postMessage({
+    type: 'fmRadio:playMedia',
+    url: 'https://example.com/podcast.mp3',
+    title: '팟캐스트 12화'
+  }, '*');
+  // 3분 지점으로 이동
+  frame.contentWindow.postMessage({ type: 'fmRadio:seek', time: 180 }, '*');
+  // 재생 완료 감지
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'fmRadio:ended') console.log('재생 완료:', e.data.title);
+  });
+<\/script>`;
 
         document.querySelectorAll(".copy-btn").forEach((button) => {
             button.addEventListener("click", async () => {
