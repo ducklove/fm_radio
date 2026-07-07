@@ -227,28 +227,6 @@
             cursor: pointer;
         }
 
-        .row-seek[hidden] {
-            display: none;
-        }
-
-        .row-seek input[type="range"] {
-            flex: 1;
-            width: auto;
-        }
-
-        .t-label {
-            font-size: 0.68rem;
-            font-variant-numeric: tabular-nums;
-            color: var(--muted);
-            flex-shrink: 0;
-            min-width: 4ch;
-            text-align: center;
-        }
-
-        :root[data-skin="tuner"] .t-label {
-            color: #a3937d;
-        }
-
         .home-link,
         .skin-link {
             color: var(--muted);
@@ -337,6 +315,23 @@
         .screw.s2 { top: 5px; right: 6px; }
         .screw.s3 { bottom: 5px; left: 6px; }
         .screw.s4 { bottom: 5px; right: 6px; }
+
+        /* MP3 모드에서는 다이얼 자체가 탐색(시크) 컨트롤이 된다 */
+        :root[data-skin="tuner"] .tuner-dial.media {
+            cursor: pointer;
+        }
+
+        :root[data-skin="tuner"] .tuner-dial.media .dial-needle {
+            transition: left 0.25s ease;
+        }
+
+        .dial-num.edge-l {
+            transform: none;
+        }
+
+        .dial-num.edge-r {
+            transform: translateX(-100%);
+        }
 
         :root[data-skin="tuner"] .tuner-dial {
             display: block;
@@ -794,7 +789,7 @@
             </div>
             <div class="freq-readout">
                 <div class="freq-digits" id="freqDigits">--.-</div>
-                <div class="readout-sub"><span class="lamp" id="lampStereo"></span><span>FM STEREO</span></div>
+                <div class="readout-sub"><span class="lamp" id="lampStereo"></span><span id="readoutLabel">FM STEREO</span></div>
             </div>
             <div class="dial-glass"></div>
         </div>
@@ -828,11 +823,6 @@
             <div class="tuning-knob" id="tuningKnob" role="button" tabindex="0" aria-label="튜닝 노브 — 클릭 또는 휠로 채널 전환" title="클릭 또는 휠로 채널 전환">
                 <div class="knob-cap" id="knobCap"><span class="knob-dot"></span></div>
             </div>
-        </div>
-        <div class="row row-seek" id="seekRow" hidden>
-            <span class="t-label" id="tCur">0:00</span>
-            <input type="range" id="seek" min="0" max="1000" value="0" aria-label="재생 위치">
-            <span class="t-label" id="tDur">--:--</span>
         </div>
         <div class="row">
             <select id="stationSelect" aria-label="채널 선택">
@@ -874,11 +864,11 @@
         const meterNeedle = document.getElementById("meterNeedle");
         const tuningKnob = document.getElementById("tuningKnob");
         const knobCap = document.getElementById("knobCap");
-        const seekRow = document.getElementById("seekRow");
-        const seek = document.getElementById("seek");
-        const tCur = document.getElementById("tCur");
-        const tDur = document.getElementById("tDur");
         const mediaOption = document.getElementById("mediaOption");
+        const readoutLabel = document.getElementById("readoutLabel");
+        const tunerDial = document.querySelector(".tuner-dial");
+        const dialFm = document.querySelector(".dial-fm");
+        const dialUnit = document.querySelector(".dial-unit");
 
         const skin = document.documentElement.dataset.skin;
         const TUNER_ACCENT = "#e8b06a";
@@ -891,7 +881,7 @@
         let loadedId = null;
         let hls = null;
         let media = null; // MP3 모드: { url, title } — null이면 라디오 모드
-        let seekDragging = false;
+        let dialSeeking = false;
 
         audio.volume = 0.8;
 
@@ -913,21 +903,42 @@
             return ((freq - DIAL_MIN) / (DIAL_MAX - DIAL_MIN)) * 100;
         }
 
-        function buildDialScale() {
-            for (let freq = 88; freq <= 108; freq += 1) {
-                const tick = document.createElement("div");
-                const major = freq % 4 === 0;
-                tick.className = major ? "dial-tick major" : "dial-tick";
-                tick.style.left = `${freqToPercent(freq)}%`;
-                dialScale.append(tick);
+        function clearDialScale() {
+            dialScale.querySelectorAll(".dial-tick, .dial-num").forEach((node) => node.remove());
+        }
 
-                if (major) {
-                    const num = document.createElement("div");
-                    num.className = "dial-num";
-                    num.style.left = `${freqToPercent(freq)}%`;
-                    num.textContent = freq;
-                    dialScale.append(num);
-                }
+        function addDialMark(percent, major, label, edge) {
+            const tick = document.createElement("div");
+            tick.className = major ? "dial-tick major" : "dial-tick";
+            tick.style.left = `${percent}%`;
+            dialScale.append(tick);
+
+            if (label !== null && label !== undefined) {
+                const num = document.createElement("div");
+                num.className = `dial-num${edge ? ` edge-${edge}` : ""}`;
+                num.style.left = `${percent}%`;
+                num.textContent = label;
+                dialScale.append(num);
+            }
+        }
+
+        function buildDialScale() {
+            clearDialScale();
+            for (let freq = 88; freq <= 108; freq += 1) {
+                const major = freq % 4 === 0;
+                addDialMark(freqToPercent(freq), major, major ? freq : null, "");
+            }
+        }
+
+        // MP3 모드: 다이얼 눈금을 시간 눈금(0 ~ 총 길이)으로 교체
+        function buildMediaScale(duration) {
+            clearDialScale();
+            const hasDuration = Number.isFinite(duration) && duration > 0;
+            for (let i = 0; i <= 20; i += 1) {
+                const major = i % 5 === 0;
+                const label = major ? (hasDuration ? formatTime(duration * (i / 20)) : "") : null;
+                const edge = i === 0 ? "l" : (i === 20 ? "r" : "");
+                addDialMark(i * 5, major, label, edge);
             }
         }
 
@@ -1135,13 +1146,14 @@
             select.value = "__media__";
             wStation.textContent = media.title;
             setStatus(autoplay ? "불러오는 중…" : "재생 버튼을 눌러 시작하세요.");
-            seekRow.hidden = false;
-            seek.value = 0;
-            tCur.textContent = "0:00";
-            tDur.textContent = "--:--";
 
             if (skin === "tuner") {
+                tunerDial.classList.add("media");
+                buildMediaScale(NaN);
+                dialFm.textContent = "♪";
+                dialUnit.textContent = "TIME";
                 freqDigits.textContent = "0:00";
+                readoutLabel.textContent = "LOADING";
                 dialNeedle.style.left = "0%";
                 knobCap.style.transform = "rotate(-135deg)";
             }
@@ -1162,28 +1174,30 @@
             audio.pause();
             audio.removeAttribute("src");
             mediaOption.hidden = true;
-            seekRow.hidden = true;
             isPlaying = false;
+
+            if (skin === "tuner") {
+                tunerDial.classList.remove("media");
+                buildDialScale();
+                dialFm.textContent = "FM";
+                dialUnit.textContent = "MHz";
+                readoutLabel.textContent = "FM STEREO";
+            }
         }
 
         function updateSeekUi() {
             if (!media) return;
             const duration = audio.duration;
             const hasDuration = Number.isFinite(duration) && duration > 0;
-
-            tCur.textContent = formatTime(audio.currentTime);
-            tDur.textContent = hasDuration ? formatTime(duration) : "--:--";
-            if (!seekDragging && hasDuration) {
-                seek.value = Math.round((audio.currentTime / duration) * 1000);
-            }
+            const pct = hasDuration ? (audio.currentTime / duration) * 100 : 0;
 
             if (skin === "tuner") {
                 freqDigits.textContent = formatTime(audio.currentTime);
-                if (hasDuration) {
-                    const pct = (audio.currentTime / duration) * 100;
-                    dialNeedle.style.left = `${pct}%`;
-                    knobCap.style.transform = `rotate(${(-135 + pct * 2.7).toFixed(1)}deg)`;
-                }
+                readoutLabel.textContent = hasDuration ? `TOTAL ${formatTime(duration)}` : "LOADING";
+                dialNeedle.style.left = `${pct}%`;
+                knobCap.style.transform = `rotate(${(-135 + pct * 2.7).toFixed(1)}deg)`;
+            } else if (isPlaying) {
+                setStatus(`${formatTime(audio.currentTime)} / ${hasDuration ? formatTime(duration) : "--:--"} 재생 중`);
             }
         }
 
@@ -1279,20 +1293,36 @@
         });
         volume.addEventListener("input", () => setVolume(volume.value));
 
-        seek.addEventListener("pointerdown", () => { seekDragging = true; });
-        seek.addEventListener("input", () => {
-            if (media && Number.isFinite(audio.duration)) {
-                tCur.textContent = formatTime((seek.value / 1000) * audio.duration);
-            }
-        });
-        seek.addEventListener("change", () => {
-            seekDragging = false;
-            if (media && Number.isFinite(audio.duration)) {
-                seekTo((seek.value / 1000) * audio.duration);
-            }
-        });
+        function seekFromPointer(event) {
+            if (!media || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const rect = dialScale.getBoundingClientRect();
+            if (rect.width <= 0) return;
+            const fraction = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+            seekTo(fraction * audio.duration);
+        }
 
-        audio.addEventListener("loadedmetadata", () => updateSeekUi());
+        tunerDial.addEventListener("pointerdown", (event) => {
+            if (!media) return;
+            dialSeeking = true;
+            try {
+                tunerDial.setPointerCapture(event.pointerId);
+            } catch (error) {
+                console.error(error);
+            }
+            seekFromPointer(event);
+        });
+        tunerDial.addEventListener("pointermove", (event) => {
+            if (dialSeeking) seekFromPointer(event);
+        });
+        tunerDial.addEventListener("pointerup", () => { dialSeeking = false; });
+        tunerDial.addEventListener("pointercancel", () => { dialSeeking = false; });
+
+        audio.addEventListener("loadedmetadata", () => {
+            if (media && skin === "tuner") {
+                buildMediaScale(audio.duration);
+            }
+            updateSeekUi();
+        });
         audio.addEventListener("timeupdate", () => updateSeekUi());
 
         audio.addEventListener("ended", () => {
