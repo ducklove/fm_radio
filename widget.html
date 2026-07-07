@@ -7,8 +7,11 @@
     <title>FM 라디오 미니 플레이어</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%BB%3C/text%3E%3C/svg%3E">
     <script>
-        document.documentElement.dataset.theme =
-            new URLSearchParams(location.search).get("theme") === "light" ? "light" : "dark";
+        (function () {
+            const boot = new URLSearchParams(location.search);
+            document.documentElement.dataset.theme = boot.get("theme") === "light" ? "light" : "dark";
+            document.documentElement.dataset.skin = boot.get("skin") === "tuner" ? "tuner" : "basic";
+        })();
     </script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-S8GLTG1KYZ"></script>
     <script>
@@ -223,20 +226,218 @@
             cursor: pointer;
         }
 
-        .home-link {
+        .home-link,
+        .skin-link {
             color: var(--muted);
             font-size: 0.72rem;
             text-decoration: none;
             flex-shrink: 0;
         }
 
-        .home-link:hover {
+        .home-link:hover,
+        .skin-link:hover {
             color: var(--text);
+        }
+
+        /* ----- 튜너 스킨 ----- */
+
+        .tuner-dial,
+        .tuner-brand {
+            display: none;
+        }
+
+        :root[data-skin="tuner"] body {
+            background: #0b0a09;
+        }
+
+        :root[data-skin="tuner"] .widget {
+            max-width: 500px;
+            padding: 14px 16px 12px;
+            border-radius: 12px;
+            border: 1px solid #060505;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 9%),
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.024) 0 1px, rgba(255, 255, 255, 0) 1px 3px),
+                linear-gradient(180deg, #3b3733 0%, #272420 55%, #1b1815 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.55),
+                0 14px 34px rgba(0, 0, 0, 0.55);
+        }
+
+        :root[data-skin="tuner"] .tuner-dial {
+            display: block;
+            position: relative;
+            height: 78px;
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid #080706;
+            background:
+                radial-gradient(ellipse at 50% 120%, rgba(238, 158, 78, 0.16), transparent 70%),
+                linear-gradient(180deg, #15100b 0%, #201811 55%, #171209 100%);
+            box-shadow:
+                inset 0 2px 12px rgba(0, 0, 0, 0.75),
+                inset 0 0 30px rgba(238, 158, 78, 0.07);
+        }
+
+        .dial-scale {
+            position: absolute;
+            left: 12px;
+            right: 122px;
+            top: 0;
+            bottom: 0;
+        }
+
+        .dial-tick {
+            position: absolute;
+            bottom: 14px;
+            width: 1px;
+            height: 12px;
+            background: rgba(232, 176, 106, 0.4);
+        }
+
+        .dial-tick.major {
+            height: 22px;
+            width: 2px;
+            background: rgba(240, 192, 128, 0.75);
+        }
+
+        .dial-num {
+            position: absolute;
+            top: 10px;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: #e8b06a;
+            text-shadow: 0 0 6px rgba(232, 176, 106, 0.4);
+        }
+
+        .dial-needle {
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            margin-left: -1px;
+            background: linear-gradient(180deg, #ff6a4e, #e5352b);
+            box-shadow: 0 0 8px rgba(255, 84, 60, 0.85), 0 0 18px rgba(255, 84, 60, 0.35);
+            transition: left 0.9s cubic-bezier(0.22, 0.72, 0.22, 1);
+        }
+
+        .freq-readout {
+            position: absolute;
+            right: 10px;
+            top: 9px;
+            bottom: 9px;
+            width: 102px;
+            border-radius: 5px;
+            border: 1px solid #000;
+            background: #090504;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .freq-digits {
+            font-family: "SF Mono", Consolas, "D2Coding", monospace;
+            font-size: 1.42rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #ff4a2d;
+            text-shadow: 0 0 8px rgba(255, 74, 45, 0.85), 0 0 20px rgba(255, 74, 45, 0.35);
+            line-height: 1;
+        }
+
+        .readout-sub {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.56rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            color: #8a7460;
+        }
+
+        .lamp {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #3a2f28;
+            box-shadow: inset 0 0 2px #000;
+        }
+
+        .lamp.on {
+            background: #58e07a;
+            box-shadow: 0 0 6px rgba(88, 224, 122, 0.9), 0 0 14px rgba(88, 224, 122, 0.4);
+        }
+
+        :root[data-skin="tuner"] .btn-play {
+            border: 1px solid #0d0b09;
+            color: #f0c064;
+            background: radial-gradient(circle at 32% 28%, #5a5249, #2e2a24 58%, #171310 100%);
+            box-shadow:
+                inset 0 1px 1px rgba(255, 255, 255, 0.28),
+                inset 0 -3px 5px rgba(0, 0, 0, 0.6),
+                0 5px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        :root[data-skin="tuner"] .w-station {
+            color: #f2e3c8;
+        }
+
+        :root[data-skin="tuner"] .w-status {
+            color: #a3937d;
+        }
+
+        :root[data-skin="tuner"] select {
+            background: #1b1815;
+            border-color: #0d0b0a;
+            color: #e8dcc9;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+        }
+
+        :root[data-skin="tuner"] select option,
+        :root[data-skin="tuner"] select optgroup {
+            background: #1b1815;
+            color: #e8dcc9;
+        }
+
+        :root[data-skin="tuner"] input[type="range"]::-webkit-slider-thumb {
+            border-color: #e8b06a;
+            background: #2e2a24;
+        }
+
+        :root[data-skin="tuner"] input[type="range"]::-moz-range-thumb {
+            border-color: #e8b06a;
+            background: #2e2a24;
+        }
+
+        :root[data-skin="tuner"] .tuner-brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 2px;
+            font-size: 0.56rem;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            color: rgba(255, 244, 226, 0.34);
+            text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
         }
     </style>
 </head>
 <body>
     <div class="widget" role="application" aria-label="FM 라디오 미니 플레이어">
+        <div class="tuner-dial" aria-hidden="true">
+            <div class="dial-scale" id="dialScale"></div>
+            <div class="dial-needle" id="dialNeedle"></div>
+            <div class="freq-readout">
+                <div class="freq-digits" id="freqDigits">--.-</div>
+                <div class="readout-sub"><span class="lamp" id="lampStereo"></span><span>FM STEREO</span></div>
+            </div>
+        </div>
         <div class="row">
             <button class="btn-play" id="btnPlay" type="button" aria-label="재생 또는 일시정지">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -255,7 +456,12 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path></svg>
                 <input type="range" id="volume" min="0" max="100" value="80" aria-label="볼륨">
             </div>
+            <a class="skin-link" id="skinLink" href="#">튜너형</a>
             <a class="home-link" href="index.html" target="_blank" rel="noopener">전체 페이지 ↗</a>
+        </div>
+        <div class="tuner-brand" aria-hidden="true">
+            <span>NATURAL SOUND</span>
+            <span>FM STEREO TUNER</span>
         </div>
     </div>
 
@@ -273,6 +479,16 @@
         const eq = document.getElementById("eq");
         const select = document.getElementById("stationSelect");
         const volume = document.getElementById("volume");
+        const dialScale = document.getElementById("dialScale");
+        const dialNeedle = document.getElementById("dialNeedle");
+        const freqDigits = document.getElementById("freqDigits");
+        const lampStereo = document.getElementById("lampStereo");
+        const skinLink = document.getElementById("skinLink");
+
+        const skin = document.documentElement.dataset.skin;
+        const TUNER_ACCENT = "#e8b06a";
+        const DIAL_MIN = 87.5;
+        const DIAL_MAX = 108.5;
 
         let current = stations.find((item) => item.id === params.get("station")) || stations[0];
         let isPlaying = false;
@@ -296,10 +512,52 @@
             select.append(optgroup);
         }
 
+        function freqToPercent(freq) {
+            return ((freq - DIAL_MIN) / (DIAL_MAX - DIAL_MIN)) * 100;
+        }
+
+        function buildDialScale() {
+            for (let freq = 88; freq <= 108; freq += 1) {
+                const tick = document.createElement("div");
+                const major = freq % 4 === 0;
+                tick.className = major ? "dial-tick major" : "dial-tick";
+                tick.style.left = `${freqToPercent(freq)}%`;
+                dialScale.append(tick);
+
+                if (major) {
+                    const num = document.createElement("div");
+                    num.className = "dial-num";
+                    num.style.left = `${freqToPercent(freq)}%`;
+                    num.textContent = freq;
+                    dialScale.append(num);
+                }
+            }
+        }
+
+        function updateSkinLink() {
+            const next = new URLSearchParams(location.search);
+            next.set("station", current.id);
+            if (skin === "tuner") {
+                next.delete("skin");
+                skinLink.textContent = "기본형";
+            } else {
+                next.set("skin", "tuner");
+                skinLink.textContent = "튜너형";
+            }
+            skinLink.href = `widget.html?${next.toString()}`;
+        }
+
         function applyStation() {
             select.value = current.id;
             wStation.textContent = current.name;
-            document.documentElement.style.setProperty("--accent", current.color);
+            document.documentElement.style.setProperty("--accent", skin === "tuner" ? TUNER_ACCENT : current.color);
+
+            if (skin === "tuner" && typeof current.freq === "number") {
+                dialNeedle.style.left = `calc(12px + (100% - 134px) * ${freqToPercent(current.freq) / 100})`;
+                freqDigits.textContent = current.freq.toFixed(1);
+            }
+
+            updateSkinLink();
         }
 
         function setStatus(text) {
@@ -310,6 +568,7 @@
             playIcon.setAttribute("d", isPlaying ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z");
             btnPlay.classList.toggle("loading", isLoading);
             eq.classList.toggle("on", isPlaying);
+            lampStereo.classList.toggle("on", isPlaying);
         }
 
         function stopStream() {
@@ -496,6 +755,10 @@
             } catch (error) {
                 console.error(error);
             }
+        }
+
+        if (skin === "tuner") {
+            buildDialScale();
         }
 
         applyStation();

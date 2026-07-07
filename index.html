@@ -1742,10 +1742,11 @@
         });
 
         function openWidget() {
-            const param = currentStation && stations.some((item) => item.id === currentStation.id)
-                ? `?station=${currentStation.id}`
-                : "";
-            window.open(`widget.html${param}`, "fmRadioWidget", "width=400,height=220,resizable=yes");
+            const query = new URLSearchParams({ skin: "tuner" });
+            if (currentStation && stations.some((item) => item.id === currentStation.id)) {
+                query.set("station", currentStation.id);
+            }
+            window.open(`widget.html?${query.toString()}`, "fmRadioWidget", "width=480,height=330,resizable=yes");
             gtag('event', 'open_widget', {
                 station_id: currentStation ? currentStation.id : null
             });
