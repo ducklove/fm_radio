@@ -259,7 +259,7 @@
                     <tr><td><code>autoplay</code></td><td><code>1</code></td><td>로드 즉시 재생을 시도합니다. 브라우저 정책상 차단되면 재생 버튼 대기 상태로 남습니다.</td></tr>
                     <tr><td><code>theme</code></td><td><code>dark</code>(기본) / <code>light</code></td><td>밝은 배경의 사이트에 넣을 때 <code>light</code>를 사용하세요. (기본형 스킨에만 적용)</td></tr>
                     <tr><td><code>skin</code></td><td><code>tuner</code></td><td>빈티지 FM 튜너 디자인 — 주파수 다이얼·바늘·LED 주파수 표시창·STEREO 램프가 있는 페이스플레이트로 표시됩니다. 권장 크기 460×280.</td></tr>
-                    <tr><td><code>mp3</code></td><td>오디오 파일 URL</td><td>라디오 대신 MP3(또는 브라우저가 재생 가능한 오디오) 파일을 여는 미디어 모드로 시작합니다. 탐색(시크) 바가 나타나고, 튜너 스킨에서는 바늘이 재생 진행률을 따라 움직입니다.</td></tr>
+                    <tr><td><code>mp3</code></td><td>오디오 파일 URL</td><td>라디오 대신 MP3(또는 브라우저가 재생 가능한 오디오) 파일을 여는 미디어 모드로 시작합니다. 위젯 크기는 그대로 유지되며, 튜너 스킨에서는 다이얼이 시간 눈금으로 바뀌어 클릭·드래그로 탐색할 수 있습니다.</td></tr>
                     <tr><td><code>title</code></td><td>표시할 제목</td><td><code>mp3</code>와 함께 사용. 생략하면 파일명이 제목이 됩니다.</td></tr>
                 </table>
             </div>
@@ -295,7 +295,7 @@
 
         <section>
             <h2>5. MP3 플레이어로 쓰기 (미디어 모드)</h2>
-            <p>라디오 대신 임의의 오디오 파일 주소를 넘기면 위젯이 MP3 플레이어가 됩니다. 탐색 바와 경과/전체 시간이 표시되고, 튜너 스킨에서는 LED 창이 경과 시간을, 다이얼 바늘이 재생 진행률을 보여주며 노브를 돌리면 ±10초 탐색됩니다. 재생이 끝나면 <code>fmRadio:ended</code> 이벤트가 옵니다. 미디어 모드에서 채널을 선택하면 다시 라디오로 돌아옵니다.</p>
+            <p>라디오 대신 임의의 오디오 파일 주소를 넘기면 위젯이 MP3 플레이어가 됩니다. 별도의 탐색 바를 추가하지 않아 <strong>위젯 높이가 라디오 모드와 동일하게 유지</strong>됩니다. 튜너 스킨에서는 주파수 다이얼이 시간 눈금(0:00~총 길이)으로 바뀌고 바늘이 재생 진행률을 표시하며, <strong>다이얼을 클릭하거나 드래그해서 탐색</strong>할 수 있습니다. LED 창은 경과 시간, 그 아래에는 총 길이(TOTAL)가 표시되고 노브를 돌리면 ±10초 이동합니다. 기본형 스킨은 상태 줄에 경과/전체 시간을 표시하고 탐색은 <code>fmRadio:seek</code>로 할 수 있습니다. 재생이 끝나면 <code>fmRadio:ended</code> 이벤트가 옵니다. 미디어 모드에서 채널을 선택하면 다시 라디오로 돌아옵니다.</p>
             <div class="code-block">
                 <button class="copy-btn" type="button">복사</button>
                 <pre><code id="snippetMedia"></code></pre>
