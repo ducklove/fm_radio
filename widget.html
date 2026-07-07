@@ -243,7 +243,10 @@
         /* ----- 튜너 스킨 ----- */
 
         .tuner-dial,
-        .tuner-brand {
+        .tuner-brand,
+        .sig-meter,
+        .tuning-knob,
+        .screw {
             display: none;
         }
 
@@ -252,90 +255,179 @@
         }
 
         :root[data-skin="tuner"] .widget {
-            max-width: 500px;
-            padding: 14px 16px 12px;
-            border-radius: 12px;
+            position: relative;
+            max-width: 460px;
+            margin: 0 16px;
+            padding: 16px 18px 12px;
+            border-radius: 4px;
             border: 1px solid #060505;
             background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 9%),
-                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.024) 0 1px, rgba(255, 255, 255, 0) 1px 3px),
-                linear-gradient(180deg, #3b3733 0%, #272420 55%, #1b1815 100%);
+                linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0) 7%),
+                linear-gradient(0deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0) 10%),
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 1px, rgba(255, 255, 255, 0) 1px 2px),
+                repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0 3px, rgba(0, 0, 0, 0) 3px 7px),
+                linear-gradient(180deg, #403b36 0%, #2b2723 50%, #1e1b18 100%);
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.18),
                 inset 0 -2px 6px rgba(0, 0, 0, 0.55),
-                0 14px 34px rgba(0, 0, 0, 0.55);
+                0 16px 38px rgba(0, 0, 0, 0.6);
         }
+
+        /* 월넛 우드 사이드 패널 */
+        :root[data-skin="tuner"] .widget::before,
+        :root[data-skin="tuner"] .widget::after {
+            content: "";
+            position: absolute;
+            top: 5px;
+            bottom: 5px;
+            width: 16px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 12%, rgba(0, 0, 0, 0.3) 96%),
+                repeating-linear-gradient(93deg, rgba(30, 14, 5, 0.35) 0 1px, rgba(0, 0, 0, 0) 1px 4px, rgba(60, 30, 12, 0.25) 4px 6px),
+                linear-gradient(180deg, #6e4526 0%, #543115 55%, #3f2410 100%);
+            box-shadow: inset 0 1px 1px rgba(255, 224, 180, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        :root[data-skin="tuner"] .widget::before {
+            left: -16px;
+            border-radius: 7px 0 0 7px;
+        }
+
+        :root[data-skin="tuner"] .widget::after {
+            right: -16px;
+            border-radius: 0 7px 7px 0;
+        }
+
+        /* 코너 나사 */
+        :root[data-skin="tuner"] .screw {
+            display: block;
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background:
+                linear-gradient(135deg, rgba(0, 0, 0, 0) 44%, rgba(0, 0, 0, 0.7) 46%, rgba(0, 0, 0, 0.7) 54%, rgba(0, 0, 0, 0) 56%),
+                radial-gradient(circle at 35% 30%, #7a7369, #3c3730 60%, #17140f 100%);
+            box-shadow: 0 1px 1px rgba(255, 255, 255, 0.12), inset 0 0 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .screw.s1 { top: 5px; left: 6px; }
+        .screw.s2 { top: 5px; right: 6px; }
+        .screw.s3 { bottom: 5px; left: 6px; }
+        .screw.s4 { bottom: 5px; right: 6px; }
 
         :root[data-skin="tuner"] .tuner-dial {
             display: block;
             position: relative;
-            height: 78px;
-            border-radius: 7px;
+            height: 82px;
+            border-radius: 6px;
             overflow: hidden;
-            border: 1px solid #080706;
+            border: 1px solid #060504;
             background:
-                radial-gradient(ellipse at 50% 120%, rgba(238, 158, 78, 0.16), transparent 70%),
-                linear-gradient(180deg, #15100b 0%, #201811 55%, #171209 100%);
+                radial-gradient(ellipse 75% 90% at 42% 115%, rgba(240, 158, 74, 0.22), transparent 72%),
+                radial-gradient(ellipse at 50% -40%, rgba(255, 200, 130, 0.05), transparent 60%),
+                linear-gradient(180deg, #120d09 0%, #221a11 58%, #150f09 100%);
             box-shadow:
-                inset 0 2px 12px rgba(0, 0, 0, 0.75),
-                inset 0 0 30px rgba(238, 158, 78, 0.07);
+                inset 0 3px 14px rgba(0, 0, 0, 0.8),
+                inset 0 0 34px rgba(238, 158, 78, 0.08),
+                0 1px 0 rgba(255, 255, 255, 0.09);
+        }
+
+        /* 다이얼 유리 반사광 */
+        .dial-glass {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            pointer-events: none;
+            background:
+                linear-gradient(112deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.025) 16%, rgba(255, 255, 255, 0) 30%),
+                linear-gradient(0deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0) 26%);
         }
 
         .dial-scale {
             position: absolute;
-            left: 12px;
-            right: 122px;
+            left: 14px;
+            right: 124px;
             top: 0;
             bottom: 0;
         }
 
+        .dial-unit {
+            position: absolute;
+            right: 0;
+            bottom: 8px;
+            font-size: 0.5rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: rgba(232, 176, 106, 0.55);
+        }
+
+        .dial-fm {
+            position: absolute;
+            left: 0;
+            bottom: 8px;
+            font-size: 0.5rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            color: rgba(255, 106, 78, 0.8);
+            text-shadow: 0 0 6px rgba(255, 106, 78, 0.4);
+        }
+
         .dial-tick {
             position: absolute;
-            bottom: 14px;
+            bottom: 18px;
             width: 1px;
-            height: 12px;
-            background: rgba(232, 176, 106, 0.4);
+            height: 11px;
+            background: linear-gradient(180deg, rgba(240, 192, 128, 0.55), rgba(232, 176, 106, 0.2));
         }
 
         .dial-tick.major {
-            height: 22px;
+            height: 20px;
             width: 2px;
-            background: rgba(240, 192, 128, 0.75);
+            background: linear-gradient(180deg, rgba(248, 208, 150, 0.9), rgba(232, 176, 106, 0.35));
+            box-shadow: 0 0 4px rgba(240, 180, 100, 0.35);
         }
 
         .dial-num {
             position: absolute;
-            top: 10px;
+            top: 9px;
             transform: translateX(-50%);
-            font-size: 0.6rem;
+            font-size: 0.62rem;
             font-weight: 600;
-            letter-spacing: 0.04em;
-            color: #e8b06a;
-            text-shadow: 0 0 6px rgba(232, 176, 106, 0.4);
+            letter-spacing: 0.06em;
+            color: #efc084;
+            text-shadow: 0 0 8px rgba(238, 178, 100, 0.55);
         }
 
         .dial-needle {
             position: absolute;
-            top: 6px;
-            bottom: 6px;
+            top: 5px;
+            bottom: 5px;
             width: 2px;
             margin-left: -1px;
             z-index: 2;
-            background: linear-gradient(180deg, #ff6a4e, #e5352b);
-            box-shadow: 0 0 8px rgba(255, 84, 60, 0.85), 0 0 18px rgba(255, 84, 60, 0.35);
-            transition: left 0.9s cubic-bezier(0.22, 0.72, 0.22, 1);
+            background: linear-gradient(180deg, #ff7a58, #e5352b 70%, #b8221a);
+            box-shadow:
+                0 0 8px rgba(255, 84, 60, 0.9),
+                0 0 20px rgba(255, 84, 60, 0.4),
+                1px 2px 3px rgba(0, 0, 0, 0.6);
+            transition: left 1.1s cubic-bezier(0.16, 0.84, 0.24, 1.02);
         }
 
         .freq-readout {
             position: absolute;
-            right: 10px;
-            top: 9px;
-            bottom: 9px;
+            right: 11px;
+            top: 10px;
+            bottom: 10px;
             width: 102px;
             border-radius: 5px;
             border: 1px solid #000;
-            background: #090504;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 24%),
+                #0a0505;
+            box-shadow:
+                inset 0 2px 10px rgba(0, 0, 0, 0.95),
+                0 1px 0 rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -384,6 +476,113 @@
                 inset 0 1px 1px rgba(255, 255, 255, 0.28),
                 inset 0 -3px 5px rgba(0, 0, 0, 0.6),
                 0 5px 12px rgba(0, 0, 0, 0.5);
+            transition: box-shadow 0.4s ease, transform 0.15s ease;
+        }
+
+        :root[data-skin="tuner"] .btn-play.playing-glow {
+            box-shadow:
+                inset 0 1px 1px rgba(255, 255, 255, 0.28),
+                inset 0 -3px 5px rgba(0, 0, 0, 0.6),
+                0 0 12px rgba(240, 192, 100, 0.35),
+                0 5px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        :root[data-skin="tuner"] .eq {
+            display: none;
+        }
+
+        /* 아날로그 시그널 미터 */
+        :root[data-skin="tuner"] .sig-meter {
+            display: block;
+            width: 66px;
+            height: 46px;
+            flex-shrink: 0;
+            border-radius: 5px;
+            border: 1px solid #0a0806;
+            overflow: hidden;
+            background: linear-gradient(180deg, #f6ecd2 0%, #ecdcb6 70%, #dfcda4 100%);
+            box-shadow:
+                inset 0 2px 5px rgba(80, 50, 20, 0.35),
+                inset 0 0 12px rgba(120, 80, 30, 0.18),
+                0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .sig-meter svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sig-meter .m-tick {
+            stroke: #4a3a22;
+            stroke-width: 0.9;
+        }
+
+        .sig-meter .m-tick.red {
+            stroke: #c03222;
+            stroke-width: 1.3;
+        }
+
+        .sig-meter .m-label {
+            font-size: 4.6px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            fill: #6b5636;
+            text-anchor: middle;
+        }
+
+        .sig-meter .m-needle {
+            stroke: #1c1712;
+            stroke-width: 1.1;
+            stroke-linecap: round;
+        }
+
+        .sig-meter .m-pivot {
+            fill: #1c1712;
+        }
+
+        /* 튜닝 노브 */
+        :root[data-skin="tuner"] .tuning-knob {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 54px;
+            height: 54px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            cursor: pointer;
+            background:
+                repeating-conic-gradient(from 0deg, #45403a 0deg 4deg, #201d19 4deg 8deg);
+            border: 1px solid #0b0a08;
+            box-shadow:
+                inset 0 2px 3px rgba(255, 255, 255, 0.18),
+                inset 0 -3px 5px rgba(0, 0, 0, 0.65),
+                0 6px 14px rgba(0, 0, 0, 0.55);
+        }
+
+        .knob-cap {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            position: relative;
+            background: radial-gradient(circle at 34% 28%, #6a635a, #38332d 55%, #1a1713 100%);
+            box-shadow:
+                inset 0 1px 1px rgba(255, 255, 255, 0.3),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.7),
+                0 2px 5px rgba(0, 0, 0, 0.5);
+            transition: transform 1.1s cubic-bezier(0.16, 0.84, 0.24, 1.02);
+        }
+
+        .knob-dot {
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            margin-left: -2px;
+            border-radius: 50%;
+            background: #f0c064;
+            box-shadow: 0 0 5px rgba(240, 192, 100, 0.8);
         }
 
         :root[data-skin="tuner"] .w-station {
@@ -479,7 +678,16 @@
             }
 
             :root[data-skin="tuner"] .widget {
+                margin: 0;
                 padding: 8px 10px;
+            }
+
+            :root[data-skin="tuner"] .widget::before,
+            :root[data-skin="tuner"] .widget::after,
+            :root[data-skin="tuner"] .screw,
+            :root[data-skin="tuner"] .sig-meter,
+            :root[data-skin="tuner"] .tuning-knob {
+                display: none;
             }
 
             :root[data-skin="tuner"] .tuner-dial {
@@ -487,6 +695,11 @@
             }
 
             :root[data-skin="tuner"] .tuner-brand {
+                display: none;
+            }
+
+            .dial-fm,
+            .dial-unit {
                 display: none;
             }
 
@@ -547,14 +760,21 @@
 </head>
 <body>
     <div class="widget" role="application" aria-label="FM 라디오 미니 플레이어">
+        <span class="screw s1" aria-hidden="true"></span>
+        <span class="screw s2" aria-hidden="true"></span>
+        <span class="screw s3" aria-hidden="true"></span>
+        <span class="screw s4" aria-hidden="true"></span>
         <div class="tuner-dial" aria-hidden="true">
             <div class="dial-scale" id="dialScale">
+                <span class="dial-fm">FM</span>
+                <span class="dial-unit">MHz</span>
                 <div class="dial-needle" id="dialNeedle"></div>
             </div>
             <div class="freq-readout">
                 <div class="freq-digits" id="freqDigits">--.-</div>
                 <div class="readout-sub"><span class="lamp" id="lampStereo"></span><span>FM STEREO</span></div>
             </div>
+            <div class="dial-glass"></div>
         </div>
         <div class="row">
             <button class="btn-play" id="btnPlay" type="button" aria-label="재생 또는 일시정지">
@@ -567,6 +787,25 @@
                 <div class="w-status" id="wStatus">재생 버튼을 눌러 시작하세요.</div>
             </div>
             <div class="eq" id="eq" aria-hidden="true"><i></i><i></i><i></i></div>
+            <div class="sig-meter" aria-hidden="true">
+                <svg viewBox="0 0 66 46">
+                    <text class="m-label" x="33" y="8">SIGNAL</text>
+                    <line class="m-tick" x1="16.95" y1="22.17" x2="13.6" y2="18.45"></line>
+                    <line class="m-tick" x1="21.74" y1="18.81" x2="19.39" y2="14.39"></line>
+                    <line class="m-tick" x1="27.19" y1="16.72" x2="25.98" y2="11.87"></line>
+                    <line class="m-tick" x1="33" y1="16" x2="33" y2="11"></line>
+                    <line class="m-tick" x1="38.81" y1="16.72" x2="40.02" y2="11.87"></line>
+                    <line class="m-tick red" x1="44.26" y1="18.81" x2="46.61" y2="14.39"></line>
+                    <line class="m-tick red" x1="49.05" y1="22.17" x2="52.4" y2="18.45"></line>
+                    <g id="meterNeedle" transform="rotate(-42 33 40)">
+                        <line class="m-needle" x1="33" y1="40" x2="33" y2="13"></line>
+                    </g>
+                    <circle class="m-pivot" cx="33" cy="40" r="2.6"></circle>
+                </svg>
+            </div>
+            <div class="tuning-knob" id="tuningKnob" role="button" tabindex="0" aria-label="튜닝 노브 — 클릭 또는 휠로 채널 전환" title="클릭 또는 휠로 채널 전환">
+                <div class="knob-cap" id="knobCap"><span class="knob-dot"></span></div>
+            </div>
         </div>
         <div class="row">
             <select id="stationSelect" aria-label="채널 선택"></select>
@@ -602,6 +841,9 @@
         const freqDigits = document.getElementById("freqDigits");
         const lampStereo = document.getElementById("lampStereo");
         const skinLink = document.getElementById("skinLink");
+        const meterNeedle = document.getElementById("meterNeedle");
+        const tuningKnob = document.getElementById("tuningKnob");
+        const knobCap = document.getElementById("knobCap");
 
         const skin = document.documentElement.dataset.skin;
         const TUNER_ACCENT = "#e8b06a";
@@ -673,9 +915,16 @@
             if (skin === "tuner" && typeof current.freq === "number") {
                 dialNeedle.style.left = `${freqToPercent(current.freq)}%`;
                 freqDigits.textContent = current.freq.toFixed(1);
+                knobCap.style.transform = `rotate(${(-135 + freqToPercent(current.freq) * 2.7).toFixed(1)}deg)`;
             }
 
             updateSkinLink();
+        }
+
+        function stepStation(delta) {
+            const index = stations.findIndex((item) => item.id === current.id);
+            const next = stations[(index + delta + stations.length) % stations.length];
+            setStation(next.id, isPlaying || isLoading);
         }
 
         function setStatus(text) {
@@ -685,8 +934,39 @@
         function updateUi() {
             playIcon.setAttribute("d", isPlaying ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z");
             btnPlay.classList.toggle("loading", isLoading);
+            btnPlay.classList.toggle("playing-glow", isPlaying);
             eq.classList.toggle("on", isPlaying);
             lampStereo.classList.toggle("on", isPlaying);
+            updateMeter();
+        }
+
+        // ----- 아날로그 시그널 미터 -----
+
+        let meterRaf = null;
+        let meterValue = 0;
+
+        function meterFrame() {
+            const t = performance.now() / 1000;
+            const target = isPlaying
+                ? 0.66 + Math.sin(t * 1.7) * 0.07 + Math.sin(t * 4.3 + 1.3) * 0.05 + Math.sin(t * 9.1 + 0.4) * 0.03
+                : 0;
+            meterValue += (target - meterValue) * 0.07;
+
+            if (!isPlaying && meterValue < 0.004) {
+                meterValue = 0;
+                meterNeedle.setAttribute("transform", "rotate(-42 33 40)");
+                meterRaf = null;
+                return;
+            }
+
+            const angle = -42 + meterValue * 84;
+            meterNeedle.setAttribute("transform", `rotate(${angle.toFixed(2)} 33 40)`);
+            meterRaf = requestAnimationFrame(meterFrame);
+        }
+
+        function updateMeter() {
+            if (skin !== "tuner" || meterRaf) return;
+            meterRaf = requestAnimationFrame(meterFrame);
         }
 
         function stopStream() {
@@ -849,6 +1129,24 @@
         btnPlay.addEventListener("click", toggle);
         select.addEventListener("change", () => setStation(select.value, isPlaying || isLoading));
         volume.addEventListener("input", () => setVolume(volume.value));
+
+        let lastKnobStep = 0;
+
+        tuningKnob.addEventListener("wheel", (event) => {
+            event.preventDefault();
+            const now = Date.now();
+            if (now - lastKnobStep < 250) return;
+            lastKnobStep = now;
+            stepStation(event.deltaY > 0 ? 1 : -1);
+        }, { passive: false });
+
+        tuningKnob.addEventListener("click", () => stepStation(1));
+        tuningKnob.addEventListener("keydown", (event) => {
+            if (event.code === "Enter" || event.code === "Space") {
+                event.preventDefault();
+                stepStation(1);
+            }
+        });
 
         audio.addEventListener("playing", () => {
             isPlaying = true;
