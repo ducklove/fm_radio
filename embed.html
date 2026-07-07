@@ -196,11 +196,35 @@
             <div class="preview">
                 <iframe src="widget.html?skin=tuner&station=mbcsfm" style="height:280px" title="FM 라디오 튜너형 위젯 미리보기" allow="autoplay"></iframe>
             </div>
+            <p><strong>튜너형 컴팩트 (300×150)</strong> — 크기를 줄이면 레이아웃이 자동으로 압축됩니다.</p>
+            <div class="preview" style="max-width:300px">
+                <iframe src="widget.html?skin=tuner&station=kbs2fm" style="width:300px; height:150px" title="FM 라디오 튜너형 컴팩트 미리보기" allow="autoplay"></iframe>
+            </div>
             <p><strong>기본형</strong> — 어디에나 어울리는 미니멀 플레이어.</p>
             <div class="preview">
                 <iframe src="widget.html?station=kbs1fm" title="FM 라디오 기본형 위젯 미리보기" allow="autoplay"></iframe>
             </div>
             <p class="note">위 위젯은 실제로 동작합니다. 채널을 고르고 재생해 보세요.</p>
+        </section>
+
+        <section>
+            <h2>크기 가이드</h2>
+            <p>위젯은 iframe 크기에 맞춰 스스로 압축됩니다. 아무 크기나 지정해도 되지만, 권장 조합은 다음과 같습니다.</p>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>크기</th><th>스킨</th><th>모습</th></tr>
+                    <tr><td><code>460×280</code></td><td>튜너형</td><td>표준 — 다이얼·각인·스킨 전환 링크까지 전부 표시</td></tr>
+                    <tr><td><code>300×150</code></td><td>튜너형</td><td>컴팩트 — 다이얼·주파수 표시창 유지, 각인·링크 숨김</td></tr>
+                    <tr><td><code>380×200</code></td><td>기본형</td><td>표준</td></tr>
+                    <tr><td><code>300×130</code></td><td>기본형</td><td>컴팩트 — 컨트롤 두 줄만</td></tr>
+                    <tr><td><code>300×90</code></td><td>튜너형/기본형</td><td>초소형 — 다이얼 없이 컨트롤만</td></tr>
+                </table>
+            </div>
+            <p>300×150 튜너형 예시:</p>
+            <div class="code-block">
+                <button class="copy-btn" type="button">복사</button>
+                <pre><code id="snippetCompact"></code></pre>
+            </div>
         </section>
 
         <section>
@@ -284,6 +308,14 @@
   style="border:0; border-radius:14px;"
   allow="autoplay"
   title="FM 라디오 튜너 위젯"></iframe>`;
+
+        document.getElementById("snippetCompact").textContent =
+`<iframe
+  src="${widgetUrl}?skin=tuner&station=kbs2fm"
+  width="300" height="150"
+  style="border:0; border-radius:12px;"
+  allow="autoplay"
+  title="FM 라디오 위젯"></iframe>`;
 
         document.getElementById("snippetPopup").textContent =
 `<button onclick="window.open(

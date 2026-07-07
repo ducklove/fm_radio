@@ -83,6 +83,7 @@
             width: 100%;
             max-width: 460px;
             display: grid;
+            grid-template-columns: minmax(0, 1fr);
             gap: 10px;
         }
 
@@ -319,6 +320,7 @@
             bottom: 6px;
             width: 2px;
             margin-left: -1px;
+            z-index: 2;
             background: linear-gradient(180deg, #ff6a4e, #e5352b);
             box-shadow: 0 0 8px rgba(255, 84, 60, 0.85), 0 0 18px rgba(255, 84, 60, 0.35);
             transition: left 0.9s cubic-bezier(0.22, 0.72, 0.22, 1);
@@ -426,13 +428,129 @@
             color: rgba(255, 244, 226, 0.34);
             text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
         }
+
+        /* ----- 컴팩트 크기 자동 대응 (예: 300×150 임베드) ----- */
+
+        @media (max-width: 340px), (max-height: 200px) {
+            body {
+                padding: 4px;
+            }
+
+            .widget {
+                gap: 6px;
+            }
+
+            .row {
+                gap: 7px;
+            }
+
+            .btn-play {
+                width: 38px;
+                height: 38px;
+            }
+
+            .btn-play svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .w-station {
+                font-size: 0.86rem;
+            }
+
+            .w-status {
+                font-size: 0.68rem;
+                margin-top: 1px;
+            }
+
+            select {
+                padding: 6px 8px;
+                font-size: 0.78rem;
+                border-radius: 8px;
+            }
+
+            input[type="range"] {
+                width: 64px;
+            }
+
+            .home-link,
+            .skin-link {
+                display: none;
+            }
+
+            :root[data-skin="tuner"] .widget {
+                padding: 8px 10px;
+            }
+
+            :root[data-skin="tuner"] .tuner-dial {
+                height: 46px;
+            }
+
+            :root[data-skin="tuner"] .tuner-brand {
+                display: none;
+            }
+
+            .dial-scale {
+                left: 8px;
+                right: 88px;
+            }
+
+            .dial-tick {
+                bottom: 8px;
+                height: 8px;
+            }
+
+            .dial-tick.major {
+                height: 14px;
+            }
+
+            .dial-num {
+                top: 4px;
+                font-size: 0.5rem;
+            }
+
+            .dial-needle {
+                top: 4px;
+                bottom: 4px;
+            }
+
+            .freq-readout {
+                width: 72px;
+                right: 6px;
+                top: 5px;
+                bottom: 5px;
+                gap: 1px;
+            }
+
+            .freq-digits {
+                font-size: 0.98rem;
+            }
+
+            .readout-sub {
+                font-size: 0.46rem;
+                gap: 3px;
+            }
+
+            .lamp {
+                width: 5px;
+                height: 5px;
+            }
+        }
+
+        /* 아주 낮은 높이(<130px)에서는 다이얼을 접고 컨트롤만 남긴다 */
+        @media (max-height: 130px) {
+            :root[data-skin="tuner"] .tuner-dial {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="widget" role="application" aria-label="FM 라디오 미니 플레이어">
         <div class="tuner-dial" aria-hidden="true">
-            <div class="dial-scale" id="dialScale"></div>
-            <div class="dial-needle" id="dialNeedle"></div>
+            <div class="dial-scale" id="dialScale">
+                <div class="dial-needle" id="dialNeedle"></div>
+            </div>
             <div class="freq-readout">
                 <div class="freq-digits" id="freqDigits">--.-</div>
                 <div class="readout-sub"><span class="lamp" id="lampStereo"></span><span>FM STEREO</span></div>
@@ -553,7 +671,7 @@
             document.documentElement.style.setProperty("--accent", skin === "tuner" ? TUNER_ACCENT : current.color);
 
             if (skin === "tuner" && typeof current.freq === "number") {
-                dialNeedle.style.left = `calc(12px + (100% - 134px) * ${freqToPercent(current.freq) / 100})`;
+                dialNeedle.style.left = `${freqToPercent(current.freq)}%`;
                 freqDigits.textContent = current.freq.toFixed(1);
             }
 
