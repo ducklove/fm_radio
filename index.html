@@ -177,8 +177,8 @@
             display: block;
             height: 100%;
             object-fit: cover;
-            opacity: 0.16;
-            filter: saturate(0.7) sepia(0.2) contrast(1) blur(0.4px);
+            opacity: 0.3;
+            filter: saturate(0.8) sepia(0.18) contrast(1.02);
         }
 
         .vu-canvas {
@@ -708,187 +708,6 @@
             border-radius: 50%;
         }
 
-        /* ----- 라이브 튜너 계기판 ----- */
-        .tuner-panel {
-            position: absolute;
-            top: 16px;
-            left: 24px;
-            right: 24px;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 12px 18px;
-            border-radius: 16px;
-            background: linear-gradient(180deg, rgba(26, 22, 19, 0.72), rgba(14, 12, 11, 0.62));
-            border: 1px solid rgba(255, 244, 232, 0.09);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 24px rgba(0, 0, 0, 0.28);
-            backdrop-filter: blur(8px);
-            pointer-events: none;
-        }
-
-        .tuner-display {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            min-width: 0;
-        }
-
-        .tuner-freq {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-            font-family: "Courier New", ui-monospace, monospace;
-            font-weight: 800;
-            font-size: 2.5rem;
-            line-height: 1;
-            letter-spacing: 1px;
-            color: #ff5a38;
-            text-shadow: 0 0 6px rgba(255, 90, 56, 0.75), 0 0 18px rgba(255, 90, 56, 0.4);
-            font-variant-numeric: tabular-nums;
-        }
-
-        .tuner-freq.idle {
-            color: #6b4a3f;
-            text-shadow: none;
-        }
-
-        .tuner-unit {
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            color: #ff7a4f;
-            text-shadow: 0 0 6px rgba(255, 90, 56, 0.5);
-        }
-
-        .tuner-freq.idle .tuner-unit {
-            color: #6b4a3f;
-            text-shadow: none;
-        }
-
-        .tuner-station {
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--muted);
-            letter-spacing: 0.02em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 260px;
-        }
-
-        .tuner-meters {
-            display: flex;
-            align-items: flex-end;
-            gap: 20px;
-        }
-
-        .meter-block {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-            align-items: flex-start;
-        }
-
-        .meter-label {
-            font-size: 0.58rem;
-            font-weight: 700;
-            letter-spacing: 0.18em;
-            color: #8a7d70;
-        }
-
-        .signal-bars {
-            display: flex;
-            align-items: flex-end;
-            gap: 3px;
-            height: 26px;
-        }
-
-        .signal-bars i {
-            display: block;
-            width: 5px;
-            background: rgba(255, 244, 232, 0.12);
-            border-radius: 1px;
-            transition: background 0.09s ease, box-shadow 0.09s ease;
-        }
-
-        .signal-bars i.on {
-            background: var(--accent-strong);
-            box-shadow: 0 0 6px rgba(236, 130, 85, 0.8);
-        }
-
-        .signal-bars i.on.hot {
-            background: #ff5a38;
-            box-shadow: 0 0 7px rgba(255, 90, 56, 0.9);
-        }
-
-        .tuning-meter {
-            position: relative;
-            width: 118px;
-            height: 26px;
-            border-radius: 6px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 244, 232, 0.08);
-            overflow: hidden;
-        }
-
-        .tuning-center {
-            position: absolute;
-            left: 50%;
-            top: 4px;
-            bottom: 4px;
-            width: 1px;
-            background: rgba(255, 244, 232, 0.32);
-            transform: translateX(-50%);
-        }
-
-        .tuning-needle {
-            position: absolute;
-            top: 3px;
-            bottom: 3px;
-            left: 50%;
-            width: 3px;
-            border-radius: 2px;
-            background: #ffd9a8;
-            box-shadow: 0 0 6px rgba(255, 150, 90, 0.9);
-            transform: translateX(-50%);
-        }
-
-        .led-block {
-            flex-direction: row;
-            gap: 14px;
-            align-items: center;
-        }
-
-        .led {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.56rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            color: #6f655b;
-        }
-
-        .led-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #3a352f;
-            box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.6);
-            transition: background 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .led.lit {
-            color: #cfe9d4;
-        }
-
-        .led.lit .led-dot {
-            background: #57d98a;
-            box-shadow: 0 0 8px rgba(87, 217, 138, 0.9), 0 0 2px #fff;
-        }
-
         @media (max-width: 720px) {
             .page-shell {
                 width: min(100% - 18px, 100%);
@@ -914,32 +733,6 @@
             .hero-visual {
                 border-radius: 18px;
                 min-height: 252px;
-            }
-
-            .tuner-panel {
-                top: 12px;
-                left: 12px;
-                right: 12px;
-                padding: 10px 12px;
-                gap: 10px;
-            }
-
-            .tuner-freq {
-                font-size: 1.9rem;
-            }
-
-            .tuner-station {
-                max-width: 130px;
-            }
-
-            .tuning-meter,
-            .led-label,
-            .meter-label {
-                display: none;
-            }
-
-            .tuner-meters {
-                gap: 12px;
             }
 
             .hero-player-wrap {
@@ -1031,29 +824,6 @@
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
             <img class="site-banner" src="t2.png" alt="Yamaha Natural Sound FM Stereo Tuner T-2 전면 패널">
             <div class="dial-knob" onclick="playEasterEgg()" title=""></div>
-            <div class="tuner-panel" aria-hidden="true">
-                <div class="tuner-display">
-                    <div class="tuner-freq idle" id="tunerFreq"><span id="tunerFreqValue">--.-</span><span class="tuner-unit">FM</span></div>
-                    <div class="tuner-station" id="tunerStation">라디오를 선택하세요</div>
-                </div>
-                <div class="tuner-meters">
-                    <div class="meter-block">
-                        <div class="meter-label">SIGNAL</div>
-                        <div class="signal-bars" id="signalBars"></div>
-                    </div>
-                    <div class="meter-block">
-                        <div class="meter-label">TUNING</div>
-                        <div class="tuning-meter">
-                            <div class="tuning-center"></div>
-                            <div class="tuning-needle" id="tuningNeedle"></div>
-                        </div>
-                    </div>
-                    <div class="meter-block led-block">
-                        <div class="led" id="ledStereo"><span class="led-dot"></span><span class="led-label">STEREO</span></div>
-                        <div class="led" id="ledTuned"><span class="led-dot"></span><span class="led-label">TUNED</span></div>
-                    </div>
-                </div>
-            </div>
             <canvas class="vu-canvas" id="vuCanvas" aria-hidden="true"></canvas>
             <div class="hero-player-wrap">
                 <section class="player-bar" aria-label="현재 재생 플레이어">
@@ -1175,88 +945,6 @@
         const favGroup = document.getElementById("favGroup");
         const favNote = document.getElementById("favNote");
         const favList = document.getElementById("favList");
-
-        // ----- 라이브 튜너 계기판 -----
-        const tunerFreqEl = document.getElementById("tunerFreq");
-        const tunerFreqValue = document.getElementById("tunerFreqValue");
-        const tunerStationEl = document.getElementById("tunerStation");
-        const signalBarsEl = document.getElementById("signalBars");
-        const tuningNeedle = document.getElementById("tuningNeedle");
-        const ledStereo = document.getElementById("ledStereo");
-        const ledTuned = document.getElementById("ledTuned");
-
-        const SIGNAL_SEGMENTS = 14;
-        const signalEls = [];
-        for (let i = 0; i < SIGNAL_SEGMENTS; i++) {
-            const bar = document.createElement("i");
-            bar.style.height = (34 + i * 4.4) + "%";
-            signalBarsEl.appendChild(bar);
-            signalEls.push(bar);
-        }
-
-        let tunerRaf = null;
-        let tunerSignal = 0;
-        let tunerTune = 0.72;
-        let tunerFreqData = null;
-
-        function setTunerStation(station) {
-            if (station) {
-                tunerFreqValue.textContent = station.freq.toFixed(1);
-                tunerStationEl.textContent = station.name;
-                tunerFreqEl.classList.remove("idle");
-            } else {
-                tunerFreqValue.textContent = "--.-";
-                tunerStationEl.textContent = "라디오를 선택하세요";
-                tunerFreqEl.classList.add("idle");
-            }
-        }
-
-        function setTunerLeds(on) {
-            ledStereo.classList.toggle("lit", on);
-            ledTuned.classList.toggle("lit", on);
-            if (on && currentStation) tunerFreqEl.classList.remove("idle");
-            else if (!on) tunerFreqEl.classList.add("idle");
-        }
-
-        function renderSignal(level) {
-            const lit = Math.round(Math.max(0, Math.min(1, level)) * SIGNAL_SEGMENTS);
-            for (let i = 0; i < SIGNAL_SEGMENTS; i++) {
-                const on = i < lit;
-                signalEls[i].classList.toggle("on", on);
-                signalEls[i].classList.toggle("hot", on && i >= SIGNAL_SEGMENTS - 3);
-            }
-        }
-
-        function renderTuning(offset) {
-            tuningNeedle.style.transform = "translateX(calc(-50% + " + (offset * 50).toFixed(1) + "px))";
-        }
-
-        function tunerLoop() {
-            tunerRaf = requestAnimationFrame(tunerLoop);
-            let target = 0;
-            if (isPlaying) {
-                if (analyser) {
-                    // 데스크톱/안드로이드(MSE 경로): 실제 오디오 레벨로 신호 세기를 구동
-                    if (!tunerFreqData) tunerFreqData = new Uint8Array(analyser.frequencyBinCount);
-                    analyser.getByteFrequencyData(tunerFreqData);
-                    const n = Math.floor(tunerFreqData.length * 0.6);
-                    let sum = 0;
-                    for (let i = 0; i < n; i++) sum += tunerFreqData[i];
-                    target = Math.min(1, (sum / n / 255) * 1.7 + 0.28);
-                } else {
-                    // iOS 네이티브 HLS: 오디오 분석 불가 → '수신 양호'를 자연스럽게 시뮬레이션
-                    target = 0.74 + Math.sin(performance.now() / 260) * 0.08 + (Math.random() - 0.5) * 0.05;
-                }
-            }
-            tunerSignal += (target - tunerSignal) * 0.18;
-            renderSignal(tunerSignal);
-
-            const tuneTarget = isPlaying ? 0 : 0.72;
-            const jitter = isPlaying ? (Math.random() - 0.5) * 0.04 : 0;
-            tunerTune += (tuneTarget - tunerTune) * 0.12 + jitter;
-            tunerTune = Math.max(-1, Math.min(1, tunerTune));
-            renderTuning(tunerTune);
-        }
 
         let currentStation = null;
         let isPlaying = false;
@@ -1464,7 +1152,6 @@
             nowStation.textContent = station.name;
             playerSubtext.textContent = `${station.desc} 스트림에 연결 중입니다.`;
             applyStationTheme(station);
-            setTunerStation(station);
 
             try {
                 const url = await getStreamUrl(station);
@@ -2052,7 +1739,6 @@
             updatePlayButton();
             updateActiveStation();
             if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
-            setTunerLeds(false);
         });
 
         audio.addEventListener("playing", () => {
@@ -2060,7 +1746,6 @@
             updatePlayButton();
             updateActiveStation();
             if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
-            setTunerLeds(true);
             if (audioCtx && audioCtx.state === "suspended") {
                 audioCtx.resume();
             }
@@ -2090,7 +1775,6 @@
             nowStation.textContent = station.name;
             playerSubtext.textContent = "마지막으로 듣던 채널입니다. 재생 버튼을 누르면 연결합니다.";
             applyStationTheme(station);
-            setTunerStation(station);
             reapplyStationState();
         }
 
@@ -2098,7 +1782,6 @@
         restoreLastStation();
         updateRecButton();
         openRecordingDb();
-        tunerLoop();
     </script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
