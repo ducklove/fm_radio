@@ -1128,3 +1128,30 @@ body.mode-simple #stationMain.collapsed {
 .audio-state-chip.st-err { color: #e88a7a; }
 .audio-state-chip.st-err::before { background: #e05a4a; }
 @keyframes stPulse { 50% { opacity: 0.25; } }
+
+/* ----- 입체감: 움직이는 부품의 그림자 ----- */
+/* drop-shadow는 렌더된 형상을 따라가므로 회전(바늘·노브)·이동(톤암)에도 광원(좌상)이 유지된다 */
+#ampVuL,
+#ampVuR,
+#deckVuL,
+#deckVuR {
+    filter: drop-shadow(2.5px 3.5px 1.5px rgba(0, 0, 0, 0.38));
+}
+
+#tsSignalPtr,
+#tsTunePtr,
+#tsDialPtr {
+    filter: drop-shadow(2px 3px 1.5px rgba(0, 0, 0, 0.42));
+}
+
+#tsKnob {
+    filter: drop-shadow(3px 6px 5px rgba(0, 0, 0, 0.45));
+}
+
+#ttArmG {
+    filter: drop-shadow(5px 8px 4px rgba(0, 0, 0, 0.38));
+}
+
+#ampVolMark {
+    filter: drop-shadow(1.5px 2px 1px rgba(0, 0, 0, 0.5));
+}

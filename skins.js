@@ -40,6 +40,10 @@ const LZ_DEFS = '<defs>' +
     '<linearGradient id="lzMcBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#28a9ff" stop-opacity="0.58"/><stop offset="0.45" stop-color="#0d86e8" stop-opacity="0.64"/><stop offset="1" stop-color="#0057b8" stop-opacity="0.54"/></linearGradient>' +
     '<linearGradient id="lzTubeGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#17171c" stop-opacity="0.9"/><stop offset="0.26" stop-color="#4c4c56" stop-opacity="0.42"/><stop offset="0.5" stop-color="#83838f" stop-opacity="0.18"/><stop offset="0.74" stop-color="#33333c" stop-opacity="0.55"/><stop offset="1" stop-color="#0e0e12" stop-opacity="0.92"/></linearGradient>' +
     '<radialGradient id="lzGetter" cx="0.4" cy="0.35" r="0.9"><stop offset="0" stop-color="#dfe5ee" stop-opacity="0.55"/><stop offset="0.45" stop-color="#98a0b2" stop-opacity="0.6"/><stop offset="1" stop-color="#20242e" stop-opacity="0.85"/></radialGradient>' +
+    '<linearGradient id="lzInL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000000" stop-opacity="0.5"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="lzInR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.5"/></linearGradient>' +
+    '<linearGradient id="lzInBot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.34"/></linearGradient>' +
+    '<radialGradient id="lzInCirc" cx="0.5" cy="0.46" r="0.54"><stop offset="0.66" stop-color="#000000" stop-opacity="0"/><stop offset="0.88" stop-color="#000000" stop-opacity="0.3"/><stop offset="1" stop-color="#000000" stop-opacity="0.55"/></radialGradient>' +
     '</defs>';
 
 function applyPanelLighting(svg) {
@@ -148,6 +152,12 @@ const TUNER_SKINS = {
                 <rect x="1029" y="172" width="3" height="32" fill="#ff3a1e" filter="url(#tnGlow)"/>
                 <rect x="1030" y="172" width="1.5" height="32" fill="#ff7a55"/>
             </g>
+            <rect x="925" y="162" width="212" height="11" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="925" y="162" width="10" height="50" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="1127" y="162" width="10" height="50" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="925" y="204" width="212" height="8" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="923" y="159" width="216" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="923" y="213" width="216" height="2.5" fill="#ffffff" opacity="0.09"/>
             <rect x="1182" y="162" width="212" height="50" rx="4" fill="url(#tnMeterWin)" stroke="#0a0b06" stroke-width="1.5"/>
             <g stroke="#8f8a4a" stroke-width="1.3">
                 <line x1="1210" y1="184" x2="1210" y2="196"/><line x1="1234" y1="184" x2="1234" y2="196"/><line x1="1258" y1="184" x2="1258" y2="196"/><line x1="1330" y1="184" x2="1330" y2="196"/><line x1="1354" y1="184" x2="1354" y2="196"/><line x1="1378" y1="184" x2="1378" y2="196"/>
@@ -156,11 +166,23 @@ const TUNER_SKINS = {
                 <rect x="1287" y="172" width="3" height="32" fill="#ff3a1e" filter="url(#tnGlow)"/>
                 <rect x="1288" y="172" width="1.5" height="32" fill="#ff7a55"/>
             </g>
+            <rect x="1182" y="162" width="212" height="11" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="1182" y="162" width="10" height="50" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="1384" y="162" width="10" height="50" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="1182" y="204" width="212" height="8" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="1180" y="159" width="216" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="1180" y="213" width="216" height="2.5" fill="#ffffff" opacity="0.09"/>
             <rect x="1424" y="162" width="196" height="50" rx="4" fill="#050505" stroke="#000000" stroke-width="1.5"/>
             <text x="1440" y="182" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#c23018">FM</text>
             <text x="1440" y="200" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="600" fill="#7a2416">MHz</text>
             <text id="tsFreqGlow" x="1600" y="200" font-family="'Courier New', monospace" font-size="38" font-weight="700" fill="#3a1208" text-anchor="end" filter="url(#tnGlow)">--.-</text>
             <text id="tsFreq" x="1600" y="200" font-family="'Courier New', monospace" font-size="38" font-weight="700" fill="#5a1e12" text-anchor="end">--.-</text>
+            <rect x="1424" y="162" width="196" height="11" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="1424" y="162" width="10" height="50" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="1610" y="162" width="10" height="50" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="1424" y="204" width="196" height="8" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="1422" y="159" width="200" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="1422" y="213" width="200" height="2.5" fill="#ffffff" opacity="0.09"/>
             <ellipse cx="1852" cy="140" rx="112" ry="110" fill="#1c1b20"/>
             <g id="tsKnob">
                 <ellipse cx="1852" cy="138" rx="110" ry="108" fill="url(#tnKnobRim)"/>
@@ -209,6 +231,12 @@ const TUNER_SKINS = {
             <text x="190" y="253" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="2.5" fill="#7ee08a" text-anchor="middle">STATION</text>
             <text id="tsFreqGlow" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#0d1f30" text-anchor="middle" filter="url(#mrGlow)">--.-</text>
             <text id="tsFreq" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#16324d" text-anchor="middle">--.-</text>
+            <rect x="70" y="225" width="240" height="31.9" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="70" y="225" width="12" height="145" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="298" y="225" width="12" height="145" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="70" y="346.8" width="240" height="23.2" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="68" y="222" width="244" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="68" y="371" width="244" height="2.5" fill="#ffffff" opacity="0.09"/>
             <!-- 다이얼 창 (블랙글라스) -->
             <rect x="350" y="60" width="1210" height="310" rx="4" fill="#060607" stroke="#6b6648" stroke-width="1.6"/>
             <rect class="lampGlow" x="352" y="62" width="1206" height="306" rx="3" fill="url(#lzMcBlue)" opacity="0.4" style="mix-blend-mode:screen"/>
@@ -235,6 +263,12 @@ const TUNER_SKINS = {
             <g id="tsSignalPtr">
                 <rect x="558" y="280" width="4" height="52" fill="#0a1a18"/>
             </g>
+            <rect x="420" y="276" width="280" height="13.2" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="420" y="276" width="14" height="60" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="686" y="276" width="14" height="60" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="420" y="326.4" width="280" height="9.6" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="418" y="273" width="284" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="418" y="337" width="284" height="2.5" fill="#ffffff" opacity="0.09"/>
             <rect class="meterDark" x="420" y="276" width="280" height="60" rx="3" fill="#0d0a06" opacity="0.5"/>
             <text x="1350" y="266" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="2" fill="#7ee08a" text-anchor="middle">TUNING</text>
             <rect x="1210" y="276" width="280" height="60" rx="3" fill="url(#mrMeter)"/>
@@ -244,6 +278,12 @@ const TUNER_SKINS = {
             <g id="tsTunePtr">
                 <rect x="1348" y="280" width="4" height="52" fill="#0a1a18"/>
             </g>
+            <rect x="1210" y="276" width="280" height="13.2" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="1210" y="276" width="14" height="60" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="1476" y="276" width="14" height="60" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="1210" y="326.4" width="280" height="9.6" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="1208" y="273" width="284" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="1208" y="337" width="284" height="2.5" fill="#ffffff" opacity="0.09"/>
             <rect class="meterDark" x="1210" y="276" width="280" height="60" rx="3" fill="#0d0a06" opacity="0.5"/>
             <!-- 브랜드 -->
             <text x="955" y="310" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#d8b060" text-anchor="middle">McIntoch</text>
@@ -362,6 +402,12 @@ const TUNER_SKINS = {
             <g id="tsSignalPtr">
                 <rect x="1528.5" y="419" width="3" height="19" fill="#e8e2cf"/>
             </g>
+            <rect x="1450" y="415" width="160" height="7" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="1450" y="415" width="7" height="27" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="1603" y="415" width="7" height="27" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="1450" y="437.7" width="160" height="4.3" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="1448" y="412" width="164" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="1448" y="443" width="164" height="2.5" fill="#ffffff" opacity="0.09"/>
             <!-- 컨트롤 노브 -->
             <g font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="17" font-weight="700" fill="#2a2a2e" text-anchor="middle">
                 <text x="480" y="596">blend</text><text x="680" y="596">mode</text><text x="1000" y="648">tuning</text><text x="1320" y="596">timer</text><text x="1520" y="596">power</text><text x="1720" y="596">muting</text>
@@ -437,6 +483,9 @@ const TUNER_SKINS = {
             <rect x="320" y="66" width="1320" height="58" fill="#bfe8ff" opacity="0.1"/>
             <ellipse class="lampGlow" cx="980" cy="140" rx="620" ry="90" fill="url(#lzLampCool)" opacity="0.4"/>
             <rect x="320" y="64" width="1320" height="20" fill="url(#lzInset)" opacity="0.8"/>
+            <rect x="320" y="64" width="20" height="376" fill="url(#lzInL)" opacity="0.4"/>
+            <rect x="1620" y="64" width="20" height="376" fill="url(#lzInR)" opacity="0.4"/>
+            <rect x="320" y="390" width="1320" height="50" fill="url(#lzInBot)" opacity="0.4"/>
             <text class="dialScale" x="352" y="142" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#cfeaff">FM</text>
             <g class="dialScale" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" fill="#f2f6fa" text-anchor="middle">
                 <text x="440" y="142">88</text><text x="552" y="142">90</text><text x="664" y="142">92</text><text x="776" y="142">94</text><text x="888" y="142">96</text><text x="1000" y="142">98</text><text x="1112" y="142">100</text><text x="1224" y="142">102</text><text x="1336" y="142">104</text><text x="1448" y="142">106</text><text x="1560" y="142">108</text>
@@ -462,6 +511,12 @@ const TUNER_SKINS = {
             <g id="tsSignalPtr">
                 <rect x="518" y="320" width="4" height="92" fill="#dff2ff" filter="url(#suGlow)"/>
             </g>
+            <rect x="390" y="312" width="260" height="23.8" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="390" y="312" width="13" height="108" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="637" y="312" width="13" height="108" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="390" y="402.7" width="260" height="17.3" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="388" y="309" width="264" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="388" y="421" width="264" height="2.5" fill="#ffffff" opacity="0.09"/>
             <text x="830" y="302" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="2.5" fill="#9fc8e0" text-anchor="middle">TUNE</text>
             <rect x="700" y="312" width="260" height="108" rx="4" fill="url(#suMeter)" stroke="#2a3a4a" stroke-width="1.6"/>
             <rect x="704" y="316" width="252" height="100" fill="#bfe8ff" opacity="0.1"/>
@@ -471,6 +526,12 @@ const TUNER_SKINS = {
             <g id="tsTunePtr">
                 <rect x="828" y="320" width="4" height="92" fill="#dff2ff" filter="url(#suGlow)"/>
             </g>
+            <rect x="700" y="312" width="260" height="23.8" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="700" y="312" width="13" height="108" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="947" y="312" width="13" height="108" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="700" y="402.7" width="260" height="17.3" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="698" y="309" width="264" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="698" y="421" width="264" height="2.5" fill="#ffffff" opacity="0.09"/>
             <!-- 램프 컬럼 -->
             <circle id="tsLedStereo" data-on="#ff3a2a" data-off="#3a1210" cx="1050" cy="332" r="9" fill="#3a1210" filter="url(#suGlow)"/>
             <text x="1072" y="338" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#c8d8e8">FM STEREO</text>
@@ -610,6 +671,12 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <line id="ampVuL" data-cx="268" data-cy="352" x1="268" y1="352" x2="268" y2="212" stroke="#1a1610" stroke-width="3.5" transform="rotate(-42 268 352)"/>
         <circle cx="268" cy="352" r="9" fill="#1a1610"/>
         <polygon points="114,154 300,154 180,366 114,366" fill="url(#lzStreak)"/>
+        <rect x="114" y="154" width="308" height="34" fill="url(#lzInset)" opacity="0.62"/>
+        <rect x="114" y="154" width="14" height="212" fill="url(#lzInL)" opacity="0.5"/>
+        <rect x="408" y="154" width="14" height="212" fill="url(#lzInR)" opacity="0.5"/>
+        <rect x="114" y="332.1" width="308" height="33.9" fill="url(#lzInBot)" opacity="0.55"/>
+        <rect x="112" y="151" width="312" height="3" fill="#04050a" opacity="0.55"/>
+        <rect x="112" y="367" width="312" height="2.5" fill="#ffffff" opacity="0.09"/>
         <rect class="meterDark" x="114" y="154" width="308" height="212" rx="5" fill="#0d0a06" opacity="0.55"/>
         <text x="268" y="408" font-family="Arial" font-size="12" letter-spacing="3" fill="#5a5a64" text-anchor="middle">LEFT</text>
     </g>
@@ -628,6 +695,12 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <line id="ampVuR" data-cx="640" data-cy="352" x1="640" y1="352" x2="640" y2="212" stroke="#1a1610" stroke-width="3.5" transform="rotate(-42 640 352)"/>
         <circle cx="640" cy="352" r="9" fill="#1a1610"/>
         <polygon points="486,154 672,154 552,366 486,366" fill="url(#lzStreak)"/>
+        <rect x="486" y="154" width="308" height="34" fill="url(#lzInset)" opacity="0.62"/>
+        <rect x="486" y="154" width="14" height="212" fill="url(#lzInL)" opacity="0.5"/>
+        <rect x="780" y="154" width="14" height="212" fill="url(#lzInR)" opacity="0.5"/>
+        <rect x="486" y="332.1" width="308" height="33.9" fill="url(#lzInBot)" opacity="0.55"/>
+        <rect x="484" y="151" width="312" height="3" fill="#04050a" opacity="0.55"/>
+        <rect x="484" y="367" width="312" height="2.5" fill="#ffffff" opacity="0.09"/>
         <rect class="meterDark" x="486" y="154" width="308" height="212" rx="5" fill="#0d0a06" opacity="0.55"/>
         <text x="640" y="408" font-family="Arial" font-size="12" letter-spacing="3" fill="#5a5a64" text-anchor="middle">RIGHT</text>
     </g>
@@ -701,6 +774,12 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <line id="ampVuL" data-cx="530" data-cy="286" x1="530" y1="286" x2="530" y2="120" stroke="#f4f8fc" stroke-width="3" transform="rotate(-42 530 286)"/>
         <circle cx="530" cy="286" r="8" fill="#0a0c10"/>
         <polygon points="262,66 560,66 380,298 262,298" fill="url(#lzStreak)"/>
+        <rect x="262" y="66" width="536" height="34" fill="url(#lzInset)" opacity="0.62"/>
+        <rect x="262" y="66" width="14" height="232" fill="url(#lzInL)" opacity="0.5"/>
+        <rect x="784" y="66" width="14" height="232" fill="url(#lzInR)" opacity="0.5"/>
+        <rect x="262" y="260.9" width="536" height="37.1" fill="url(#lzInBot)" opacity="0.55"/>
+        <rect x="260" y="63" width="540" height="3" fill="#04050a" opacity="0.55"/>
+        <rect x="260" y="299" width="540" height="2.5" fill="#ffffff" opacity="0.09"/>
         <rect class="meterDark" x="262" y="66" width="536" height="232" rx="6" fill="#05070a" opacity="0.55"/>
     </g>
     <!-- 블루 와트미터 (우) -->
@@ -720,6 +799,12 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <line id="ampVuR" data-cx="1470" data-cy="286" x1="1470" y1="286" x2="1470" y2="120" stroke="#f4f8fc" stroke-width="3" transform="rotate(-42 1470 286)"/>
         <circle cx="1470" cy="286" r="8" fill="#0a0c10"/>
         <polygon points="1202,66 1500,66 1320,298 1202,298" fill="url(#lzStreak)"/>
+        <rect x="1202" y="66" width="536" height="34" fill="url(#lzInset)" opacity="0.62"/>
+        <rect x="1202" y="66" width="14" height="232" fill="url(#lzInL)" opacity="0.5"/>
+        <rect x="1724" y="66" width="14" height="232" fill="url(#lzInR)" opacity="0.5"/>
+        <rect x="1202" y="260.9" width="536" height="37.1" fill="url(#lzInBot)" opacity="0.55"/>
+        <rect x="1200" y="63" width="540" height="3" fill="#04050a" opacity="0.55"/>
+        <rect x="1200" y="299" width="540" height="2.5" fill="#ffffff" opacity="0.09"/>
         <rect class="meterDark" x="1202" y="66" width="536" height="232" rx="6" fill="#05070a" opacity="0.55"/>
     </g>
     <!-- 중앙 로고 -->
@@ -800,6 +885,8 @@ AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http:/
         <circle cx="250" cy="446" r="6" fill="#1a1610"/>
         <text x="250" y="470" font-family="Arial" font-size="10" letter-spacing="2" fill="#6b6252" text-anchor="middle">BIAS</text>
         <polygon points="188,344 268,344 214,468 188,468" fill="url(#lzStreak)"/>
+        <circle cx="250" cy="406" r="68" fill="url(#lzInCirc)"/>
+        <circle cx="250" cy="406" r="69.5" fill="none" stroke="#04050a" stroke-width="3" opacity="0.45"/>
         <circle class="meterDark" cx="250" cy="406" r="68" fill="#0d0a06" opacity="0.55"/>
     </g>
     <circle cx="524" cy="398" r="13" fill="#8a7a5a"/>
@@ -877,6 +964,12 @@ AMP_MODELS["300b"].svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="htt
     <rect x="536" y="346" width="24" height="150" rx="2" fill="#0d0b08"/>
     <line id="ampVuL" data-cx="470" data-cy="492" x1="470" y1="492" x2="470" y2="356" stroke="#e02a1a" stroke-width="5" transform="rotate(-42 470 492)"/>
     <line id="ampVuR" data-cx="548" data-cy="492" x1="548" y1="492" x2="548" y2="356" stroke="#e02a1a" stroke-width="5" transform="rotate(-42 548 492)"/>
+    <rect x="428" y="330" width="184" height="34" fill="url(#lzInset)" opacity="0.62"/>
+    <rect x="428" y="330" width="9.2" height="184" fill="url(#lzInL)" opacity="0.5"/>
+    <rect x="602.8" y="330" width="9.2" height="184" fill="url(#lzInR)" opacity="0.5"/>
+    <rect x="428" y="484.6" width="184" height="29.4" fill="url(#lzInBot)" opacity="0.55"/>
+    <rect x="426" y="327" width="188" height="3" fill="#04050a" opacity="0.55"/>
+    <rect x="426" y="515" width="188" height="2.5" fill="#ffffff" opacity="0.09"/>
     <rect class="meterDark" x="428" y="330" width="184" height="184" rx="3" fill="#0d0a06" opacity="0.55"/>
     <text x="520" y="510" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="12" fill="#8a2020" text-anchor="middle">Western Eletric</text>
     <ellipse cx="880" cy="530" rx="120" ry="20" fill="url(#weShadow)"/>

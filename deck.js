@@ -147,6 +147,12 @@ function mountDeck() {
             <line id="deckVuL" data-cx="1262" data-cy="258" x1="1262" y1="258" x2="1262" y2="146" stroke="#1a1610" stroke-width="3" transform="rotate(-42 1262 258)"/>
             <circle cx="1262" cy="258" r="7" fill="#1a1610"/>
             <polygon points="1130,120 1290,120 1180,272 1130,272" fill="url(#lzStreak)"/>
+            <rect x="1130" y="120" width="264" height="33.4" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="1130" y="120" width="13.2" height="152" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="1380.8" y="120" width="13.2" height="152" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="1130" y="247.7" width="264" height="24.3" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="1128" y="117" width="268" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="1128" y="273" width="268" height="2.5" fill="#ffffff" opacity="0.09"/>
             <rect class="meterDark" x="1130" y="120" width="264" height="152" rx="5" fill="#0d0a06" opacity="0.55"/>
             <text x="1262" y="302" font-family="Arial" font-size="11" letter-spacing="2" fill="#8a8a94" text-anchor="middle">L</text>
         </g>
@@ -160,6 +166,12 @@ function mountDeck() {
             <line id="deckVuR" data-cx="1572" data-cy="258" x1="1572" y1="258" x2="1572" y2="146" stroke="#1a1610" stroke-width="3" transform="rotate(-42 1572 258)"/>
             <circle cx="1572" cy="258" r="7" fill="#1a1610"/>
             <polygon points="1440,120 1600,120 1490,272 1440,272" fill="url(#lzStreak)"/>
+            <rect x="1440" y="120" width="264" height="33.4" fill="url(#lzInset)" opacity="0.62"/>
+            <rect x="1440" y="120" width="13.2" height="152" fill="url(#lzInL)" opacity="0.5"/>
+            <rect x="1690.8" y="120" width="13.2" height="152" fill="url(#lzInR)" opacity="0.5"/>
+            <rect x="1440" y="247.7" width="264" height="24.3" fill="url(#lzInBot)" opacity="0.55"/>
+            <rect x="1438" y="117" width="268" height="3" fill="#04050a" opacity="0.55"/>
+            <rect x="1438" y="273" width="268" height="2.5" fill="#ffffff" opacity="0.09"/>
             <rect class="meterDark" x="1440" y="120" width="264" height="152" rx="5" fill="#0d0a06" opacity="0.55"/>
             <text x="1572" y="302" font-family="Arial" font-size="11" letter-spacing="2" fill="#8a8a94" text-anchor="middle">R</text>
         </g>
