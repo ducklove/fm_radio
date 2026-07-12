@@ -146,6 +146,62 @@ test.describe("iOS 폴백 (MSE 없음 + 네이티브 HLS)", () => {
     });
 });
 
+test.describe("키보드 조작", () => {
+    test.use({ viewport: { width: 1440, height: 1200 } });
+
+    test.beforeEach(async ({ context, page }) => {
+        await mockExternal(context);
+        await page.goto("/");
+        await page.waitForFunction(() => typeof window.Hls !== "undefined");
+    });
+
+    test("튜너 RF 스위치: 포커스 + Enter로 채널 목록 토글", async ({ page }) => {
+        await page.evaluate(() => document.getElementById("tsRfHit").focus());
+        await page.keyboard.press("Enter");
+        await expect(page.locator("#stationMain")).not.toHaveClass(/collapsed/);
+        await page.keyboard.press("Enter");
+        await expect(page.locator("#stationMain")).toHaveClass(/collapsed/);
+    });
+
+    test("튜닝 노브: 화살표 키로 선국", async ({ page }) => {
+        await page.evaluate(() => document.getElementById("tsKnobHit").focus());
+        await page.keyboard.press("ArrowRight");
+        await expect(page.locator("#nowStation")).not.toHaveText("방송을 선택하세요");
+    });
+
+    test("EQ 슬라이더: 화살표 키로 게인 조절 + 저장", async ({ page }) => {
+        await page.evaluate(() => document.getElementById("eqHit0").focus());
+        await page.keyboard.press("ArrowUp");
+        await page.keyboard.press("ArrowUp");
+        const gain = await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).gains[0]);
+        expect(gain).toBe(2);
+        const valueNow = await page.getAttribute("#eqHit0", "aria-valuenow");
+        expect(valueNow).toBe("2");
+    });
+});
+
+test.describe("모바일 컨트롤 바", () => {
+    test.use({
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+    });
+
+    test("이전/다음 채널 버튼으로 선국", async ({ context, page }) => {
+        await mockExternal(context);
+        await page.goto("/");
+        await page.waitForFunction(() => typeof window.Hls !== "undefined");
+
+        await expect(page.locator(".player-bar")).toBeVisible();
+        await page.locator('button[aria-label="다음 채널"]').click();
+        await expect(page.locator("#nowStation")).toHaveText("KBS 1FM");
+        await page.waitForFunction(() => {
+            const a = document.getElementById("audioPlayer");
+            return !a.paused && a.currentTime > 0.5;
+        }, null, { timeout: 15000 });
+    });
+});
+
 test.describe("접근성", () => {
     test("axe-core: 심각/치명 위반 없음", async ({ context, page }) => {
         await mockExternal(context);

@@ -12,6 +12,22 @@
   "lang": "ko",
   "dir": "ltr",
   "categories": ["music", "entertainment"],
+  "screenshots": [
+    {
+      "src": "docs/screenshots/desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "하이파이 랙 — 튜너·이퀄라이저·앰프"
+    },
+    {
+      "src": "docs/screenshots/mobile.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "모바일 — 하단 컨트롤 바로 조작"
+    }
+  ],
   "icons": [
     {
       "src": "icons/icon.svg",

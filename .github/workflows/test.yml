@@ -1,0 +1,30 @@
+name: 테스트
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+
+      - name: 의존성 설치
+        working-directory: tests
+        run: npm ci
+
+      - name: Playwright 브라우저 설치
+        working-directory: tests
+        run: npx playwright install --with-deps chromium
+
+      - name: 스모크 테스트
+        working-directory: tests
+        run: npm test
