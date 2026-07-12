@@ -725,6 +725,82 @@
             background: rgba(211, 106, 66, 0.16);
         }
 
+        /* 랙 온리 모드: 플레이어바·VU바·목록 토글은 숨기고 기기 이미지로만 구성 */
+        .hero-player-wrap,
+        .vu-canvas,
+        .list-toggle-wrap,
+        .skin-picker {
+            display: none !important;
+        }
+
+        .settings-panel .skin-picker {
+            display: flex !important;
+        }
+
+        .settings-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: rgba(10, 8, 7, 0.66);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .settings-overlay[hidden] {
+            display: none !important;
+        }
+
+        .settings-panel {
+            width: min(560px, 100%);
+            max-height: 86vh;
+            overflow-y: auto;
+            background: #1d1916;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 22px 24px 26px;
+        }
+
+        .settings-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .settings-close {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: var(--panel-soft);
+            border: 1px solid var(--line);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .settings-sec {
+            margin-top: 18px;
+        }
+
+        .settings-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .settings-panel .skin-picker {
+            display: flex;
+            justify-content: flex-start;
+            padding: 0;
+        }
+
         .rack-unit {
             margin-top: 10px;
             line-height: 0;
@@ -876,6 +952,7 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button class="mini-open" type="button" onclick="toggleSettings(true)" title="튜너·앰프 모델을 선택합니다">⚙ 설정</button>
                 <button class="mini-open" type="button" onclick="openWidget()" title="작은 창으로 열어 들으면서 다른 일을 할 수 있습니다">미니 플레이어 ↗</button>
                 <div class="live-clock" id="liveClock" aria-label="현재 시각">--:--:--</div>
             </div>
@@ -883,10 +960,8 @@
 
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
             <div class="tuner-stage" id="tunerStage"></div>
-            <div class="skin-picker" id="skinPicker" role="group" aria-label="튜너 스킨 선택"></div>
             <div class="rack-unit" id="eqStage" aria-label="그래픽 이퀄라이저"></div>
             <div class="rack-unit" id="ampStage" aria-label="앰프"></div>
-            <div class="skin-picker" id="ampPicker" role="group" aria-label="앰프 모델 선택"></div>
             <div class="rack-unit" id="ttStage" aria-label="턴테이블"></div>
             <canvas class="vu-canvas" id="vuCanvas" aria-hidden="true"></canvas>
             <div class="hero-player-wrap">
@@ -985,6 +1060,27 @@
             방송 스트림의 저작권은 각 방송사에 있습니다. 녹음 파일은 개인 감상 용도로만 이용해 주세요.
             <a class="footer-link" href="embed.html">위젯·임베드 안내</a>
         </footer>
+    </div>
+
+    <div class="settings-overlay" id="settingsOverlay" hidden>
+        <div class="settings-panel" role="dialog" aria-modal="true" aria-label="설정">
+            <div class="settings-head">
+                설정
+                <button class="settings-close" type="button" aria-label="설정 닫기" onclick="toggleSettings(false)">✕</button>
+            </div>
+            <div class="settings-sec">
+                <div class="settings-title">튜너 모델</div>
+                <div class="skin-picker" id="skinPicker" role="group" aria-label="튜너 스킨 선택"></div>
+            </div>
+            <div class="settings-sec">
+                <div class="settings-title">앰프 모델</div>
+                <div class="skin-picker" id="ampPicker" role="group" aria-label="앰프 모델 선택"></div>
+            </div>
+            <div class="settings-sec">
+                <div class="settings-title">채널</div>
+                <button class="skin-btn" type="button" onclick="toggleSettings(false); openListFromSettings();">전체 채널 목록 열기</button>
+            </div>
+        </div>
     </div>
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
@@ -1789,10 +1885,11 @@
 
         // ----- 그래픽 이퀄라이저 (YAHAMA GE-5) -----
         const EQ_FREQS = [60, 250, 1000, 4000, 12000];
-        const EQ_LABELS = ["60", "250", "1K", "4K", "12K"];
-        const EQ_X = [860, 1040, 1220, 1400, 1580];
-        const EQ_TOP = 56;
-        const EQ_BOT = 156;
+        const EQ_LABELS = ["60", "250", "1k", "4k", "12k"];
+        const EQ_X = [800, 1030, 1260, 1490, 1720];
+        const EQ_TOP = 100;
+        const EQ_BOT = 320;
+        const EQ_VB_H = 400;
         let eqState = loadJson("fmRadio.eq", { on: true, gains: [0, 0, 0, 0, 0] });
         if (!Array.isArray(eqState.gains) || eqState.gains.length !== 5) eqState = { on: true, gains: [0, 0, 0, 0, 0] };
 
@@ -1806,31 +1903,65 @@
         }
 
         function mountEq() {
+            // 필드 배경: dB 그리드 라인
+            let grid = "";
+            [-12, -9, -6, -3, 0, 3, 6, 9, 12].forEach((g) => {
+                const y = eqGainToY(g);
+                grid += '<line x1="700" y1="' + y + '" x2="1900" y2="' + y + '" stroke="#3a3a40" stroke-width="' + (g === 0 ? 2 : 0.8) + '" opacity="' + (g === 0 ? 0.9 : 0.5) + '"/>';
+            });
             const sliders = EQ_FREQS.map((f, i) => {
                 const x = EQ_X[i];
-                return '<rect x="' + (x - 3) + '" y="' + EQ_TOP + '" width="6" height="' + (EQ_BOT - EQ_TOP) + '" rx="3" fill="#0c0b0a" stroke="#2e2b26"/>' +
-                    '<rect x="' + (x - 12) + '" y="' + (eqGainToY(0) - 1) + '" width="24" height="2" fill="#4a443c"/>' +
-                    '<g id="eqH' + i + '"><rect x="' + (x - 27) + '" y="-9" width="54" height="18" rx="3" fill="#3d3a34" stroke="#57534a"/><rect x="' + (x - 27) + '" y="-1.2" width="54" height="2.4" fill="#ec8255"/></g>' +
-                    '<text id="eqV' + i + '" x="' + x + '" y="42" font-family="Arial" font-size="12" font-weight="700" fill="#b9aea1" text-anchor="middle">0</text>' +
-                    '<text x="' + x + '" y="182" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1" fill="#8a7d70" text-anchor="middle">' + EQ_LABELS[i] + '</text>' +
-                    '<rect id="eqHit' + i + '" x="' + (x - 45) + '" y="30" width="90" height="160" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none"><title>' + EQ_LABELS[i] + 'Hz ±12dB</title></rect>';
+                return '<rect x="' + (x - 5) + '" y="' + (EQ_TOP - 8) + '" width="10" height="' + (EQ_BOT - EQ_TOP + 16) + '" rx="5" fill="#050506" stroke="#2e2e34" stroke-width="1.2"/>' +
+                    '<g id="eqH' + i + '">' +
+                    '<rect x="' + (x - 30) + '" y="-15" width="60" height="30" rx="4" fill="#26262c" stroke="#0a0a0c" stroke-width="1.5"/>' +
+                    '<rect x="' + (x - 30) + '" y="-15" width="60" height="6" rx="3" fill="#3c3c44"/>' +
+                    '<rect x="' + (x - 30) + '" y="-2.5" width="60" height="5" fill="#f2f2f4"/>' +
+                    '</g>' +
+                    '<text id="eqV' + i + '" x="' + x + '" y="78" font-family="Arial" font-size="14" font-weight="700" fill="#9a9aa2" text-anchor="middle">0</text>' +
+                    '<text x="' + x + '" y="354" font-family="Arial" font-size="15" font-weight="600" letter-spacing="1" fill="#8a8a94" text-anchor="middle">' + EQ_LABELS[i] + '</text>' +
+                    '<rect id="eqHit' + i + '" x="' + (x - 58) + '" y="66" width="116" height="300" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none"><title>' + EQ_LABELS[i] + 'Hz &#177;12dB</title></rect>';
             }).join("");
+            let lvl = "";
+            for (let i = 0; i < 12; i++) {
+                lvl += '<rect id="eqLvl' + i + '" x="530" y="' + (300 - i * 19) + '" width="46" height="12" rx="2" fill="#33251a"/>';
+            }
             document.getElementById("eqStage").innerHTML =
-                '<svg class="eq-svg" viewBox="0 0 2000 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="YAHAMA GE-5 그래픽 이퀄라이저">' +
-                '<defs><linearGradient id="eqPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34312b"/><stop offset="0.5" stop-color="#28251f"/><stop offset="1" stop-color="#1c1a16"/></linearGradient></defs>' +
-                '<rect width="2000" height="200" rx="6" fill="url(#eqPanel)"/>' +
-                '<rect y="0" width="2000" height="8" rx="4" fill="#57534a" opacity="0.5"/>' +
-                '<text x="120" y="86" font-family="Arial" font-size="26" font-weight="700" letter-spacing="1.5" fill="#e6e5e8">YAHAMA</text>' +
-                '<text x="120" y="116" font-family="Arial" font-size="15" font-weight="600" letter-spacing="2" fill="#b9aea1">GE-5 GRAPHIC EQUALIZER</text>' +
-                '<text x="120" y="140" font-family="Arial" font-size="12" letter-spacing="1" fill="#8a7d70">5 BAND &#177;12dB</text>' +
-                '<text x="770" y="' + (EQ_TOP + 6) + '" font-family="Arial" font-size="10" fill="#8a7d70" text-anchor="end">+12</text>' +
-                '<text x="770" y="' + (eqGainToY(0) + 3) + '" font-family="Arial" font-size="10" fill="#8a7d70" text-anchor="end">0</text>' +
-                '<text x="770" y="' + EQ_BOT + '" font-family="Arial" font-size="10" fill="#8a7d70" text-anchor="end">-12</text>' +
+                '<svg class="eq-svg" viewBox="0 0 2000 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="YAHAMA GE-5 스테레오 그래픽 이퀄라이저">' +
+                '<defs>' +
+                '<linearGradient id="eqPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1b1f"/><stop offset="0.5" stop-color="#121215"/><stop offset="1" stop-color="#0b0b0d"/></linearGradient>' +
+                '<pattern id="eqRidge" width="14" height="8" patternUnits="userSpaceOnUse"><rect width="7" height="8" fill="#0e0e11"/><rect x="7" width="7" height="8" fill="#141419"/></pattern>' +
+                '</defs>' +
+                '<rect width="2000" height="400" rx="8" fill="url(#eqPanel)"/>' +
+                '<rect width="2000" height="6" fill="#ffffff" opacity="0.06"/>' +
+                '<rect y="388" width="2000" height="12" fill="#000" opacity="0.4"/>' +
+                // 랙 이어
+                '<rect x="0" y="0" width="44" height="400" rx="8" fill="#101013"/><circle cx="22" cy="52" r="9" fill="#26262c" stroke="#3c3c44"/><circle cx="22" cy="348" r="9" fill="#26262c" stroke="#3c3c44"/>' +
+                '<rect x="1956" y="0" width="44" height="400" rx="8" fill="#101013"/><circle cx="1978" cy="52" r="9" fill="#26262c" stroke="#3c3c44"/><circle cx="1978" cy="348" r="9" fill="#26262c" stroke="#3c3c44"/>' +
+                // 좌측 컨트롤 블록
+                '<text x="90" y="96" font-family="Arial" font-size="30" font-weight="700" letter-spacing="1.5" fill="#f0f0f2">YAHAMA</text>' +
+                '<text x="90" y="126" font-family="Arial" font-size="14" letter-spacing="1.5" fill="#8a8a94">Stereo Graphic Equalizer GE-5</text>' +
+                '<text x="92" y="196" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a94">power</text>' +
+                '<rect x="90" y="206" width="34" height="64" rx="3" fill="#e8e8ec" stroke="#0a0a0c" stroke-width="1.5"/>' +
+                '<text x="92" y="304" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a94">tape monitor</text>' +
+                '<rect x="90" y="314" width="34" height="40" rx="3" fill="#3c3c44" stroke="#0a0a0c"/>' +
+                '<circle id="eqLed" cx="206" cy="216" r="6" fill="#3a2012"/>' +
+                '<text x="222" y="221" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a94">EQ on</text>' +
+                '<rect id="eqDefeatBtn" x="200" y="234" width="96" height="44" rx="4" fill="#26262c" stroke="#3c3c44" style="cursor:pointer"><title>EQ 켜기/끄기 (DEFEAT)</title></rect>' +
+                '<rect x="206" y="240" width="84" height="10" rx="2" fill="#3c3c44" pointer-events="none"/>' +
+                '<text x="248" y="268" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.5" fill="#d8d8dc" text-anchor="middle" pointer-events="none">DEFEAT</text>' +
+                // 레벨 LED 컬럼
+                '<text x="553" y="78" font-family="Arial" font-size="11" letter-spacing="1.5" fill="#8a8a94" text-anchor="middle">level</text>' +
+                '<text x="512" y="98" font-family="Arial" font-size="10" fill="#5a5a62" text-anchor="end">+dB</text>' +
+                '<text x="512" y="310" font-family="Arial" font-size="10" fill="#5a5a62" text-anchor="end">-dB</text>' +
+                lvl +
+                // 슬라이더 필드
+                '<rect x="680" y="60" width="1240" height="310" rx="6" fill="url(#eqRidge)" stroke="#26262c" stroke-width="1.5"/>' +
+                grid +
+                '<text x="694" y="' + (EQ_TOP + 5) + '" font-family="Arial" font-size="12" fill="#8a8a94">+12</text>' +
+                '<text x="694" y="' + (eqGainToY(0) + 4) + '" font-family="Arial" font-size="12" fill="#8a8a94">0</text>' +
+                '<text x="694" y="' + (EQ_BOT + 5) + '" font-family="Arial" font-size="12" fill="#8a8a94">-12</text>' +
                 sliders +
-                '<circle id="eqLed" cx="1760" cy="92" r="7" fill="#3a2012"/>' +
-                '<text x="1760" y="122" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1" fill="#b9aea1" text-anchor="middle">EQ ON</text>' +
-                '<rect id="eqDefeatBtn" x="1712" y="132" width="96" height="30" rx="6" fill="#3d3a34" stroke="#57534a" style="cursor:pointer"><title>EQ 켜기/끄기 (DEFEAT)</title></rect>' +
-                '<text x="1760" y="152" font-family="Arial" font-size="12" font-weight="700" letter-spacing="1" fill="#d9cfc0" text-anchor="middle" pointer-events="none">DEFEAT</text>' +
+                '<text x="1900" y="354" font-family="Arial" font-size="12" letter-spacing="1" fill="#5a5a62" text-anchor="end">Hz</text>' +
                 '</svg>';
 
             const svg = document.querySelector("#eqStage svg");
@@ -1839,7 +1970,7 @@
                 let drag = false;
                 const setFromY = (clientY) => {
                     const r = svg.getBoundingClientRect();
-                    const y = (clientY - r.top) / r.height * 200;
+                    const y = (clientY - r.top) / r.height * EQ_VB_H;
                     let g = 12 - (y - EQ_TOP) / (EQ_BOT - EQ_TOP) * 24;
                     g = Math.max(-12, Math.min(12, g));
                     if (Math.abs(g) < 0.7) g = 0;      // 센터 디텐트
@@ -1875,36 +2006,308 @@
             if (led) led.style.fill = eqState.on ? "#ff7a3a" : "#3a2012";
         }
 
-        // ----- 앰프 (TR 1종 + 진공관 3종, 모델별 고유 음색) -----
+        // ----- 앰프 (TR 1종 + 진공관 3종, 모델별 고유 음색 · 실물 사진 기반 섀시 뷰) -----
         const AMP_MODELS = {
             tr: {
-                pill: "TR ST-100", name: "ST-100", sub: "SOLID STATE STEREO AMPLIFIER",
-                desc: "솔리드스테이트 — 무색·투명, 높은 댐핑",
-                face: ["#1e1e22", "#131317"], accentText: "#e8e8ec", tubes: [], fins: true,
+                pill: "TR · CA-100",
+                desc: "솔리드스테이트 인티앰프 — 무색·투명, 높은 댐핑 (Yamaha CA-1000 오마주)",
                 drive: 1, k: 0, asym: 0, bass: [80, 0], mid: [1000, 0, 1], treble: [8000, 0], out: 1
             },
             el34: {
-                pill: "EL34", name: "A-34", sub: "EL34 PUSH-PULL TUBE AMPLIFIER",
-                desc: "EL34 푸시풀 — 미드 포워드, 브리티시 웜",
-                face: ["#2a3134", "#171c1e"], accentText: "#d8b060",
-                tubes: [{ x: 950, w: 46, h: 104 }, { x: 1030, w: 46, h: 104 }, { x: 1130, w: 46, h: 104 }, { x: 1210, w: 46, h: 104 }],
+                pill: "EL34 · 8B",
+                desc: "EL34 푸시풀 — 미드 포워드, 브리티시 웜 (Marantz 8B 오마주)",
                 drive: 2.2, k: 1.7, asym: 0.12, bass: [120, 0.8], mid: [1800, 1.6, 0.9], treble: [8000, -0.9], out: 0.74
             },
             "300b": {
-                pill: "300B", name: "A-300", sub: "300B SINGLE-ENDED TRIODE",
-                desc: "300B 싱글엔디드 — 달콤한 짝수 배음, 부드러운 고역",
-                face: ["#3c3a38", "#232120"], accentText: "#e8ddc0",
-                tubes: [{ x: 940, w: 66, h: 120 }, { x: 1080, w: 66, h: 120 }, { x: 1190, w: 36, h: 86 }, { x: 1250, w: 36, h: 86 }],
+                pill: "300B · 91E",
+                desc: "300B 싱글엔디드 — 달콤한 짝수 배음, 부드러운 고역 (WE 91E 오마주)",
                 drive: 2.8, k: 1.15, asym: 0.38, bass: [100, 1.4], mid: [800, 0.8, 0.8], treble: [7000, -2.2], out: 0.7
             },
             kt88: {
-                pill: "KT88", name: "A-88", sub: "KT88 ULTRA-LINEAR TUBE AMPLIFIER",
-                desc: "KT88 — 광대역 파워, 깊고 단단한 저역",
-                face: ["#26262c", "#141418"], accentText: "#c8c6cd",
-                tubes: [{ x: 940, w: 56, h: 112 }, { x: 1030, w: 56, h: 112 }, { x: 1130, w: 56, h: 112 }, { x: 1220, w: 56, h: 112 }],
+                pill: "KT88 · 275",
+                desc: "KT88 크롬 스테레오 파워 — 광대역, 깊고 단단한 저역 (McIntosh MC275 오마주)",
                 drive: 1.9, k: 1.45, asym: 0.08, bass: [80, 1.8], mid: [1200, -0.5, 1], treble: [10000, 0.9], out: 0.78
             }
         };
+
+        AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="YAHAMA CA-100 솔리드스테이트 앰프">
+            <defs>
+                <linearGradient id="caWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a32"/><stop offset="0.5" stop-color="#6b4324"/><stop offset="1" stop-color="#4a2d18"/></linearGradient>
+                <linearGradient id="caFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2e2e6"/><stop offset="0.5" stop-color="#cfcfd5"/><stop offset="1" stop-color="#b2b2ba"/></linearGradient>
+                <radialGradient id="caKnob" cx="0.4" cy="0.32" r="0.9"><stop offset="0" stop-color="#f4f4f6"/><stop offset="0.55" stop-color="#c9c9d1"/><stop offset="1" stop-color="#84848e"/></radialGradient>
+                <linearGradient id="caMeter" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ecd4"/><stop offset="1" stop-color="#e2d6b4"/></linearGradient>
+                <pattern id="caBrush" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="1" fill="#ffffff" opacity="0.05"/></pattern>
+            </defs>
+            <rect width="2000" height="640" rx="10" fill="url(#caWood)"/>
+            <rect x="0" y="0" width="2000" height="10" rx="5" fill="#a8703e" opacity="0.5"/>
+            <rect x="30" y="58" width="1940" height="556" rx="5" fill="url(#caFace)"/>
+            <rect x="30" y="58" width="1940" height="556" rx="5" fill="url(#caBrush)"/>
+            <circle cx="92" cy="120" r="17" fill="none" stroke="#3a3a40" stroke-width="2"/>
+            <path d="M86 112 L86 124 M92 109 L92 124 M98 112 L98 124 M86 124 Q92 130 98 124" stroke="#3a3a40" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+            <text x="126" y="130" font-family="Arial" font-size="27" font-weight="700" letter-spacing="1.5" fill="#26262c">YAHAMA</text>
+            <text x="300" y="128" font-family="Arial" font-size="13" letter-spacing="2.5" fill="#55555c">NATURAL SOUND STEREO AMPLIFIER CA-100</text>
+            <g>
+                <rect x="106" y="166" width="300" height="222" rx="8" fill="#26262c"/>
+                <rect x="116" y="176" width="280" height="202" rx="4" fill="url(#caMeter)"/>
+                <path d="M 166 340 A 118 118 0 0 1 346 340" fill="none" stroke="#3a2b1e" stroke-width="1.6"/>
+                <path d="M 306 258 A 118 118 0 0 1 346 340" fill="none" stroke="#c0392b" stroke-width="4"/>
+                <g stroke="#3a2b1e" stroke-width="1.4">
+                    <line x1="170" y1="336" x2="180" y2="344"/><line x1="200" y1="300" x2="208" y2="310"/><line x1="256" y1="282" x2="256" y2="294"/><line x1="312" y1="300" x2="304" y2="310"/><line x1="342" y1="336" x2="332" y2="344"/>
+                </g>
+                <text x="256" y="230" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2" fill="#3a2b1e" text-anchor="middle">PEAK</text>
+                <text x="130" y="368" font-family="Arial" font-size="11" fill="#8a7d5a">50 40 30 20</text>
+                <text x="256" y="404" font-family="Arial" font-size="12" letter-spacing="2" fill="#f0ede4" text-anchor="middle" opacity="0"> </text>
+                <line id="ampVuL" data-cx="256" data-cy="352" x1="256" y1="352" x2="256" y2="212" stroke="#1c1a16" stroke-width="3" transform="rotate(-42 256 352)"/>
+                <circle cx="256" cy="352" r="8" fill="#1c1a16"/>
+                <text x="256" y="418" font-family="Arial" font-size="12" letter-spacing="2" fill="#55555c" text-anchor="middle">LEFT</text>
+            </g>
+            <g>
+                <rect x="430" y="166" width="300" height="222" rx="8" fill="#26262c"/>
+                <rect x="440" y="176" width="280" height="202" rx="4" fill="url(#caMeter)"/>
+                <path d="M 490 340 A 118 118 0 0 1 670 340" fill="none" stroke="#3a2b1e" stroke-width="1.6"/>
+                <path d="M 630 258 A 118 118 0 0 1 670 340" fill="none" stroke="#c0392b" stroke-width="4"/>
+                <g stroke="#3a2b1e" stroke-width="1.4">
+                    <line x1="494" y1="336" x2="504" y2="344"/><line x1="524" y1="300" x2="532" y2="310"/><line x1="580" y1="282" x2="580" y2="294"/><line x1="636" y1="300" x2="628" y2="310"/><line x1="666" y1="336" x2="656" y2="344"/>
+                </g>
+                <text x="580" y="230" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2" fill="#3a2b1e" text-anchor="middle">PEAK</text>
+                <line id="ampVuR" data-cx="580" data-cy="352" x1="580" y1="352" x2="580" y2="212" stroke="#1c1a16" stroke-width="3" transform="rotate(-42 580 352)"/>
+                <circle cx="580" cy="352" r="8" fill="#1c1a16"/>
+                <text x="580" y="418" font-family="Arial" font-size="12" letter-spacing="2" fill="#55555c" text-anchor="middle">RIGHT</text>
+            </g>
+            <g font-family="Arial" font-size="12" letter-spacing="1.5" fill="#55555c" text-anchor="middle">
+                <text x="850" y="196">MODE</text><text x="1050" y="196">PHONO SELECTOR</text><text x="1250" y="196">REC OUT</text><text x="1450" y="196">INPUT SELECTOR</text>
+            </g>
+            <g>
+                <rect x="838" y="216" width="24" height="88" rx="6" fill="#26262c"/><rect x="842" y="222" width="16" height="40" rx="4" fill="url(#caKnob)"/>
+                <rect x="1038" y="216" width="24" height="88" rx="6" fill="#26262c"/><rect x="1042" y="252" width="16" height="40" rx="4" fill="url(#caKnob)"/>
+                <rect x="1238" y="216" width="24" height="88" rx="6" fill="#26262c"/><rect x="1242" y="238" width="16" height="40" rx="4" fill="url(#caKnob)"/>
+                <rect x="1438" y="216" width="24" height="88" rx="6" fill="#26262c"/><rect x="1442" y="222" width="16" height="40" rx="4" fill="url(#caKnob)"/>
+            </g>
+            <g font-family="Arial" font-size="12" letter-spacing="1.5" fill="#55555c" text-anchor="middle">
+                <text x="160" y="474">POWER</text><text x="330" y="474">PHONES</text><text x="500" y="474">SPEAKERS</text><text x="700" y="474">OPERATION</text><text x="950" y="474">BASS</text><text x="1150" y="474">TREBLE</text><text x="1390" y="474">AUDIO MUTING</text>
+            </g>
+            <circle id="ampPwrLed" cx="128" cy="497" r="6" fill="#3a2012"/>
+            <rect x="146" y="488" width="30" height="70" rx="5" fill="#26262c"/><rect x="151" y="494" width="20" height="28" rx="3" fill="url(#caKnob)"/>
+            <circle cx="330" cy="522" r="17" fill="#1c1c22"/><circle cx="330" cy="522" r="8" fill="#050506"/>
+            <rect x="486" y="488" width="28" height="70" rx="5" fill="#26262c"/><rect x="490" y="522" width="20" height="28" rx="3" fill="url(#caKnob)"/>
+            <rect x="686" y="488" width="28" height="70" rx="5" fill="#26262c"/><rect x="690" y="494" width="20" height="28" rx="3" fill="url(#caKnob)"/>
+            <circle cx="950" cy="524" r="42" fill="url(#caKnob)" stroke="#84848e" stroke-width="1.5"/><rect x="947" y="486" width="6" height="20" rx="3" fill="#3a3a40"/>
+            <circle cx="1150" cy="524" r="42" fill="url(#caKnob)" stroke="#84848e" stroke-width="1.5"/><rect x="1147" y="486" width="6" height="20" rx="3" fill="#3a3a40"/>
+            <rect x="1376" y="488" width="28" height="70" rx="5" fill="#26262c"/><rect x="1380" y="494" width="20" height="28" rx="3" fill="url(#caKnob)"/>
+            <text x="1790" y="196" font-family="Arial" font-size="13" letter-spacing="2" fill="#55555c" text-anchor="middle">VOLUME &#183; BALANCE</text>
+            <circle cx="1790" cy="392" r="162" fill="#84848e"/>
+            <circle cx="1790" cy="388" r="158" fill="url(#caKnob)" stroke="#9a9aa2" stroke-width="2"/>
+            <circle cx="1790" cy="388" r="158" fill="none" stroke="#84848e" stroke-width="10" stroke-dasharray="2.5 7" opacity="0.6"/>
+            <circle cx="1790" cy="258" r="8" fill="#3a3a40"/>
+            <ellipse cx="1740" cy="330" rx="52" ry="40" fill="#ffffff" opacity="0.3" pointer-events="none"/>
+        </svg>`;
+
+        AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maranz 8B EL34 진공관 앰프">
+            <defs>
+                <linearGradient id="m8Chassis" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6cdb2"/><stop offset="0.5" stop-color="#c2b898"/><stop offset="1" stop-color="#a89e7e"/></linearGradient>
+                <linearGradient id="m8Deck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6dfc8"/><stop offset="1" stop-color="#cfc6aa"/></linearGradient>
+                <linearGradient id="m8Glass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#20201e" stop-opacity="0.85"/><stop offset="0.3" stop-color="#5a5a54" stop-opacity="0.4"/><stop offset="0.55" stop-color="#8a8a80" stop-opacity="0.25"/><stop offset="1" stop-color="#16161a" stop-opacity="0.9"/></linearGradient>
+                <filter id="m8Glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="9"/></filter>
+                <pattern id="m8Mesh" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="2" fill="#3a3630"/></pattern>
+            </defs>
+            <rect width="2000" height="560" rx="10" fill="#100e0c"/>
+            <rect x="60" y="524" width="1880" height="16" rx="8" fill="#000" opacity="0.6"/>
+            <rect x="1430" y="66" width="420" height="130" rx="8" fill="#b8b09a"/>
+            <rect x="1430" y="66" width="420" height="130" rx="8" fill="url(#m8Mesh)"/>
+            <path d="M 180 186 L 1820 186 L 1880 306 L 120 306 Z" fill="url(#m8Deck)"/>
+            <rect x="120" y="306" width="1760" height="212" rx="6" fill="url(#m8Chassis)"/>
+            <g>
+                <ellipse class="ampGlow" cx="330" cy="120" rx="64" ry="86" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
+                <rect x="302" y="176" width="56" height="14" rx="4" fill="#1c1a16"/>
+                <rect x="296" y="30" width="68" height="152" rx="34" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.6"/>
+                <rect class="ampGlow" x="326" y="58" width="8" height="100" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <ellipse cx="316" cy="52" rx="12" ry="20" fill="#ffffff" opacity="0.18"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="460" cy="120" rx="64" ry="86" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
+                <rect x="432" y="176" width="56" height="14" rx="4" fill="#1c1a16"/>
+                <rect x="426" y="30" width="68" height="152" rx="34" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.6"/>
+                <rect class="ampGlow" x="456" y="58" width="8" height="100" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <ellipse cx="446" cy="52" rx="12" ry="20" fill="#ffffff" opacity="0.18"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="1180" cy="120" rx="64" ry="86" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
+                <rect x="1152" y="176" width="56" height="14" rx="4" fill="#1c1a16"/>
+                <rect x="1146" y="30" width="68" height="152" rx="34" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.6"/>
+                <rect class="ampGlow" x="1176" y="58" width="8" height="100" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <ellipse cx="1166" cy="52" rx="12" ry="20" fill="#ffffff" opacity="0.18"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="1310" cy="120" rx="64" ry="86" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
+                <rect x="1282" y="176" width="56" height="14" rx="4" fill="#1c1a16"/>
+                <rect x="1276" y="30" width="68" height="152" rx="34" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.6"/>
+                <rect class="ampGlow" x="1306" y="58" width="8" height="100" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <ellipse cx="1296" cy="52" rx="12" ry="20" fill="#ffffff" opacity="0.18"/>
+            </g>
+            <g>
+                <rect x="646" y="182" width="40" height="10" rx="3" fill="#1c1a16"/><rect x="642" y="92" width="48" height="94" rx="22" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.4"/><rect class="ampGlow" x="662" y="108" width="6" height="62" rx="3" fill="#ffb03a" opacity="0.08"/>
+                <rect x="746" y="182" width="40" height="10" rx="3" fill="#1c1a16"/><rect x="742" y="92" width="48" height="94" rx="22" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.4"/><rect class="ampGlow" x="762" y="108" width="6" height="62" rx="3" fill="#ffb03a" opacity="0.08"/>
+                <rect x="846" y="182" width="40" height="10" rx="3" fill="#1c1a16"/><rect x="842" y="92" width="48" height="94" rx="22" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.4"/><rect class="ampGlow" x="862" y="108" width="6" height="62" rx="3" fill="#ffb03a" opacity="0.08"/>
+                <rect x="946" y="182" width="40" height="10" rx="3" fill="#1c1a16"/><rect x="942" y="92" width="48" height="94" rx="22" fill="url(#m8Glass)" stroke="#6a6a62" stroke-width="1.4"/><rect class="ampGlow" x="962" y="108" width="6" height="62" rx="3" fill="#ffb03a" opacity="0.08"/>
+            </g>
+            <rect x="560" y="132" width="44" height="54" rx="10" fill="#14120f"/>
+            <rect x="1060" y="132" width="44" height="54" rx="10" fill="#14120f"/>
+            <circle cx="760" cy="404" r="74" fill="#26241f"/>
+            <circle cx="760" cy="402" r="66" fill="#f0ecd8" stroke="#8a8068" stroke-width="2"/>
+            <path d="M 716 428 A 62 62 0 0 1 804 428" fill="none" stroke="#3a2b1e" stroke-width="1.4" transform="rotate(180 760 415)"/>
+            <line id="ampVuL" data-cx="760" data-cy="428" x1="760" y1="428" x2="760" y2="352" stroke="#1c1a16" stroke-width="2.5" transform="rotate(-42 760 428)"/>
+            <circle cx="760" cy="428" r="6" fill="#1c1a16"/>
+            <text x="760" y="456" font-family="Arial" font-size="10" letter-spacing="1.5" fill="#6b6252" text-anchor="middle">BIAS</text>
+            <rect x="940" y="386" width="190" height="46" rx="4" fill="#14120f"/>
+            <text x="1035" y="417" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="26" font-weight="700" fill="#f0ecd8" text-anchor="middle">maranz</text>
+            <text x="1420" y="416" font-family="Arial" font-size="14" letter-spacing="2" fill="#55504a">MODEL 8B STEREO AMPLIFIER</text>
+            <circle id="ampPwrLed" cx="300" cy="392" r="7" fill="#3a2012"/>
+            <rect x="330" y="372" width="26" height="60" rx="5" fill="#26241f"/><rect x="334" y="378" width="18" height="24" rx="3" fill="#8a8068"/>
+            <text x="343" y="456" font-family="Arial" font-size="10" letter-spacing="1.5" fill="#6b6252" text-anchor="middle">POWER</text>
+            <g fill="#26241f"><circle cx="1650" cy="470" r="9"/><circle cx="1690" cy="470" r="9"/><circle cx="1730" cy="470" r="9"/><circle cx="1770" cy="470" r="9"/></g>
+            <rect x="200" y="516" width="90" height="18" rx="6" fill="#000" opacity="0.7"/>
+            <rect x="1710" y="516" width="90" height="18" rx="6" fill="#000" opacity="0.7"/>
+        </svg>`;
+
+        AMP_MODELS["300b"].svg = `<svg class="amp-svg" viewBox="0 0 2000 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Western Eletric 91E 300B 앰프">
+            <defs>
+                <linearGradient id="weFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd6c4"/><stop offset="0.5" stop-color="#cbc3ac"/><stop offset="1" stop-color="#b0a88e"/></linearGradient>
+                <linearGradient id="weDeck" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8e2d2"/><stop offset="1" stop-color="#cfc8b2"/></linearGradient>
+                <linearGradient id="weGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2a2018" stop-opacity="0.8"/><stop offset="0.35" stop-color="#6a5a44" stop-opacity="0.35"/><stop offset="1" stop-color="#1c140e" stop-opacity="0.9"/></linearGradient>
+                <radialGradient id="weKnob" cx="0.42" cy="0.34" r="0.9"><stop offset="0" stop-color="#f0ece0"/><stop offset="0.5" stop-color="#c8c0aa"/><stop offset="1" stop-color="#847c66"/></radialGradient>
+                <filter id="weGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>
+                <pattern id="weMesh" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.7" fill="#8a8270"/></pattern>
+                <pattern id="weBrush" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="1" fill="#ffffff" opacity="0.06"/></pattern>
+            </defs>
+            <rect width="2000" height="640" rx="10" fill="#100e0c"/>
+            <rect x="340" y="90" width="1320" height="170" rx="10" fill="url(#weDeck)"/>
+            <circle cx="480" cy="172" r="62" fill="#b8b09a" stroke="#8a8270" stroke-width="3"/><circle cx="480" cy="172" r="56" fill="url(#weMesh)"/>
+            <circle cx="700" cy="172" r="62" fill="#b8b09a" stroke="#8a8270" stroke-width="3"/><circle cx="700" cy="172" r="56" fill="url(#weMesh)"/>
+            <rect x="880" y="60" width="240" height="200" rx="6" fill="url(#weFace)" stroke="#a89e86" stroke-width="1.5"/>
+            <text x="1000" y="150" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="28" font-weight="700" fill="#4a4436" text-anchor="middle">Western Eletric</text>
+            <text x="1000" y="196" font-family="Arial" font-size="30" letter-spacing="6" fill="#8a8068" text-anchor="middle">91E</text>
+            <g>
+                <ellipse class="ampGlow" cx="1250" cy="150" rx="72" ry="98" fill="#ff9a3a" opacity="0.09" filter="url(#weGlow)"/>
+                <rect x="1216" y="240" width="68" height="16" rx="5" fill="#2a241c"/>
+                <path d="M 1214 240 C 1214 150 1200 96 1250 48 C 1300 96 1286 150 1286 240 Z" fill="url(#weGlass)" stroke="#7a7060" stroke-width="1.8"/>
+                <rect class="ampGlow" x="1245" y="90" width="9" height="130" rx="4.5" fill="#ffc05a" opacity="0.1"/>
+                <ellipse cx="1234" cy="80" rx="10" ry="18" fill="#ffffff" opacity="0.2"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="1450" cy="150" rx="72" ry="98" fill="#ff9a3a" opacity="0.09" filter="url(#weGlow)"/>
+                <rect x="1416" y="240" width="68" height="16" rx="5" fill="#2a241c"/>
+                <path d="M 1414 240 C 1414 150 1400 96 1450 48 C 1500 96 1486 150 1486 240 Z" fill="url(#weGlass)" stroke="#7a7060" stroke-width="1.8"/>
+                <rect class="ampGlow" x="1445" y="90" width="9" height="130" rx="4.5" fill="#ffc05a" opacity="0.1"/>
+                <ellipse cx="1434" cy="80" rx="10" ry="18" fill="#ffffff" opacity="0.2"/>
+            </g>
+            <g>
+                <rect x="1576" y="246" width="40" height="10" rx="3" fill="#2a241c"/>
+                <rect x="1572" y="140" width="48" height="110" rx="24" fill="url(#weGlass)" stroke="#7a7060" stroke-width="1.4"/>
+                <rect class="ampGlow" x="1592" y="158" width="6" height="74" rx="3" fill="#ffc05a" opacity="0.1"/>
+            </g>
+            <rect x="330" y="262" width="1340" height="26" rx="13" fill="url(#weKnob)"/>
+            <rect x="380" y="292" width="1240" height="18" rx="9" fill="url(#weKnob)" opacity="0.8"/>
+            <rect x="340" y="316" width="1320" height="290" rx="8" fill="url(#weFace)"/>
+            <rect x="340" y="316" width="1320" height="290" rx="8" fill="url(#weBrush)"/>
+            <g font-family="Arial" font-size="10" letter-spacing="1" fill="#6b6252">
+                <text x="436" y="376">PHONO</text><text x="436" y="420">CD</text><text x="436" y="464">TUNER</text><text x="436" y="508">AUX</text><text x="436" y="552">BT</text>
+            </g>
+            <g fill="url(#weKnob)" stroke="#847c66" stroke-width="1.4">
+                <circle cx="408" cy="372" r="11"/><circle cx="408" cy="416" r="11"/><circle cx="408" cy="460" r="11"/><circle cx="408" cy="504" r="11"/><circle cx="408" cy="548" r="11"/>
+            </g>
+            <rect x="700" y="336" width="180" height="240" rx="6" fill="#14120e"/>
+            <rect x="708" y="344" width="164" height="224" rx="3" fill="#f2efe6"/>
+            <rect x="736" y="360" width="22" height="180" rx="2" fill="#0d0b08"/>
+            <rect x="806" y="360" width="22" height="180" rx="2" fill="#0d0b08"/>
+            <line id="ampVuL" data-cx="747" data-cy="536" x1="747" y1="536" x2="747" y2="372" stroke="#e02a1a" stroke-width="5" transform="rotate(-42 747 536)"/>
+            <line id="ampVuR" data-cx="817" data-cy="536" x1="817" y1="536" x2="817" y2="372" stroke="#e02a1a" stroke-width="5" transform="rotate(-42 817 536)"/>
+            <text x="790" y="562" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="12" fill="#8a2020" text-anchor="middle">Western Eletric</text>
+            <circle cx="1080" cy="452" r="104" fill="#847c66"/>
+            <circle cx="1080" cy="448" r="100" fill="url(#weKnob)" stroke="#a89e86" stroke-width="2"/>
+            <circle cx="1080" cy="448" r="78" fill="none" stroke="#a89e86" stroke-width="1.4" opacity="0.7"/>
+            <circle cx="1080" cy="448" r="56" fill="url(#weKnob)"/>
+            <circle cx="1080" cy="376" r="6" fill="#55504a"/>
+            <circle id="ampPwrLed" cx="1250" cy="560" r="6" fill="#3a2012"/>
+            <text x="1268" y="565" font-family="Arial" font-size="10" letter-spacing="1" fill="#6b6252">I/O</text>
+            <circle cx="1330" cy="560" r="12" fill="#26241f"/><circle cx="1330" cy="560" r="5" fill="#050505"/>
+            <text x="1362" y="565" font-family="Arial" font-size="10" letter-spacing="1" fill="#6b6252">PHONES</text>
+            <g fill="#b0a88e">
+                <rect x="1450" y="330" width="14" height="266" rx="4"/><rect x="1474" y="330" width="14" height="266" rx="4"/><rect x="1498" y="330" width="14" height="266" rx="4"/><rect x="1522" y="330" width="14" height="266" rx="4"/><rect x="1546" y="330" width="14" height="266" rx="4"/><rect x="1570" y="330" width="14" height="266" rx="4"/><rect x="1594" y="330" width="14" height="266" rx="4"/><rect x="1618" y="330" width="14" height="266" rx="4"/>
+            </g>
+            <rect x="420" y="606" width="90" height="16" rx="6" fill="#000" opacity="0.7"/>
+            <rect x="1500" y="606" width="90" height="16" rx="6" fill="#000" opacity="0.7"/>
+        </svg>`;
+
+        AMP_MODELS.kt88.svg = `<svg class="amp-svg" viewBox="0 0 2000 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="McIntoch 275 KT88 진공관 파워앰프">
+            <defs>
+                <linearGradient id="mcChrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f2f6"/><stop offset="0.25" stop-color="#c2c6ce"/><stop offset="0.5" stop-color="#8a909c"/><stop offset="0.75" stop-color="#b8bcc6"/><stop offset="1" stop-color="#6a707c"/></linearGradient>
+                <linearGradient id="mcChromeTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8eaef"/><stop offset="1" stop-color="#a8adb8"/></linearGradient>
+                <linearGradient id="mcCan" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#050507"/><stop offset="0.3" stop-color="#26262e"/><stop offset="0.5" stop-color="#3c3c46"/><stop offset="0.7" stop-color="#1c1c24"/><stop offset="1" stop-color="#030304"/></linearGradient>
+                <linearGradient id="mcGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c070"/><stop offset="0.5" stop-color="#c89840"/><stop offset="1" stop-color="#96702a"/></linearGradient>
+                <linearGradient id="mcGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1a1a20" stop-opacity="0.8"/><stop offset="0.35" stop-color="#4a4a54" stop-opacity="0.35"/><stop offset="1" stop-color="#101016" stop-opacity="0.9"/></linearGradient>
+                <filter id="mcGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="9"/></filter>
+            </defs>
+            <rect width="2000" height="600" rx="10" fill="#0f0d0d"/>
+            <g>
+                <rect x="520" y="50" width="330" height="230" rx="20" fill="url(#mcCan)"/><rect x="540" y="60" width="290" height="8" rx="4" fill="#3c3c46"/>
+                <rect x="880" y="50" width="330" height="230" rx="20" fill="url(#mcCan)"/><rect x="900" y="60" width="290" height="8" rx="4" fill="#3c3c46"/>
+                <rect x="1240" y="50" width="330" height="230" rx="20" fill="url(#mcCan)"/><rect x="1260" y="60" width="290" height="8" rx="4" fill="#3c3c46"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="480" cy="190" rx="66" ry="90" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
+                <rect x="448" y="272" width="64" height="14" rx="5" fill="#16161c"/>
+                <rect x="442" y="102" width="76" height="174" rx="36" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.8"/>
+                <rect class="ampGlow" x="476" y="132" width="9" height="116" rx="4.5" fill="#ffb03a" opacity="0.1"/>
+                <ellipse cx="462" cy="124" rx="12" ry="22" fill="#ffffff" opacity="0.2"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="630" cy="190" rx="66" ry="90" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
+                <rect x="598" y="272" width="64" height="14" rx="5" fill="#16161c"/>
+                <rect x="592" y="102" width="76" height="174" rx="36" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.8"/>
+                <rect class="ampGlow" x="626" y="132" width="9" height="116" rx="4.5" fill="#ffb03a" opacity="0.1"/>
+                <ellipse cx="612" cy="124" rx="12" ry="22" fill="#ffffff" opacity="0.2"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="780" cy="190" rx="66" ry="90" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
+                <rect x="748" y="272" width="64" height="14" rx="5" fill="#16161c"/>
+                <rect x="742" y="102" width="76" height="174" rx="36" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.8"/>
+                <rect class="ampGlow" x="776" y="132" width="9" height="116" rx="4.5" fill="#ffb03a" opacity="0.1"/>
+                <ellipse cx="762" cy="124" rx="12" ry="22" fill="#ffffff" opacity="0.2"/>
+            </g>
+            <g>
+                <ellipse class="ampGlow" cx="930" cy="190" rx="66" ry="90" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
+                <rect x="898" y="272" width="64" height="14" rx="5" fill="#16161c"/>
+                <rect x="892" y="102" width="76" height="174" rx="36" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.8"/>
+                <rect class="ampGlow" x="926" y="132" width="9" height="116" rx="4.5" fill="#ffb03a" opacity="0.1"/>
+                <ellipse cx="912" cy="124" rx="12" ry="22" fill="#ffffff" opacity="0.2"/>
+            </g>
+            <g>
+                <rect x="1046" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1042" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1061" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+                <rect x="1116" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1112" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1131" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+                <rect x="1186" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1182" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1201" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+                <rect x="1256" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1252" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1271" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+                <rect x="1326" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1322" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1341" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+                <rect x="1396" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1392" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1411" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+                <rect x="1466" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1462" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1481" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+                <rect x="1536" y="276" width="38" height="10" rx="3" fill="#16161c"/><rect x="1532" y="186" width="46" height="92" rx="21" fill="url(#mcGlass)" stroke="#6a707c" stroke-width="1.4"/><rect class="ampGlow" x="1551" y="202" width="6" height="60" rx="3" fill="#8af0a8" opacity="0.1"/>
+            </g>
+            <path d="M 300 286 L 1700 286 L 1770 346 L 230 346 Z" fill="url(#mcChromeTop)"/>
+            <path d="M 230 346 L 1770 346 L 1790 500 L 210 500 Z" fill="url(#mcChrome)"/>
+            <rect x="1400" y="368" width="330" height="106" rx="10" fill="url(#mcGold)" stroke="#7a5a20" stroke-width="2"/>
+            <text x="1565" y="416" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="40" font-weight="700" fill="#1c1208" text-anchor="middle">McIntoch</text>
+            <text x="1565" y="456" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700" letter-spacing="8" fill="#1c1208" text-anchor="middle">275</text>
+            <g font-family="Arial" font-size="11" letter-spacing="1" fill="#3c4048">
+                <text x="330" y="400">MODE</text><text x="470" y="400">INPUT</text>
+            </g>
+            <rect x="322" y="412" width="20" height="44" rx="4" fill="#26262e"/><rect x="325" y="416" width="14" height="18" rx="3" fill="#8a909c"/>
+            <rect x="462" y="412" width="20" height="44" rx="4" fill="#26262e"/><rect x="465" y="434" width="14" height="18" rx="3" fill="#8a909c"/>
+            <circle cx="600" cy="430" r="12" fill="#16161c"/><circle cx="600" cy="430" r="5" fill="#c8ccd4"/>
+            <circle cx="660" cy="430" r="12" fill="#16161c"/><circle cx="660" cy="430" r="5" fill="#c8ccd4"/>
+            <circle id="ampPwrLed" cx="290" cy="434" r="7" fill="#3a2012"/>
+            <text x="290" y="474" font-family="Arial" font-size="10" letter-spacing="1" fill="#3c4048" text-anchor="middle">POWER</text>
+            <rect x="360" y="500" width="110" height="20" rx="7" fill="#000" opacity="0.75"/>
+            <rect x="1530" y="500" width="110" height="20" rx="7" fill="#000" opacity="0.75"/>
+        </svg>`;
         const AMP_ORDER = ["tr", "el34", "300b", "kt88"];
         let ampModelId = loadJson("fmRadio.amp", "tr");
         if (!AMP_MODELS[ampModelId]) ampModelId = "tr";
@@ -1936,57 +2339,8 @@
             ampOut.gain.value = m.out;
         }
 
-        function ampVuSvg(cx) {
-            return '<g>' +
-                '<rect x="' + (cx - 95) + '" y="60" width="190" height="110" rx="6" fill="#e8d9b0" stroke="#1c1a16" stroke-width="3"/>' +
-                '<path d="M ' + (cx - 70) + ' 150 A 80 80 0 0 1 ' + (cx + 70) + ' 150" fill="none" stroke="#3a2b1e" stroke-width="1.5"/>' +
-                '<path d="M ' + (cx + 38) + ' 92 A 80 80 0 0 1 ' + (cx + 70) + ' 150" fill="none" stroke="#c0392b" stroke-width="3"/>' +
-                '<text x="' + cx + '" y="160" font-family="Arial" font-size="12" font-weight="700" fill="#3a2b1e" text-anchor="middle">VU</text>' +
-                '<line id="__VU__" data-cx="' + cx + '" data-cy="150" x1="' + cx + '" y1="150" x2="' + cx + '" y2="76" stroke="#1c1a16" stroke-width="2.5" transform="rotate(-42 ' + cx + ' 150)"/>' +
-                '<circle cx="' + cx + '" cy="150" r="6" fill="#1c1a16"/>' +
-                '</g>';
-        }
-
         function mountAmp() {
-            const m = AMP_MODELS[ampModelId];
-            let inner = "";
-            if (m.fins) {
-                for (let i = 0; i < 14; i++) {
-                    inner += '<rect x="' + (930 + i * 26) + '" y="52" width="12" height="140" rx="2" fill="#0d0d10" stroke="#2a2a30" stroke-width="1"/>';
-                }
-                inner += '<text x="1110" y="220" font-family="Arial" font-size="11" letter-spacing="2" fill="#55555c" text-anchor="middle">HIGH DAMPING · DC AMP</text>';
-            } else {
-                inner += '<rect x="880" y="180" width="440" height="34" rx="4" fill="#111114" stroke="#000"/>';
-                m.tubes.forEach((t) => {
-                    const gy = 176 - t.h;
-                    inner += '<g>' +
-                        '<rect x="' + (t.x - t.w / 2 - 6) + '" y="' + (176 - 10) + '" width="' + (t.w + 12) + '" height="14" rx="4" fill="#222226"/>' +
-                        '<ellipse class="ampGlow" cx="' + t.x + '" cy="' + (gy + t.h * 0.55) + '" rx="' + (t.w * 0.8) + '" ry="' + (t.h * 0.5) + '" fill="#ff7a2a" opacity="0.08" filter="url(#ampGlowF)"/>' +
-                        '<rect x="' + (t.x - t.w / 2) + '" y="' + gy + '" width="' + t.w + '" height="' + t.h + '" rx="' + (t.w / 2) + '" fill="url(#ampGlass)" stroke="#55555c" stroke-width="1.2"/>' +
-                        '<rect class="ampGlow" x="' + (t.x - 2.5) + '" y="' + (gy + 16) + '" width="5" height="' + (t.h - 40) + '" rx="2.5" fill="#ffb03a" opacity="0.08"/>' +
-                        '</g>';
-                });
-                inner += '<rect x="1340" y="60" width="150" height="130" rx="6" fill="#141416" stroke="#2e2e34" stroke-width="2"/>' +
-                    '<rect x="1355" y="74" width="120" height="8" rx="2" fill="#26262c"/><rect x="1355" y="90" width="120" height="8" rx="2" fill="#26262c"/>' +
-                    '<text x="1415" y="170" font-family="Arial" font-size="10" letter-spacing="1" fill="#55555c" text-anchor="middle">OUTPUT TRANS</text>';
-            }
-            const svg = '<svg class="amp-svg" viewBox="0 0 2000 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="YAHAMA ' + m.name + ' 앰프">' +
-                '<defs>' +
-                '<linearGradient id="ampFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + m.face[0] + '"/><stop offset="1" stop-color="' + m.face[1] + '"/></linearGradient>' +
-                '<linearGradient id="ampGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1a1a20" stop-opacity="0.85"/><stop offset="0.35" stop-color="#3a3a44" stop-opacity="0.5"/><stop offset="1" stop-color="#101014" stop-opacity="0.9"/></linearGradient>' +
-                '<filter id="ampGlowF" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="8"/></filter>' +
-                '</defs>' +
-                '<rect width="2000" height="250" rx="6" fill="url(#ampFace)"/>' +
-                '<rect y="0" width="2000" height="6" rx="3" fill="#ffffff" opacity="0.08"/>' +
-                '<text x="120" y="90" font-family="Arial" font-size="26" font-weight="700" letter-spacing="1.5" fill="#e6e5e8">YAHAMA <tspan fill="' + m.accentText + '">' + m.name + '</tspan></text>' +
-                '<text x="120" y="120" font-family="Arial" font-size="13" letter-spacing="2" fill="#8a8a92">' + m.sub + '</text>' +
-                '<circle id="ampPwrLed" cx="128" cy="170" r="7" fill="#3a2012"/>' +
-                '<text x="148" y="175" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a92">POWER</text>' +
-                inner +
-                ampVuSvg(1640).replace("__VU__", "ampVuL") +
-                ampVuSvg(1850).replace("__VU__", "ampVuR") +
-                '</svg>';
-            document.getElementById("ampStage").innerHTML = svg;
+            document.getElementById("ampStage").innerHTML = AMP_MODELS[ampModelId].svg;
             renderAmpPicker();
         }
 
@@ -2271,6 +2625,14 @@
             });
             const pled = document.getElementById("ampPwrLed");
             if (pled) pled.style.fill = isPlaying ? "#ff7a3a" : "#3a2012";
+
+            // EQ 레벨 LED 컬럼
+            for (let i = 0; i < 12; i++) {
+                const el = document.getElementById("eqLvl" + i);
+                if (!el) break;
+                const on = eqState.on && isPlaying && (i / 12) < tsSignal;
+                el.style.fill = on ? (i >= 10 ? "#ff5a3a" : "#ffb03a") : "#33251a";
+            }
         }
 
         // 채널 목록 접기/펼치기 (기본 접힘 — 튜너 중심)
@@ -2280,6 +2642,21 @@
             document.getElementById("listToggle").setAttribute("aria-expanded", String(!collapsed));
             document.getElementById("listToggleLabel").textContent = collapsed ? "전체 채널 목록" : "목록 접기";
         }
+
+        // 설정 모달 (튜너/앰프 모델 선택)
+        function toggleSettings(show) {
+            document.getElementById("settingsOverlay").hidden = !show;
+        }
+
+        function openListFromSettings() {
+            const main = document.getElementById("stationMain");
+            if (main.classList.contains("collapsed")) toggleStationList();
+            main.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        document.getElementById("settingsOverlay").addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) toggleSettings(false);
+        });
 
         let currentStation = null;
         let isPlaying = false;
