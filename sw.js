@@ -1,9 +1,9 @@
-/* FM 라디오 PWA 서비스워커
+/* Mad for Audio PWA 서비스워커
  * 원칙: 앱 셸(HTML/JS/아이콘/폰트/라이브러리)만 캐싱한다.
  * 라이브 스트림(.m3u8/.ts/.aac)과 방송사 API, 애널리틱스는 절대 가로채지 않고
  * 네트워크로 그대로 통과시킨다 — 오디오 range 요청과 실시간성을 깨지 않기 위함.
  */
-const CACHE = "fm-radio-v14";
+const CACHE = "fm-radio-v15";
 
 // 같은 출처 필수 셸 — 설치가 실패하면 앱이 안 뜨므로 반드시 캐싱한다.
 const CORE = [

@@ -1,7 +1,7 @@
 {
-  "name": "FM 라디오 모음",
-  "short_name": "FM 라디오",
-  "description": "KBS·MBC·SBS·CBS·EBS 등 주요 FM 라디오를 한 화면에서 재생하고 녹음·즐겨찾기·취침 타이머까지 지원하는 라디오 앱",
+  "name": "Mad for Audio",
+  "short_name": "Mad Audio",
+  "description": "진공관 앰프·명기 튜너·턴테이블·카세트 데크로 꾸민 브라우저 하이파이 랙 — 한국 FM 라이브와 음반 재생, 테이프 녹음까지",
   "id": "./",
   "start_url": "./",
   "scope": "./",

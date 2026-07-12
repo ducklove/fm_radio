@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title>FM 라디오 미니 플레이어</title>
+    <title>Mad for Audio 미니 플레이어</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%BB%3C/text%3E%3C/svg%3E">
     <script>
         (function () {
@@ -776,7 +776,7 @@
     </style>
 </head>
 <body>
-    <div class="widget" role="application" aria-label="FM 라디오 미니 플레이어">
+    <div class="widget" role="application" aria-label="Mad for Audio 미니 플레이어">
         <span class="screw s1" aria-hidden="true"></span>
         <span class="screw s2" aria-hidden="true"></span>
         <span class="screw s3" aria-hidden="true"></span>
@@ -1382,8 +1382,8 @@
                 try {
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: media ? media.title : current.name,
-                        artist: media ? "MP3 재생" : (current.desc || "FM 라디오"),
-                        album: "FM 라디오 미니 플레이어"
+                        artist: media ? "MP3 재생" : (current.desc || "Mad for Audio"),
+                        album: "Mad for Audio 미니 플레이어"
                     });
                 } catch (error) {
                     console.error(error);

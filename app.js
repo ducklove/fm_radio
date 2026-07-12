@@ -125,6 +125,17 @@ function highlightStationMark(id) {
     });
 }
 
+// 다이얼을 놓았을 때 — 근접국에 안착한다.
+// 단, 어느 방송국도 살지 않는 105.2MHz 부근에 정확히 맞추면
+// 국경 너머의 전파가 잡힌다 (이스터에그 — 조선중앙방송 평양 FM의 실제 주파수).
+function tuneRelease(freq) {
+    if (Math.abs(freq - 105.2) < 0.25) {
+        playEasterEgg();
+        return;
+    }
+    selectStation(nearestStation(freq).id);
+}
+
 function nearestStation(freq) {
     return stations.reduce((a, b) => Math.abs(b.freq - freq) < Math.abs(a.freq - freq) ? b : a);
 }
@@ -246,7 +257,7 @@ function bindTunerControls() {
     dial.addEventListener("pointerup", (e) => {
         if (!dialDrag) return;
         dialDrag = false;
-        selectStation(nearestStation(clientXToFreq(e.clientX)).id);
+        tuneRelease(clientXToFreq(e.clientX));
     });
     dial.addEventListener("pointercancel", () => { dialDrag = false; });
 
@@ -270,9 +281,10 @@ function bindTunerControls() {
         if (!knobDrag) return;
         knobDrag = false;
         if (knobMoved) {
-            selectStation(nearestStation(Math.max(88, Math.min(108, knobStartFreq + (e.clientX - knobStartX) / 14))).id);
+            tuneRelease(Math.max(88, Math.min(108, knobStartFreq + (e.clientX - knobStartX) / 14)));
         } else {
-            playEasterEgg();
+            // 가벼운 탭 — 디스플레이만 잠깐 깨운다
+            tunerPreview(currentStation && currentStation.freq ? currentStation.freq : 98);
         }
     });
     knob.addEventListener("pointercancel", () => { knobDrag = false; });
@@ -1555,10 +1567,11 @@ function playEasterEgg() {
         element.classList.remove("active", "playing", "loading");
     });
 
-    currentStation = { id: "pyongyang", name: "평양 FM", desc: "조선중앙방송", color: "#8b2020" };
+    currentStation = { id: "pyongyang", name: "평양 FM", desc: "조선중앙방송", freq: 105.2, color: "#8b2020" };
     nowStation.textContent = "평양 FM";
-    playerSubtext.textContent = "조선중앙방송에 연결 중입니다.";
+    playerSubtext.textContent = "…국경 너머의 전파가 잡혔습니다. 조선중앙방송에 연결 중입니다.";
     applyStationTheme(currentStation);
+    tunerSetStation(currentStation);
 
     audio.src = "https://listen7.myradio24.com/69366";
     streamLoaded = true;
