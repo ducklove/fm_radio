@@ -1155,3 +1155,8 @@ body.mode-simple #stationMain.collapsed {
 #ampVolMark {
     filter: drop-shadow(1.5px 2px 1px rgba(0, 0, 0, 0.5));
 }
+
+/* 맥킨토시 그린 레전드 — 백라이트 문자에 은은한 발광 번짐 */
+.ampLegend {
+    filter: drop-shadow(0 0 3px rgba(63, 227, 115, 0.55));
+}

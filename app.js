@@ -1135,9 +1135,13 @@ function ttFrame(now) {
     document.querySelectorAll(".lampGlow").forEach((el) => {
         el.style.opacity = (0.06 + tunerLight * 0.69).toFixed(3);
     });
-    // 앰프 미터 백라이트(MC2105 블루 와트미터) — 시스템 웜업에 연동
+    // 앰프 미터 백라이트(MC2105 블루 와트미터) — 라이트박스: 켜지면 면 전체가 발광한다
     document.querySelectorAll(".ampLamp").forEach((el) => {
-        el.style.opacity = (0.05 + tubeWarm * 0.6).toFixed(3);
+        el.style.opacity = (0.03 + tubeWarm * 0.97).toFixed(3);
+    });
+    // 그린 레전드(맥킨토시 패널 문자) — 백라이트 연동
+    document.querySelectorAll(".ampLegend").forEach((el) => {
+        el.style.opacity = (0.2 + tubeWarm * 0.8).toFixed(3);
     });
     document.querySelectorAll(".dialScale").forEach((el) => {
         el.style.opacity = (0.32 + tunerLight * 0.68).toFixed(2);

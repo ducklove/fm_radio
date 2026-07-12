@@ -37,7 +37,7 @@ const LZ_DEFS = '<defs>' +
     '<filter id="lzBloom" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>' +
     '<linearGradient id="lzFil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a" stop-opacity="0.35"/><stop offset="0.28" stop-color="#ffc46a"/><stop offset="0.5" stop-color="#fff2c8"/><stop offset="0.72" stop-color="#ffc46a"/><stop offset="1" stop-color="#ff8a2a" stop-opacity="0.35"/></linearGradient>' +
     '<linearGradient id="lzFilG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fd07a" stop-opacity="0.35"/><stop offset="0.28" stop-color="#9af0b8"/><stop offset="0.5" stop-color="#e8fff0"/><stop offset="0.72" stop-color="#9af0b8"/><stop offset="1" stop-color="#4fd07a" stop-opacity="0.35"/></linearGradient>' +
-    '<linearGradient id="lzMcBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#28a9ff" stop-opacity="0.58"/><stop offset="0.45" stop-color="#0d86e8" stop-opacity="0.64"/><stop offset="1" stop-color="#0057b8" stop-opacity="0.54"/></linearGradient>' +
+    '<linearGradient id="lzMcBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ec6ff" stop-opacity="0.74"/><stop offset="0.45" stop-color="#1a9af2" stop-opacity="0.8"/><stop offset="1" stop-color="#0a6ed0" stop-opacity="0.66"/></linearGradient>' +
     '<linearGradient id="lzTubeGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#17171c" stop-opacity="0.9"/><stop offset="0.26" stop-color="#4c4c56" stop-opacity="0.42"/><stop offset="0.5" stop-color="#83838f" stop-opacity="0.18"/><stop offset="0.74" stop-color="#33333c" stop-opacity="0.55"/><stop offset="1" stop-color="#0e0e12" stop-opacity="0.92"/></linearGradient>' +
     '<radialGradient id="lzGetter" cx="0.4" cy="0.35" r="0.9"><stop offset="0" stop-color="#dfe5ee" stop-opacity="0.55"/><stop offset="0.45" stop-color="#98a0b2" stop-opacity="0.6"/><stop offset="1" stop-color="#20242e" stop-opacity="0.85"/></radialGradient>' +
     '<linearGradient id="lzInL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000000" stop-opacity="0.5"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>' +
@@ -748,7 +748,8 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
     <defs>
         <linearGradient id="m5Glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141418"/><stop offset="0.5" stop-color="#0c0c10"/><stop offset="1" stop-color="#060608"/></linearGradient>
         <linearGradient id="m5Rail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e2e4ea"/><stop offset="0.5" stop-color="#9aa0ac"/><stop offset="1" stop-color="#5c626e"/></linearGradient>
-        <radialGradient id="m5Knob" cx="0.38" cy="0.32" r="0.9"><stop offset="0" stop-color="#f2f4f8"/><stop offset="0.5" stop-color="#c2c6ce"/><stop offset="1" stop-color="#7a808c"/></radialGradient>
+        <radialGradient id="m5Face" cx="0.5" cy="0.4" r="0.85"><stop offset="0" stop-color="#a2e9ff"/><stop offset="0.45" stop-color="#55c8f8"/><stop offset="0.8" stop-color="#1e9ae8"/><stop offset="1" stop-color="#0f78cc"/></radialGradient>
+        <radialGradient id="m5Knob" cx="0.35" cy="0.3" r="0.95"><stop offset="0" stop-color="#5a606c"/><stop offset="0.35" stop-color="#2c3038"/><stop offset="1" stop-color="#0e1014"/></radialGradient>
         <radialGradient id="m5Shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000000" stop-opacity="0.45"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
     </defs>
     <rect width="2000" height="560" rx="8" fill="url(#m5Glass)"/>
@@ -757,23 +758,27 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
     <rect x="1974" y="0" width="26" height="560" rx="8" fill="url(#m5Rail)"/>
     <rect x="52" y="56" width="26" height="448" rx="13" fill="url(#m5Rail)"/>
     <rect x="1922" y="56" width="26" height="448" rx="13" fill="url(#m5Rail)"/>
-    <!-- 블루 와트미터 (좌) -->
+    <!-- 블루 와트미터 (L) -->
     <g>
         <rect x="250" y="54" width="560" height="256" rx="10" fill="#101014"/>
         <rect x="250" y="54" width="560" height="256" rx="10" fill="none" stroke="#3c4048" stroke-width="2"/>
-        <rect x="262" y="66" width="536" height="232" rx="6" fill="#04070c"/>
-        <rect class="ampLamp" x="262" y="66" width="536" height="232" rx="6" fill="url(#lzMcBlue)" opacity="0.35" style="mix-blend-mode:screen"/>
-        <path d="M 340 262 A 235 235 0 0 1 720 262" fill="none" stroke="#e8f2fc" stroke-width="2"/>
-        <g stroke="#e8f2fc" stroke-width="1.6" opacity="0.9">
+        <rect x="262" y="66" width="536" height="232" rx="6" fill="#071019"/>
+        <rect class="ampLamp" x="262" y="66" width="536" height="232" rx="6" fill="url(#m5Face)" opacity="0.02"/>
+        <path d="M 340 262 A 235 235 0 0 1 720 262" fill="none" stroke="#0b365e" stroke-width="2.5"/>
+        <g stroke="#0b365e" stroke-width="2">
             <line x1="348" y1="256" x2="360" y2="266"/><line x1="398" y1="212" x2="408" y2="224"/><line x1="470" y1="184" x2="476" y2="198"/><line x1="530" y1="176" x2="530" y2="190"/><line x1="590" y1="184" x2="584" y2="198"/><line x1="662" y1="212" x2="652" y2="224"/><line x1="712" y1="256" x2="700" y2="266"/>
         </g>
-        <text x="530" y="130" font-family="Arial" font-size="15" font-weight="700" letter-spacing="3" fill="#dceafc" text-anchor="middle" opacity="0.9">WATTS</text>
-        <text x="360" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">0</text>
-        <text x="524" y="168" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">10</text>
-        <text x="694" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">105</text>
-        <line id="ampVuL" data-cx="530" data-cy="286" x1="530" y1="286" x2="530" y2="120" stroke="#f4f8fc" stroke-width="3" transform="rotate(-42 530 286)"/>
-        <circle cx="530" cy="286" r="8" fill="#0a0c10"/>
-        <polygon points="262,66 560,66 380,298 262,298" fill="url(#lzStreak)"/>
+        <text x="530" y="130" font-family="Arial" font-size="15" font-weight="700" letter-spacing="4" fill="#0b365e" text-anchor="middle">WATTS</text>
+        <g font-family="Arial" font-size="12" font-weight="600" fill="#0b365e">
+            <text x="354" y="244">.2</text><text x="406" y="204">2.0</text><text x="522" y="170">20</text><text x="642" y="204">100</text><text x="686" y="244">200</text>
+        </g>
+        <g font-family="Arial" font-size="10" font-weight="600" fill="#0b365e" opacity="0.85">
+            <text x="380" y="272">-50</text><text x="434" y="234">-30</text><text x="526" y="214">-10</text><text x="622" y="234">0</text>
+        </g>
+        <text x="530" y="248" font-family="Arial" font-size="9" letter-spacing="2" fill="#0b365e" opacity="0.8" text-anchor="middle">DECIBELS</text>
+        <text x="530" y="290" font-family="Arial" font-size="14" letter-spacing="4" fill="#0a3054" text-anchor="middle">POWER OUTPUT</text>
+        <line id="ampVuL" data-cx="530" data-cy="286" x1="530" y1="286" x2="530" y2="120" stroke="#0d1119" stroke-width="3.5" transform="rotate(-42 530 286)"/>
+        <polygon points="262,66 560,66 380,298 262,298" fill="url(#lzStreak)" opacity="0.7"/>
         <rect x="262" y="66" width="536" height="34" fill="url(#lzInset)" opacity="0.62"/>
         <rect x="262" y="66" width="14" height="232" fill="url(#lzInL)" opacity="0.5"/>
         <rect x="784" y="66" width="14" height="232" fill="url(#lzInR)" opacity="0.5"/>
@@ -782,23 +787,27 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <rect x="260" y="299" width="540" height="2.5" fill="#ffffff" opacity="0.09"/>
         <rect class="meterDark" x="262" y="66" width="536" height="232" rx="6" fill="#05070a" opacity="0.55"/>
     </g>
-    <!-- 블루 와트미터 (우) -->
+    <!-- 블루 와트미터 (R) -->
     <g>
         <rect x="1190" y="54" width="560" height="256" rx="10" fill="#101014"/>
         <rect x="1190" y="54" width="560" height="256" rx="10" fill="none" stroke="#3c4048" stroke-width="2"/>
-        <rect x="1202" y="66" width="536" height="232" rx="6" fill="#04070c"/>
-        <rect class="ampLamp" x="1202" y="66" width="536" height="232" rx="6" fill="url(#lzMcBlue)" opacity="0.35" style="mix-blend-mode:screen"/>
-        <path d="M 1280 262 A 235 235 0 0 1 1660 262" fill="none" stroke="#e8f2fc" stroke-width="2"/>
-        <g stroke="#e8f2fc" stroke-width="1.6" opacity="0.9">
+        <rect x="1202" y="66" width="536" height="232" rx="6" fill="#071019"/>
+        <rect class="ampLamp" x="1202" y="66" width="536" height="232" rx="6" fill="url(#m5Face)" opacity="0.02"/>
+        <path d="M 1280 262 A 235 235 0 0 1 1660 262" fill="none" stroke="#0b365e" stroke-width="2.5"/>
+        <g stroke="#0b365e" stroke-width="2">
             <line x1="1288" y1="256" x2="1300" y2="266"/><line x1="1338" y1="212" x2="1348" y2="224"/><line x1="1410" y1="184" x2="1416" y2="198"/><line x1="1470" y1="176" x2="1470" y2="190"/><line x1="1530" y1="184" x2="1524" y2="198"/><line x1="1602" y1="212" x2="1592" y2="224"/><line x1="1652" y1="256" x2="1640" y2="266"/>
         </g>
-        <text x="1470" y="130" font-family="Arial" font-size="15" font-weight="700" letter-spacing="3" fill="#dceafc" text-anchor="middle" opacity="0.9">WATTS</text>
-        <text x="1300" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">0</text>
-        <text x="1464" y="168" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">10</text>
-        <text x="1634" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">105</text>
-        <line id="ampVuR" data-cx="1470" data-cy="286" x1="1470" y1="286" x2="1470" y2="120" stroke="#f4f8fc" stroke-width="3" transform="rotate(-42 1470 286)"/>
-        <circle cx="1470" cy="286" r="8" fill="#0a0c10"/>
-        <polygon points="1202,66 1500,66 1320,298 1202,298" fill="url(#lzStreak)"/>
+        <text x="1470" y="130" font-family="Arial" font-size="15" font-weight="700" letter-spacing="4" fill="#0b365e" text-anchor="middle">WATTS</text>
+        <g font-family="Arial" font-size="12" font-weight="600" fill="#0b365e">
+            <text x="1294" y="244">.2</text><text x="1346" y="204">2.0</text><text x="1462" y="170">20</text><text x="1582" y="204">100</text><text x="1626" y="244">200</text>
+        </g>
+        <g font-family="Arial" font-size="10" font-weight="600" fill="#0b365e" opacity="0.85">
+            <text x="1320" y="272">-50</text><text x="1374" y="234">-30</text><text x="1466" y="214">-10</text><text x="1562" y="234">0</text>
+        </g>
+        <text x="1470" y="248" font-family="Arial" font-size="9" letter-spacing="2" fill="#0b365e" opacity="0.8" text-anchor="middle">DECIBELS</text>
+        <text x="1470" y="290" font-family="Arial" font-size="14" letter-spacing="4" fill="#0a3054" text-anchor="middle">POWER OUTPUT</text>
+        <line id="ampVuR" data-cx="1470" data-cy="286" x1="1470" y1="286" x2="1470" y2="120" stroke="#0d1119" stroke-width="3.5" transform="rotate(-42 1470 286)"/>
+        <polygon points="1202,66 1500,66 1320,298 1202,298" fill="url(#lzStreak)" opacity="0.7"/>
         <rect x="1202" y="66" width="536" height="34" fill="url(#lzInset)" opacity="0.62"/>
         <rect x="1202" y="66" width="14" height="232" fill="url(#lzInL)" opacity="0.5"/>
         <rect x="1724" y="66" width="14" height="232" fill="url(#lzInR)" opacity="0.5"/>
@@ -807,32 +816,32 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <rect x="1200" y="299" width="540" height="2.5" fill="#ffffff" opacity="0.09"/>
         <rect class="meterDark" x="1202" y="66" width="536" height="232" rx="6" fill="#05070a" opacity="0.55"/>
     </g>
-    <!-- 중앙 로고 -->
-    <text x="1000" y="150" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#d8b060" text-anchor="middle">McIntoch</text>
-    <text x="1000" y="192" font-family="Arial" font-size="19" font-weight="600" letter-spacing="7" fill="#e8e8ea" text-anchor="middle">MC 2105</text>
-    <text x="1000" y="222" font-family="Arial" font-size="12" letter-spacing="3" fill="#8a909c" text-anchor="middle">SOLID STATE STEREO POWER AMPLIFIER</text>
+    <!-- 중앙 로고 — 그린 백라이트 -->
+    <text class="ampLegend" x="1000" y="150" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#3fe373" text-anchor="middle">McIntoch</text>
+    <text class="ampLegend" x="1000" y="192" font-family="Arial" font-size="19" font-weight="600" letter-spacing="7" fill="#3fe373" text-anchor="middle">MC 2105</text>
+    <text class="ampLegend" x="1000" y="222" font-family="Arial" font-size="12" letter-spacing="3" fill="#2fae58" text-anchor="middle">SOLID STATE STEREO POWER AMPLIFIER</text>
     <!-- 하단 컨트롤 행 -->
-    <g font-family="Arial" font-size="12" letter-spacing="1.5" fill="#c8ccd4" text-anchor="middle">
+    <g class="ampLegend" font-family="Arial" font-size="12" letter-spacing="1.5" fill="#3fe373" text-anchor="middle">
         <text x="290" y="382">POWER</text><text x="560" y="382">L GAIN</text><text x="1000" y="382">GAIN</text><text x="1440" y="382">R GAIN</text><text x="1710" y="382">SPEAKERS</text>
     </g>
     <circle cx="290" cy="436" r="15" fill="#8a6a2a"/>
     <circle id="ampPwrLed" cx="290" cy="436" r="9" fill="#3a2012"/>
     <ellipse cx="560" cy="486" rx="36" ry="10" fill="url(#m5Shadow)"/>
-    <circle cx="560" cy="440" r="32" fill="url(#m5Knob)" stroke="#7a808c" stroke-width="1.5"/>
-    <rect x="557" y="412" width="6" height="16" rx="3" fill="#2a2e36"/>
-    <ellipse cx="550" cy="430" rx="10" ry="8" fill="#ffffff" opacity="0.4"/>
+    <circle cx="560" cy="440" r="32" fill="url(#m5Knob)" stroke="#9aa0ac" stroke-width="2"/>
+    <path d="M 542 420 A 26 26 0 0 1 578 420" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.35"/>
+    <rect x="557" y="412" width="6" height="16" rx="3" fill="#dce2ea"/>
     <ellipse cx="1000" cy="500" rx="66" ry="14" fill="url(#m5Shadow)"/>
-    <circle cx="1000" cy="442" r="58" fill="url(#m5Knob)" stroke="#8a909c" stroke-width="2"/>
-    <circle cx="1000" cy="442" r="58" fill="none" stroke="#6a707c" stroke-width="6" stroke-dasharray="2 6" opacity="0.5"/>
-    <circle id="ampVolMark" cx="1000" cy="392" r="6" fill="#2a2e36"/>
-    <ellipse cx="982" cy="422" rx="18" ry="14" fill="#ffffff" opacity="0.4"/>
+    <circle cx="1000" cy="442" r="58" fill="url(#m5Knob)" stroke="#9aa0ac" stroke-width="2.5"/>
+    <path d="M 966 410 A 47 47 0 0 1 1034 410" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.35"/>
+    <circle cx="1000" cy="442" r="58" fill="none" stroke="#3a3e46" stroke-width="6" stroke-dasharray="2 6" opacity="0.6"/>
+    <circle id="ampVolMark" cx="1000" cy="392" r="6" fill="#dce2ea"/>
     <ellipse cx="1440" cy="486" rx="36" ry="10" fill="url(#m5Shadow)"/>
-    <circle cx="1440" cy="440" r="32" fill="url(#m5Knob)" stroke="#7a808c" stroke-width="1.5"/>
-    <rect x="1437" y="412" width="6" height="16" rx="3" fill="#2a2e36"/>
-    <ellipse cx="1430" cy="430" rx="10" ry="8" fill="#ffffff" opacity="0.4"/>
+    <circle cx="1440" cy="440" r="32" fill="url(#m5Knob)" stroke="#9aa0ac" stroke-width="2"/>
+    <path d="M 1422 420 A 26 26 0 0 1 1458 420" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.35"/>
+    <rect x="1437" y="412" width="6" height="16" rx="3" fill="#dce2ea"/>
     <ellipse cx="1712" cy="486" rx="24" ry="8" fill="url(#m5Shadow)"/>
     <rect x="1696" y="400" width="28" height="80" rx="7" fill="#1c1c22"/><rect x="1699" y="404" width="22" height="34" rx="4" fill="#b8bcc6"/>
-    <text x="1000" y="536" font-family="Arial" font-size="11" letter-spacing="2" fill="#4c525e" text-anchor="middle">105 WATTS PER CHANNEL</text>
+    <text class="ampLegend" x="1000" y="536" font-family="Arial" font-size="11" letter-spacing="2" fill="#2fae58" text-anchor="middle">105 WATTS PER CHANNEL</text>
 </svg>`;
 
 AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Maranz 8B EL34 진공관 앰프">
