@@ -1231,6 +1231,10 @@
                 <div class="skin-picker" id="ampPicker" role="group" aria-label="앰프 모델 선택"></div>
             </div>
             <div class="settings-sec">
+                <div class="settings-title">음반 (턴테이블)</div>
+                <div class="skin-picker" id="recordPicker" role="group" aria-label="음반 선택"></div>
+            </div>
+            <div class="settings-sec">
                 <div class="settings-title">채널</div>
                 <button class="skin-btn" type="button" onclick="toggleSettings(false); openListFromSettings();">전체 채널 목록 열기</button>
             </div>
@@ -2852,21 +2856,114 @@
         const PHONO_BASE = "https://upload.wikimedia.org/wikipedia/commons/";
         // 클래식 녹음은 방송 스트림보다 레벨이 낮아 포노 재생 시 체인 게인을 보정한다 (Web Audio 경로에서만)
         const PHONO_GAIN = 2.0;
-        const RECORD = {
-            title: "무반주 첼로 모음곡 제1번 G장조",
-            bwv: "BWV 1007",
-            composer: "J. S. BACH",
-            performer: "John Michel, violoncello",
-            credit: "음원: John Michel · CC BY-SA 3.0 · Wikimedia Commons",
-            tracks: [
-                { t: "I. Prélude", f: "4/43/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg" },
-                { t: "II. Allemande", f: "6/6c/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Allemande.ogg" },
-                { t: "III. Courante", f: "0/08/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Courante.ogg" },
-                { t: "IV. Sarabande", f: "3/30/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Sarabande.ogg" },
-                { t: "V. Menuet I & II", f: "6/67/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Minuets.ogg" },
-                { t: "VI. Gigue", f: "e/e6/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Gigue.ogg" }
-            ]
-        };
+
+        // Wikimedia Commons는 파일을 md5(파일명) 해시 경로에 둔다: commons/<h[0]>/<h[0..1]>/<파일명>.
+        // 파일명만 있으면 URL을 결정적으로 계산할 수 있어, 음반을 늘릴 때 파일명만 추가하면 된다.
+        function md5(str) {
+            function rl(n, c) { return (n << c) | (n >>> (32 - c)); }
+            function au(x, y) { const l = (x & 0xFFFF) + (y & 0xFFFF); return (((x >> 16) + (y >> 16) + (l >> 16)) << 16) | (l & 0xFFFF); }
+            function cmn(q, a, b, x, s, t) { return au(rl(au(au(a, q), au(x, t)), s), b); }
+            function ff(a, b, c, d, x, s, t) { return cmn((b & c) | ((~b) & d), a, b, x, s, t); }
+            function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & (~d)), a, b, x, s, t); }
+            function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
+            function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | (~d)), a, b, x, s, t); }
+            function rh(n) { let s = "", j; for (j = 0; j <= 3; j++) s += ("0" + ((n >> (j * 8)) & 0xFF).toString(16)).slice(-2); return s; }
+            const s8 = unescape(encodeURIComponent(str));
+            const x = [];
+            for (let i = 0; i < s8.length * 8; i += 8) x[i >> 5] |= (s8.charCodeAt(i / 8) & 0xFF) << (i % 32);
+            const len = s8.length * 8;
+            x[len >> 5] |= 0x80 << (len % 32);
+            x[(((len + 64) >>> 9) << 4) + 14] = len;
+            let a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+            for (let i = 0; i < x.length; i += 16) {
+                const oa = a, ob = b, oc = c, od = d;
+                a = ff(a, b, c, d, x[i], 7, -680876936); d = ff(d, a, b, c, x[i + 1], 12, -389564586); c = ff(c, d, a, b, x[i + 2], 17, 606105819); b = ff(b, c, d, a, x[i + 3], 22, -1044525330);
+                a = ff(a, b, c, d, x[i + 4], 7, -176418897); d = ff(d, a, b, c, x[i + 5], 12, 1200080426); c = ff(c, d, a, b, x[i + 6], 17, -1473231341); b = ff(b, c, d, a, x[i + 7], 22, -45705983);
+                a = ff(a, b, c, d, x[i + 8], 7, 1770035416); d = ff(d, a, b, c, x[i + 9], 12, -1958414417); c = ff(c, d, a, b, x[i + 10], 17, -42063); b = ff(b, c, d, a, x[i + 11], 22, -1990404162);
+                a = ff(a, b, c, d, x[i + 12], 7, 1804603682); d = ff(d, a, b, c, x[i + 13], 12, -40341101); c = ff(c, d, a, b, x[i + 14], 17, -1502002290); b = ff(b, c, d, a, x[i + 15], 22, 1236535329);
+                a = gg(a, b, c, d, x[i + 1], 5, -165796510); d = gg(d, a, b, c, x[i + 6], 9, -1069501632); c = gg(c, d, a, b, x[i + 11], 14, 643717713); b = gg(b, c, d, a, x[i], 20, -373897302);
+                a = gg(a, b, c, d, x[i + 5], 5, -701558691); d = gg(d, a, b, c, x[i + 10], 9, 38016083); c = gg(c, d, a, b, x[i + 15], 14, -660478335); b = gg(b, c, d, a, x[i + 4], 20, -405537848);
+                a = gg(a, b, c, d, x[i + 9], 5, 568446438); d = gg(d, a, b, c, x[i + 14], 9, -1019803690); c = gg(c, d, a, b, x[i + 3], 14, -187363961); b = gg(b, c, d, a, x[i + 8], 20, 1163531501);
+                a = gg(a, b, c, d, x[i + 13], 5, -1444681467); d = gg(d, a, b, c, x[i + 2], 9, -51403784); c = gg(c, d, a, b, x[i + 7], 14, 1735328473); b = gg(b, c, d, a, x[i + 12], 20, -1926607734);
+                a = hh(a, b, c, d, x[i + 5], 4, -378558); d = hh(d, a, b, c, x[i + 8], 11, -2022574463); c = hh(c, d, a, b, x[i + 11], 16, 1839030562); b = hh(b, c, d, a, x[i + 14], 23, -35309556);
+                a = hh(a, b, c, d, x[i + 1], 4, -1530992060); d = hh(d, a, b, c, x[i + 4], 11, 1272893353); c = hh(c, d, a, b, x[i + 7], 16, -155497632); b = hh(b, c, d, a, x[i + 10], 23, -1094730640);
+                a = hh(a, b, c, d, x[i + 13], 4, 681279174); d = hh(d, a, b, c, x[i], 11, -358537222); c = hh(c, d, a, b, x[i + 3], 16, -722521979); b = hh(b, c, d, a, x[i + 6], 23, 76029189);
+                a = hh(a, b, c, d, x[i + 9], 4, -640364487); d = hh(d, a, b, c, x[i + 12], 11, -421815835); c = hh(c, d, a, b, x[i + 15], 16, 530742520); b = hh(b, c, d, a, x[i + 2], 23, -995338651);
+                a = ii(a, b, c, d, x[i], 6, -198630844); d = ii(d, a, b, c, x[i + 7], 10, 1126891415); c = ii(c, d, a, b, x[i + 14], 15, -1416354905); b = ii(b, c, d, a, x[i + 5], 21, -57434055);
+                a = ii(a, b, c, d, x[i + 12], 6, 1700485571); d = ii(d, a, b, c, x[i + 3], 10, -1894986606); c = ii(c, d, a, b, x[i + 10], 15, -1051523); b = ii(b, c, d, a, x[i + 1], 21, -2054922799);
+                a = ii(a, b, c, d, x[i + 8], 6, 1873313359); d = ii(d, a, b, c, x[i + 15], 10, -30611744); c = ii(c, d, a, b, x[i + 6], 15, -1560198380); b = ii(b, c, d, a, x[i + 13], 21, 1309151649);
+                a = ii(a, b, c, d, x[i + 4], 6, -145523070); d = ii(d, a, b, c, x[i + 11], 10, -1120210379); c = ii(c, d, a, b, x[i + 2], 15, 718787259); b = ii(b, c, d, a, x[i + 9], 21, -343485551);
+                a = au(a, oa); b = au(b, ob); c = au(c, oc); d = au(d, od);
+            }
+            return rh(a) + rh(b) + rh(c) + rh(d);
+        }
+
+        // 파일명 → PHONO_BASE 이후의 경로("h/hh/파일명"). 채널 추가처럼 음반도 파일명만 있으면 된다.
+        function commonsPath(filename) {
+            const h = md5(filename);
+            return h.slice(0, 1) + "/" + h.slice(0, 2) + "/" + encodeURIComponent(filename);
+        }
+
+        // 바흐 무반주 첼로 모음곡 — John Michel 녹음(CC BY-SA 3.0, Wikimedia Commons).
+        // 여섯 곡 전곡이 같은 업로드 배치·같은 명명 규칙을 쓴다.
+        function bachSuite(no, keyName, keyToken, bwv, accent, movements) {
+            const prefix = "JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_" + no + "_in_" + keyToken + "_";
+            const roman = ["I", "II", "III", "IV", "V", "VI"];
+            return {
+                id: "bwv" + bwv.replace(/\D/g, ""),
+                composerBig: "BACH",
+                composer: "J. S. BACH",
+                performer: "John Michel, violoncello",
+                performerLabel: "JOHN MICHEL, CELLO",
+                title: "무반주 첼로 모음곡 제" + no + "번 " + keyName,
+                jacketTitle: "무반주 첼로 모음곡",
+                jacketSub: "제" + no + "번 " + keyName + " · " + bwv,
+                labelWork: "무반주 첼로 모음곡 " + no + "번",
+                labelSide: bwv + " · SIDE A",
+                crateTitle: "제" + no + "번 " + keyName,
+                bwv: bwv,
+                accent: accent,
+                credit: "음원: John Michel · CC BY-SA 3.0 · Wikimedia Commons",
+                tracks: movements.map((m, i) => ({
+                    t: roman[i] + ". " + m.label,
+                    f: commonsPath(prefix + m.file + ".ogg")
+                }))
+            };
+        }
+
+        // 컬렉션 — 파일명은 Suite 1(검증됨)의 규칙을 그대로 확장한다.
+        // 재생 가능 여부는 로드시 프로브로 확인하고, 열리지 않는 음반은 보관함에서 자동으로 감춘다.
+        const RECORDS = [
+            bachSuite(1, "G장조", "G", "BWV 1007", "#8a2020", [
+                { label: "Prélude", file: "Prelude" }, { label: "Allemande", file: "Allemande" },
+                { label: "Courante", file: "Courante" }, { label: "Sarabande", file: "Sarabande" },
+                { label: "Menuet I & II", file: "Minuets" }, { label: "Gigue", file: "Gigue" }]),
+            bachSuite(2, "D단조", "Dm", "BWV 1008", "#3b5b8a", [
+                { label: "Prélude", file: "Prelude" }, { label: "Allemande", file: "Allemande" },
+                { label: "Courante", file: "Courante" }, { label: "Sarabande", file: "Sarabande" },
+                { label: "Menuet I & II", file: "Minuets" }, { label: "Gigue", file: "Gigue" }]),
+            bachSuite(3, "C장조", "C", "BWV 1009", "#6b4a1f", [
+                { label: "Prélude", file: "Prelude" }, { label: "Allemande", file: "Allemande" },
+                { label: "Courante", file: "Courante" }, { label: "Sarabande", file: "Sarabande" },
+                { label: "Bourrée I & II", file: "Bourrees" }, { label: "Gigue", file: "Gigue" }]),
+            bachSuite(4, "E♭장조", "Eb", "BWV 1010", "#4a6b3a", [
+                { label: "Prélude", file: "Prelude" }, { label: "Allemande", file: "Allemande" },
+                { label: "Courante", file: "Courante" }, { label: "Sarabande", file: "Sarabande" },
+                { label: "Bourrée I & II", file: "Bourrees" }, { label: "Gigue", file: "Gigue" }]),
+            bachSuite(5, "C단조", "Cm", "BWV 1011", "#5a3a6b", [
+                { label: "Prélude", file: "Prelude" }, { label: "Allemande", file: "Allemande" },
+                { label: "Courante", file: "Courante" }, { label: "Sarabande", file: "Sarabande" },
+                { label: "Gavotte I & II", file: "Gavottes" }, { label: "Gigue", file: "Gigue" }]),
+            bachSuite(6, "D장조", "D", "BWV 1012", "#8a5a20", [
+                { label: "Prélude", file: "Prelude" }, { label: "Allemande", file: "Allemande" },
+                { label: "Courante", file: "Courante" }, { label: "Sarabande", file: "Sarabande" },
+                { label: "Gavotte I & II", file: "Gavottes" }, { label: "Gigue", file: "Gigue" }])
+        ];
+        let recordIndex = 0;
+        let RECORD = RECORDS[0];
+        // 프로브로 재생 가능이 확인된 음반 인덱스. Suite 1은 기본 음반이라 항상 포함한다.
+        let availableRecords = [0];
+
         let phonoActive = false;
         let radioStandby = null;   // 턴테이블 재생 중 튜닝해 둔 대기 방송국 (음반이 끝나면 연결)
         let phonoTrack = -1;
@@ -2895,15 +2992,15 @@
                     '<rect id="ttTrackHit' + i + '" x="1600" y="' + (y - 30) + '" width="360" height="46" fill="#000" fill-opacity="0" style="cursor:pointer"><title>' + tr.t + ' 재생</title></rect>';
             }).join("");
             document.getElementById("ttStage").innerHTML =
-                '<svg class="tt-svg" viewBox="0 0 2000 640" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="YAHAMA PL-12 턴테이블">' +
+                '<svg class="tt-svg" viewBox="0 0 2000 720" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="YAHAMA PL-12 턴테이블">' +
                 '<defs>' +
                 '<linearGradient id="ttWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d4430"/><stop offset="0.5" stop-color="#4a3524"/><stop offset="1" stop-color="#33241a"/></linearGradient>' +
                 '<radialGradient id="ttVinyl" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#1c1c1f"/><stop offset="0.35" stop-color="#141416"/><stop offset="0.85" stop-color="#0d0d0f"/><stop offset="1" stop-color="#131316"/></radialGradient>' +
                 '<linearGradient id="ttSheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.14"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
                 '<radialGradient id="ttMetal" cx="0.4" cy="0.35" r="0.9"><stop offset="0" stop-color="#d8d8dc"/><stop offset="0.6" stop-color="#9a9aa2"/><stop offset="1" stop-color="#5c5c64"/></radialGradient>' +
                 '</defs>' +
-                '<rect width="2000" height="640" rx="10" fill="url(#ttWood)"/>' +
-                '<rect x="24" y="24" width="1952" height="592" rx="8" fill="#17161a" stroke="#0a0a0c" stroke-width="2"/>' +
+                '<rect width="2000" height="720" rx="10" fill="url(#ttWood)"/>' +
+                '<rect x="24" y="24" width="1952" height="672" rx="8" fill="#17161a" stroke="#0a0a0c" stroke-width="2"/>' +
                 '<text x="60" y="72" font-family="Arial" font-size="26" font-weight="700" letter-spacing="1.5" fill="#e6e5e8">YAHAMA PL-12</text>' +
                 '<text x="60" y="98" font-family="Arial" font-size="12" letter-spacing="2.5" fill="#8a7d70">BELT-DRIVE TURNTABLE</text>' +
                 // 플래터
@@ -2917,12 +3014,12 @@
                 '<path d="M 560 330 L 560 78 A 252 252 0 0 1 738 156 Z" fill="url(#ttSheen)"/>' +
                 '<path d="M 560 330 L 560 582 A 252 252 0 0 1 382 504 Z" fill="url(#ttSheen)" opacity="0.6"/>' +
                 '<circle cx="560" cy="330" r="86" fill="#ddd2b4"/>' +
-                '<circle cx="560" cy="330" r="86" fill="none" stroke="#8a2020" stroke-width="3"/>' +
-                '<text x="560" y="290" font-family="Georgia, serif" font-size="26" font-weight="700" fill="#6b1f1f" text-anchor="middle">BACH</text>' +
-                '<text x="560" y="314" font-family="Arial" font-size="11" fill="#3a2b1e" text-anchor="middle">무반주 첼로 모음곡 1번</text>' +
-                '<text x="560" y="332" font-family="Arial" font-size="10" fill="#3a2b1e" text-anchor="middle">' + RECORD.bwv + ' · SIDE A</text>' +
-                '<text x="560" y="360" font-family="Arial" font-size="9" fill="#6b5d4a" text-anchor="middle">JOHN MICHEL, CELLO</text>' +
-                '<text x="560" y="380" font-family="Arial" font-size="9" letter-spacing="1" fill="#8a2020" text-anchor="middle">YAHAMA RECORDS · 33&#8531;</text>' +
+                '<circle cx="560" cy="330" r="86" fill="none" stroke="' + RECORD.accent + '" stroke-width="3"/>' +
+                '<text x="560" y="290" font-family="Georgia, serif" font-size="26" font-weight="700" fill="' + RECORD.accent + '" text-anchor="middle">' + RECORD.composerBig + '</text>' +
+                '<text x="560" y="314" font-family="Arial" font-size="11" fill="#3a2b1e" text-anchor="middle">' + RECORD.labelWork + '</text>' +
+                '<text x="560" y="332" font-family="Arial" font-size="10" fill="#3a2b1e" text-anchor="middle">' + RECORD.labelSide + '</text>' +
+                '<text x="560" y="360" font-family="Arial" font-size="9" fill="#6b5d4a" text-anchor="middle">' + RECORD.performerLabel + '</text>' +
+                '<text x="560" y="380" font-family="Arial" font-size="9" letter-spacing="1" fill="' + RECORD.accent + '" text-anchor="middle">YAHAMA RECORDS · 33&#8531;</text>' +
                 '<circle cx="560" cy="330" r="7" fill="#c9c2ae" stroke="#55504a"/><circle cx="560" cy="330" r="2.5" fill="#111"/>' +
                 '</g>' +
                 // 톤암
@@ -2941,12 +3038,12 @@
                 // 앨범 재킷
                 '<rect x="1180" y="60" width="380" height="380" rx="4" fill="#ddd2b4" stroke="#b3a988" stroke-width="2"/>' +
                 '<rect x="1196" y="76" width="348" height="348" fill="none" stroke="#8a7d5a" stroke-width="1" opacity="0.6"/>' +
-                '<text x="1370" y="170" font-family="Georgia, serif" font-size="64" font-weight="700" fill="#3a2b1e" text-anchor="middle">BACH</text>' +
-                '<text x="1370" y="212" font-family="Arial" font-size="20" fill="#5d4430" text-anchor="middle">무반주 첼로 모음곡</text>' +
-                '<text x="1370" y="240" font-family="Arial" font-size="15" fill="#5d4430" text-anchor="middle">제1번 G장조 · ' + RECORD.bwv + '</text>' +
+                '<text x="1370" y="170" font-family="Georgia, serif" font-size="64" font-weight="700" fill="#3a2b1e" text-anchor="middle">' + RECORD.composerBig + '</text>' +
+                '<text x="1370" y="212" font-family="Arial" font-size="20" fill="#5d4430" text-anchor="middle">' + RECORD.jacketTitle + '</text>' +
+                '<text x="1370" y="240" font-family="Arial" font-size="15" fill="#5d4430" text-anchor="middle">' + RECORD.jacketSub + '</text>' +
                 '<line x1="1260" y1="266" x2="1480" y2="266" stroke="#8a7d5a" stroke-width="1"/>' +
                 '<text x="1370" y="296" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#3a2b1e" text-anchor="middle">' + RECORD.performer + '</text>' +
-                '<rect x="1196" y="380" width="348" height="44" fill="#8a2020"/>' +
+                '<rect x="1196" y="380" width="348" height="44" fill="' + RECORD.accent + '"/>' +
                 '<text x="1370" y="408" font-family="Arial" font-size="13" letter-spacing="2" fill="#f0e8d0" text-anchor="middle">YAHAMA RECORDS &#183; STEREO</text>' +
                 // 트랙 리스트
                 '<text x="1600" y="86" font-family="Arial" font-size="14" font-weight="700" letter-spacing="2" fill="#8a7d70">SIDE A</text>' +
@@ -2959,6 +3056,10 @@
                 '<rect id="tt45" x="1570" y="492" width="100" height="52" rx="8" fill="#26262b" stroke="#4a4a52" style="cursor:pointer"><title>45 RPM (빠른 재생)</title></rect>' +
                 '<text x="1620" y="524" font-family="Arial" font-size="16" font-weight="700" fill="#e6e5e8" text-anchor="middle" pointer-events="none">45</text>' +
                 '<text x="1180" y="600" font-family="Arial" font-size="12" fill="#8a7d70">' + RECORD.credit + '</text>' +
+                // 음반 보관함 (하단 스트립) — renderCrate()가 채운다
+                '<line x1="24" y1="624" x2="1976" y2="624" stroke="#0a0a0c" stroke-width="2"/>' +
+                '<text x="60" y="654" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2" fill="#8a7d70">음반 보관함 · RECORD CRATE</text>' +
+                '<g id="ttCrate"></g>' +
                 '</svg>';
 
             applyPanelLighting(document.querySelector("#ttStage svg"));
@@ -2975,7 +3076,99 @@
             svgButtonize("tt33", "33⅓ RPM");
             svgButtonize("tt45", "45 RPM");
             RECORD.tracks.forEach((tr, i) => svgButtonize("ttTrackHit" + i, tr.t + " 재생"));
+            renderCrate();
             updatePhonoVisuals();
+        }
+
+        // 보관함의 음반 스파인 — 재생 가능(availableRecords)한 음반만, 현재 음반은 색으로 강조
+        function renderCrate() {
+            const crate = document.getElementById("ttCrate");
+            if (!crate) return;
+            const list = availableRecords.slice().sort((a, b) => a - b);
+            const span = Math.min(316, Math.floor(1856 / Math.max(1, list.length)));
+            crate.innerHTML = list.map((idx, p) => {
+                const rec = RECORDS[idx];
+                const x = 60 + p * span;
+                const active = idx === recordIndex;
+                return '<rect class="ttSpine" data-rec="' + idx + '" x="' + x + '" y="662" width="' + (span - 16) + '" height="46" rx="6" ' +
+                    'fill="' + (active ? rec.accent : "#26262b") + '" stroke="' + (active ? "#e8e2d4" : "#4a4a52") + '" stroke-width="' + (active ? 2 : 1) + '" style="cursor:pointer">' +
+                    '<title>' + rec.title + '</title></rect>' +
+                    '<text x="' + (x + 16) + '" y="691" font-family="Georgia, serif" font-size="16" fill="' + (active ? "#fff6ea" : "#c9bfae") + '" pointer-events="none">' + rec.crateTitle + '</text>';
+            }).join("");
+            crate.querySelectorAll(".ttSpine").forEach((el) => {
+                const idx = parseInt(el.getAttribute("data-rec"), 10);
+                el.addEventListener("click", () => setRecord(idx));
+                svgButtonize(el, RECORDS[idx].title + " 꺼내기");
+            });
+        }
+
+        // 음반 교체 — 돌던 음반은 멈추고 새 음반을 올린다 (자동 재생하지 않음)
+        function setRecord(i) {
+            if (i < 0 || i >= RECORDS.length || i === recordIndex) return;
+            if (phonoActive) {
+                stopPhono();
+                audio.pause();
+                streamLoaded = false;
+                isPlaying = false;
+                updatePlayButton();
+            }
+            recordIndex = i;
+            RECORD = RECORDS[i];
+            saveJson("fmRadio.record", RECORD.id);
+            mountTurntable();
+            renderRecordPicker();
+            // 라디오/테이프가 울리는 중이면 Now Playing을 가로채지 않고 안내만 살짝 남긴다
+            if (currentStation && isPlaying) {
+                playerSubtext.textContent = "턴테이블에 " + RECORD.crateTitle + " 음반을 올렸습니다.";
+            } else {
+                nowStation.textContent = RECORD.title;
+                playerSubtext.textContent = "음반을 올렸습니다 — " + RECORD.composer + " · " + RECORD.performer + ". START를 누르세요.";
+            }
+            gtag('event', 'change_record', { record_id: RECORD.id });
+        }
+
+        // 음반 오디오가 실제로 열리는지 조용히 확인해, 열리는 음반만 보관함에 노출한다.
+        // (Suite 1은 기본 음반이라 프로브 없이 항상 포함)
+        function probeRecords() {
+            RECORDS.forEach((rec, i) => {
+                if (availableRecords.includes(i)) return;
+                const probe = new Audio();
+                probe.crossOrigin = "anonymous";
+                probe.preload = "metadata";
+                let settled = false;
+                const cleanup = () => { try { probe.removeAttribute("src"); probe.load(); } catch (e) {} };
+                const pass = () => {
+                    if (settled) return;
+                    settled = true;
+                    if (!availableRecords.includes(i)) {
+                        availableRecords.push(i);
+                        renderCrate();
+                        renderRecordPicker();
+                    }
+                    cleanup();
+                };
+                const fail = () => { if (settled) return; settled = true; cleanup(); };
+                probe.addEventListener("loadedmetadata", pass);
+                probe.addEventListener("canplay", pass);
+                probe.addEventListener("error", fail);
+                setTimeout(fail, 15000);
+                probe.src = PHONO_BASE + rec.tracks[0].f;
+            });
+        }
+
+        function renderRecordPicker() {
+            const el = document.getElementById("recordPicker");
+            if (!el) return;
+            el.innerHTML = "";
+            availableRecords.slice().sort((a, b) => a - b).forEach((idx) => {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = "skin-btn" + (idx === recordIndex ? " active" : "");
+                b.textContent = RECORDS[idx].crateTitle;
+                b.title = RECORDS[idx].title;
+                b.addEventListener("click", () => setRecord(idx));
+                el.appendChild(b);
+            });
         }
 
         function playPhonoTrack(i) {
@@ -4709,6 +4902,15 @@
             reapplyStationState();
         }
 
+        // 저장해 둔 음반 복원 (없거나 사라진 id면 기본 음반)
+        const savedRecordId = loadJson("fmRadio.record", null);
+        const savedRecordIdx = RECORDS.findIndex((r) => r.id === savedRecordId);
+        if (savedRecordIdx > 0) {
+            recordIndex = savedRecordIdx;
+            RECORD = RECORDS[savedRecordIdx];
+            if (!availableRecords.includes(savedRecordIdx)) availableRecords.push(savedRecordIdx);
+        }
+
         renderStations();
         restoreLastStation();
         updateRecButton();
@@ -4718,6 +4920,8 @@
         mountAmp();
         mountDeck();
         mountTurntable();
+        renderRecordPicker();
+        probeRecords();
         tunerLoop();
         mountCoach();
     </script>

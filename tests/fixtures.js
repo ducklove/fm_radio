@@ -9,6 +9,7 @@ const path = require("path");
 const NM = path.join(__dirname, "node_modules");
 const STREAM_DIR = path.join(__dirname, ".stream");
 const MOCK_STREAM_URL = "https://mockstream.test/playlist.m3u8";
+const CORS = { "access-control-allow-origin": "*" };
 
 function contentType(p) {
     if (p.endsWith(".js")) return "application/javascript";
@@ -52,8 +53,17 @@ async function mockExternal(context) {
     await context.route("https://www.googletagmanager.com/**", (route) =>
         route.fulfill({ body: "window.__gtagStub=1;", contentType: "application/javascript" }));
 
+    // 턴테이블 음반: 모든 Wikimedia 오디오 요청을 로컬 mock 음원으로 (CORS 포함 — crossorigin=anonymous 재생 조건 재현)
+    await context.route("https://upload.wikimedia.org/**", (route) => {
+        const file = path.join(STREAM_DIR, "phono.mp3");
+        if (fs.existsSync(file)) {
+            return route.fulfill({ body: fs.readFileSync(file), contentType: "audio/mpeg", headers: CORS });
+        }
+        return route.fulfill({ status: 404, body: "" });
+    });
+
     await context.route(
-        /^https?:\/\/(?!127\.0\.0\.1|mockstream\.test|cdn\.jsdelivr\.net|cfpwwwapi\.kbs\.co\.kr|www\.googletagmanager\.com).*/,
+        /^https?:\/\/(?!127\.0\.0\.1|mockstream\.test|cdn\.jsdelivr\.net|cfpwwwapi\.kbs\.co\.kr|www\.googletagmanager\.com|upload\.wikimedia\.org).*/,
         (route) => route.abort("connectionrefused"));
 }
 

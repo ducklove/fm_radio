@@ -5,7 +5,8 @@
   "scripts": {
     "pretest": "node gen-stream.js",
     "test": "playwright test",
-    "live": "node live-check.js"
+    "live": "node live-check.js",
+    "phono": "node phono-check.js"
   },
   "devDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

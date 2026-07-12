@@ -241,6 +241,66 @@ test.describe("미니 플레이어 (widget.html)", () => {
     });
 });
 
+test.describe("턴테이블 음반 컬렉션", () => {
+    test.use({ viewport: { width: 1440, height: 1800 } });
+
+    // RECORDS/recordIndex/RECORD/availableRecords는 스크립트 최상위 const/let이라
+    // window에는 없지만 전역 렉시컬 스코프에 있어 bare 식별자로 접근 가능.
+    test.beforeEach(async ({ context, page }) => {
+        await mockExternal(context);
+        await page.goto("/");
+        await page.waitForFunction(() => typeof RECORDS !== "undefined");
+    });
+
+    test("여러 장의 음반이 정의되어 있다", async ({ page }) => {
+        const count = await page.evaluate(() => RECORDS.length);
+        expect(count).toBeGreaterThanOrEqual(6);
+    });
+
+    test("commonsPath: Suite 1 Prélude 경로가 검증된 해시와 일치", async ({ page }) => {
+        const p = await page.evaluate(() =>
+            commonsPath("JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg"));
+        expect(p).toBe("4/43/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg");
+    });
+
+    test("프로브 통과 시 모든 음반이 보관함에 노출된다", async ({ page }) => {
+        // mock에서 Wikimedia 요청이 성공하므로 전곡 프로브 통과
+        await page.waitForFunction(() => availableRecords.length === RECORDS.length, null, { timeout: 15000 });
+        const spines = await page.locator("#ttCrate .ttSpine").count();
+        expect(spines).toBe(await page.evaluate(() => RECORDS.length));
+    });
+
+    test("음반 교체 → 재킷·트랙 라벨·판 라벨이 바뀐다", async ({ page }) => {
+        await page.waitForFunction(() => availableRecords.length >= 3, null, { timeout: 15000 });
+        await page.evaluate(() => setRecord(2)); // Suite 3
+        const idx = await page.evaluate(() => recordIndex);
+        expect(idx).toBe(2);
+        // Suite 3의 5번 곡은 Bourrée
+        const hasBourree = await page.evaluate(() =>
+            RECORDS[recordIndex].tracks.some((t) => t.t.includes("Bourrée")));
+        expect(hasBourree).toBe(true);
+        // 재킷 부제도 갱신
+        await expect(page.locator("#ttStage svg")).toContainText("제3번");
+    });
+
+    test("음반 트랙 재생 (mock 음원)", async ({ page }) => {
+        await page.locator("#ttStartBtn").click();
+        await page.waitForFunction(() => {
+            const a = document.getElementById("audioPlayer");
+            return !a.paused && a.currentTime > 0.3;
+        }, null, { timeout: 15000 });
+        const label = await page.evaluate(() => RECORD.title);
+        expect(label).toContain("첼로 모음곡");
+    });
+
+    test("보관함 스파인 클릭으로 음반 교체 + 저장", async ({ page }) => {
+        await page.waitForFunction(() => availableRecords.length >= 3, null, { timeout: 15000 });
+        await page.locator('#ttCrate .ttSpine[data-rec="1"]').click();
+        const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.record")));
+        expect(saved).toBe(await page.evaluate(() => RECORDS[1].id));
+    });
+});
+
 test.describe("접근성", () => {
     test("axe-core: 심각/치명 위반 없음", async ({ context, page }) => {
         await mockExternal(context);
