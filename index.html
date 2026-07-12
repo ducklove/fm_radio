@@ -1297,6 +1297,9 @@
             '<radialGradient id="lzLampGreen" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#c4f0d0" stop-opacity="0.26"/><stop offset="0.55" stop-color="#7fd8a0" stop-opacity="0.1"/><stop offset="1" stop-color="#4fb878" stop-opacity="0"/></radialGradient>' +
             '<radialGradient id="lzLampBlue" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#a8d4ff" stop-opacity="0.3"/><stop offset="0.55" stop-color="#4a9fe8" stop-opacity="0.12"/><stop offset="1" stop-color="#2a6fd0" stop-opacity="0"/></radialGradient>' +
             '<filter id="lzBloom" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>' +
+            '<linearGradient id="lzFil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a" stop-opacity="0.35"/><stop offset="0.28" stop-color="#ffc46a"/><stop offset="0.5" stop-color="#fff2c8"/><stop offset="0.72" stop-color="#ffc46a"/><stop offset="1" stop-color="#ff8a2a" stop-opacity="0.35"/></linearGradient>' +
+            '<linearGradient id="lzFilG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fd07a" stop-opacity="0.35"/><stop offset="0.28" stop-color="#9af0b8"/><stop offset="0.5" stop-color="#e8fff0"/><stop offset="0.72" stop-color="#9af0b8"/><stop offset="1" stop-color="#4fd07a" stop-opacity="0.35"/></linearGradient>' +
+            '<linearGradient id="lzMcBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa8f0" stop-opacity="0.5"/><stop offset="0.45" stop-color="#3f92e6" stop-opacity="0.58"/><stop offset="1" stop-color="#2668c8" stop-opacity="0.48"/></linearGradient>' +
             '</defs>';
 
         function applyPanelLighting(svg) {
@@ -1463,12 +1466,13 @@
                     <text id="tsLedBlend" data-on="#ff9a3a" data-off="#3a2312" x="190" y="190" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#3a2312" text-anchor="middle">FILTER</text>
                     <!-- STATION 표시창 -->
                     <rect x="70" y="225" width="240" height="145" rx="4" fill="#050506" stroke="#6b6648" stroke-width="1.6"/>
+                    <rect class="lampGlow" x="72" y="227" width="236" height="141" rx="3" fill="url(#lzMcBlue)" opacity="0.4" style="mix-blend-mode:screen"/>
                     <text x="190" y="253" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="2.5" fill="#7ee08a" text-anchor="middle">STATION</text>
                     <text id="tsFreqGlow" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#0d1f30" text-anchor="middle" filter="url(#mrGlow)">--.-</text>
                     <text id="tsFreq" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#16324d" text-anchor="middle">--.-</text>
                     <!-- 다이얼 창 (블랙글라스) -->
                     <rect x="350" y="60" width="1210" height="310" rx="4" fill="#060607" stroke="#6b6648" stroke-width="1.6"/>
-                    <ellipse class="lampGlow" cx="955" cy="150" rx="540" ry="85" fill="url(#lzLampBlue)" opacity="0.4"/>
+                    <rect class="lampGlow" x="352" y="62" width="1206" height="306" rx="3" fill="url(#lzMcBlue)" opacity="0.4" style="mix-blend-mode:screen"/>
                     <rect x="350" y="60" width="1210" height="20" fill="url(#lzInset)" opacity="0.8"/>
                     <g class="dialScale" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#f2f2f2" text-anchor="middle">
                         <text x="430" y="130">88</text><text x="538" y="130">90</text><text x="646" y="130">92</text><text x="754" y="130">94</text><text x="862" y="130">96</text><text x="970" y="130">98</text><text x="1078" y="130">100</text><text x="1186" y="130">102</text><text x="1294" y="130">104</text><text x="1402" y="130">106</text><text x="1510" y="130">108</text>
@@ -2449,7 +2453,7 @@
                 <rect x="524" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
                 <rect x="523" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
                 <rect x="541" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampGlow" x="556" y="104" width="8" height="112" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <rect class="ampFil" x="556" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
                 <circle cx="560" cy="90" r="5" fill="#2a2622"/>
                 <ellipse cx="540" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
             </g>
@@ -2458,7 +2462,7 @@
                 <rect x="664" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
                 <rect x="663" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
                 <rect x="681" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampGlow" x="696" y="104" width="8" height="112" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <rect class="ampFil" x="696" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
                 <circle cx="700" cy="90" r="5" fill="#2a2622"/>
                 <ellipse cx="680" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
             </g>
@@ -2467,7 +2471,7 @@
                 <rect x="1264" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
                 <rect x="1263" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
                 <rect x="1281" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampGlow" x="1296" y="104" width="8" height="112" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <rect class="ampFil" x="1296" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
                 <circle cx="1300" cy="90" r="5" fill="#2a2622"/>
                 <ellipse cx="1280" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
             </g>
@@ -2476,15 +2480,15 @@
                 <rect x="1404" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
                 <rect x="1403" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
                 <rect x="1421" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampGlow" x="1436" y="104" width="8" height="112" rx="4" fill="#ffb03a" opacity="0.08"/>
+                <rect class="ampFil" x="1436" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
                 <circle cx="1440" cy="90" r="5" fill="#2a2622"/>
                 <ellipse cx="1420" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
             </g>
             <g>
-                <rect x="884" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="883" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="895" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampGlow" x="903" y="156" width="6" height="82" rx="3" fill="#ffb03a" opacity="0.08"/>
-                <rect x="964" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="963" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="975" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampGlow" x="983" y="156" width="6" height="82" rx="3" fill="#ffb03a" opacity="0.08"/>
-                <rect x="1044" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1043" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1055" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampGlow" x="1063" y="156" width="6" height="82" rx="3" fill="#ffb03a" opacity="0.08"/>
-                <rect x="1124" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1123" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1135" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampGlow" x="1143" y="156" width="6" height="82" rx="3" fill="#ffb03a" opacity="0.08"/>
+                <rect x="884" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="883" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="895" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="903" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
+                <rect x="964" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="963" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="975" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="983" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
+                <rect x="1044" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1043" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1055" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="1063" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
+                <rect x="1124" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1123" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1135" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="1143" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
             </g>
             <rect class="tubeDark" x="42" y="42" width="1916" height="230" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="20" fill="url(#lzInset)" opacity="0.85"/>
@@ -2558,7 +2562,7 @@
                 <rect x="1262" y="234" width="76" height="16" rx="6" fill="#241d14"/>
                 <path d="M 1260 234 C 1260 152 1246 98 1300 52 C 1354 98 1340 152 1340 234 Z" fill="url(#weGlass)" stroke="#7e765f" stroke-width="1.8"/>
                 <rect x="1282" y="112" width="36" height="100" rx="6" fill="#231e16" opacity="0.85"/>
-                <rect class="ampGlow" x="1296" y="96" width="9" height="126" rx="4.5" fill="#ffc05a" opacity="0.1"/>
+                <rect class="ampFil" x="1296" y="96" width="9" height="126" rx="4.5" fill="url(#lzFil)" opacity="0.1"/>
                 <ellipse cx="1282" cy="86" rx="9" ry="17" fill="#ffffff" opacity="0.22"/>
             </g>
             <g>
@@ -2566,14 +2570,14 @@
                 <rect x="1462" y="234" width="76" height="16" rx="6" fill="#241d14"/>
                 <path d="M 1460 234 C 1460 152 1446 98 1500 52 C 1554 98 1540 152 1540 234 Z" fill="url(#weGlass)" stroke="#7e765f" stroke-width="1.8"/>
                 <rect x="1482" y="112" width="36" height="100" rx="6" fill="#231e16" opacity="0.85"/>
-                <rect class="ampGlow" x="1496" y="96" width="9" height="126" rx="4.5" fill="#ffc05a" opacity="0.1"/>
+                <rect class="ampFil" x="1496" y="96" width="9" height="126" rx="4.5" fill="url(#lzFil)" opacity="0.1"/>
                 <ellipse cx="1482" cy="86" rx="9" ry="17" fill="#ffffff" opacity="0.22"/>
             </g>
             <g>
                 <rect x="1642" y="240" width="44" height="10" rx="4" fill="#241d14"/>
                 <rect x="1641" y="128" width="46" height="114" rx="22" fill="url(#weGlass)" stroke="#7e765f" stroke-width="1.4"/>
                 <rect x="1653" y="148" width="22" height="70" rx="4" fill="#231e16" opacity="0.85"/>
-                <rect class="ampGlow" x="1661" y="144" width="6" height="80" rx="3" fill="#ffc05a" opacity="0.1"/>
+                <rect class="ampFil" x="1661" y="144" width="6" height="80" rx="3" fill="url(#lzFil)" opacity="0.1"/>
             </g>
             <rect class="tubeDark" x="42" y="42" width="1916" height="218" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="18" fill="url(#lzInset)" opacity="0.85"/>
@@ -2656,7 +2660,7 @@
                 <rect x="462" y="270" width="76" height="15" rx="5" fill="#14141a"/>
                 <rect x="461" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
                 <rect x="480" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampGlow" x="496" y="120" width="8" height="120" rx="4" fill="#ffb03a" opacity="0.09"/>
+                <rect class="ampFil" x="496" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
                 <circle cx="500" cy="106" r="5" fill="#2a2a32"/>
                 <ellipse cx="478" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
             </g>
@@ -2665,7 +2669,7 @@
                 <rect x="612" y="270" width="76" height="15" rx="5" fill="#14141a"/>
                 <rect x="611" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
                 <rect x="630" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampGlow" x="646" y="120" width="8" height="120" rx="4" fill="#ffb03a" opacity="0.09"/>
+                <rect class="ampFil" x="646" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
                 <circle cx="650" cy="106" r="5" fill="#2a2a32"/>
                 <ellipse cx="628" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
             </g>
@@ -2674,7 +2678,7 @@
                 <rect x="1152" y="270" width="76" height="15" rx="5" fill="#14141a"/>
                 <rect x="1151" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
                 <rect x="1170" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampGlow" x="1186" y="120" width="8" height="120" rx="4" fill="#ffb03a" opacity="0.09"/>
+                <rect class="ampFil" x="1186" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
                 <circle cx="1190" cy="106" r="5" fill="#2a2a32"/>
                 <ellipse cx="1168" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
             </g>
@@ -2683,13 +2687,13 @@
                 <rect x="1302" y="270" width="76" height="15" rx="5" fill="#14141a"/>
                 <rect x="1301" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
                 <rect x="1320" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampGlow" x="1336" y="120" width="8" height="120" rx="4" fill="#ffb03a" opacity="0.09"/>
+                <rect class="ampFil" x="1336" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
                 <circle cx="1340" cy="106" r="5" fill="#2a2a32"/>
                 <ellipse cx="1318" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
             </g>
             <g>
-                <rect x="1808" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1806" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1817" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampGlow" x="1825" y="188" width="6" height="72" rx="3" fill="#8af0a8" opacity="0.09"/>
-                <rect x="1878" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1876" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1887" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampGlow" x="1895" y="188" width="6" height="72" rx="3" fill="#8af0a8" opacity="0.09"/>
+                <rect x="1808" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1806" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1817" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampFil" x="1825" y="188" width="6" height="72" rx="3" fill="url(#lzFilG)" opacity="0.09"/>
+                <rect x="1878" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1876" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1887" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampFil" x="1895" y="188" width="6" height="72" rx="3" fill="url(#lzFilG)" opacity="0.09"/>
             </g>
             <rect class="tubeDark" x="42" y="42" width="1916" height="248" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="20" fill="url(#lzInset)" opacity="0.9"/>
@@ -3487,8 +3491,16 @@
             tunerWarm = Math.max(0, Math.min(1, tunerWarm + (tnTarget > tunerWarm ? 1 : -1) * tnRate));
 
             // 앰프: 진공관 글로우(웜업 연동)·갤러리 어둠·VU 바늘·전원 LED
+            // 유리 할로·주변광은 은은하게, 필라멘트는 백열로 뜨겁게 (실제 진공관의 빛 분포)
             document.querySelectorAll(".ampGlow").forEach((el) => {
-                el.style.opacity = (0.012 + tubeWarm * (0.25 + tsSignal * 0.5)).toFixed(3);
+                el.style.opacity = (0.012 + tubeWarm * (0.18 + tsSignal * 0.32)).toFixed(3);
+            });
+            const filBloom = tubeWarm > 0.04
+                ? "drop-shadow(0 0 4px rgba(255,150,50," + (0.9 * tubeWarm).toFixed(2) + ")) drop-shadow(0 0 11px rgba(255,110,35," + (0.5 * tubeWarm).toFixed(2) + "))"
+                : "none";
+            document.querySelectorAll(".ampFil").forEach((el) => {
+                el.style.opacity = (0.02 + tubeWarm * (0.72 + tsSignal * 0.28)).toFixed(3);
+                el.style.filter = filBloom;
             });
             document.querySelectorAll(".tubeDark").forEach((el) => {
                 el.style.opacity = (0.74 - tubeWarm * 0.62).toFixed(3);

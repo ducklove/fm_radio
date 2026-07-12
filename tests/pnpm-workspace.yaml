@@ -1,0 +1,2 @@
+allowBuilds:
+  '@ffmpeg-installer/darwin-arm64': set this to true or false
