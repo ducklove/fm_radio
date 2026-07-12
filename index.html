@@ -1145,283 +1145,324 @@
             mr78: {
                 label: "McIntoch MR-78",
                 cfg: {
-                    freq: { x88: 380, px: 54.5, drawX: 925 },
-                    mark: { y: 122, h: 8, hOn: 14, color: "#7fd8cf", colorOn: "#ff5a3a" },
-                    signal: { drawX: 555, baseX: 445, travel: 220 },
-                    tune: { travel: 115 },
-                    knob: { cx: 1770, cy: 126 },
-                    swTravel: 5,
+                    freq: { x88: 430, px: 54, drawX: 970 },
+                    mark: { y: 182, h: 10, hOn: 16, color: "#7fd8cf", colorOn: "#ff5a3a" },
+                    signal: { drawX: 560, baseX: 435, travel: 250 },
+                    tune: { travel: 130 },
+                    knob: { cx: 1755, cy: 215 },
+                    swTravel: 7,
                     led: { on: "#ff4a3a", off: "#3a1512" },
                     digit: { lit: "#57b0ff", glow: "#2a6fd0", dim: "#16324d", dimGlow: "#0d1f30" },
-                    hits: { power: [58, 218, 70, 48], dial: [370, 56, 1120, 100], rec: [300, 212, 80, 54], if: [520, 212, 80, 54], blend: [740, 212, 80, 54], mute: [960, 212, 80, 54], mode: [1180, 212, 80, 54], rf: [1400, 212, 80, 54], knob: [1770, 126, 96] }
+                    hits: { power: [65, 520, 80, 80], dial: [430, 95, 1080, 170], rec: [310, 470, 140, 130], if: [550, 470, 140, 130], blend: [790, 470, 140, 130], mute: [1030, 470, 140, 130], mode: [1270, 470, 140, 130], rf: [1510, 470, 140, 130], knob: [1755, 215, 132] }
                 },
-                svg: `<svg class="tuner-svg" viewBox="0 0 2000 269" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="McIntoch MR-78 FM Tuner">
+                svg: `<svg class="tuner-svg" viewBox="0 0 2000 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="McIntoch MR-78 FM Tuner">
                     <defs>
                         <linearGradient id="mrPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17171a"/><stop offset="0.5" stop-color="#0d0d10"/><stop offset="1" stop-color="#08080a"/></linearGradient>
                         <linearGradient id="mrRail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d8d8dc"/><stop offset="0.5" stop-color="#8a8a92"/><stop offset="1" stop-color="#55555c"/></linearGradient>
                         <linearGradient id="mrMeter" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#95e4da"/><stop offset="1" stop-color="#5cb6ad"/></linearGradient>
                         <radialGradient id="mrKnob" cx="0.38" cy="0.32" r="0.9"><stop offset="0" stop-color="#3a3a40"/><stop offset="0.6" stop-color="#1c1c22"/><stop offset="1" stop-color="#0c0c10"/></radialGradient>
                         <filter id="mrGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4"/></filter>
-                        <pattern id="mrTickMinor" width="10.9" height="22" patternUnits="userSpaceOnUse"><rect width="1.1" height="10" fill="#e8e8ea" opacity="0.75"/></pattern>
-                        <pattern id="mrTickMajor" width="54.5" height="22" patternUnits="userSpaceOnUse"><rect width="1.8" height="18" fill="#ffffff"/></pattern>
+                        <pattern id="mrTickMinor" width="10.8" height="30" patternUnits="userSpaceOnUse"><rect width="1.2" height="14" fill="#e8e8ea" opacity="0.75"/></pattern>
+                        <pattern id="mrTickMajor" width="54" height="30" patternUnits="userSpaceOnUse"><rect width="2" height="24" fill="#ffffff"/></pattern>
                     </defs>
-                    <rect x="0" y="0" width="2000" height="269" rx="6" fill="url(#mrPanel)"/>
-                    <rect x="0" y="0" width="26" height="269" rx="6" fill="url(#mrRail)"/>
-                    <rect x="1974" y="0" width="26" height="269" rx="6" fill="url(#mrRail)"/>
+                    <rect x="0" y="0" width="2000" height="700" rx="8" fill="url(#mrPanel)"/>
+                    <rect x="0" y="0" width="30" height="700" rx="8" fill="url(#mrRail)"/>
+                    <rect x="1970" y="0" width="30" height="700" rx="8" fill="url(#mrRail)"/>
+                    <rect x="0" y="686" width="2000" height="14" fill="#000000" opacity="0.4"/>
                     <!-- FUNCTION 표시창 -->
-                    <rect x="60" y="36" width="190" height="84" rx="3" fill="#050506" stroke="#6b6648" stroke-width="1.4"/>
-                    <text x="155" y="52" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" letter-spacing="2" fill="#7ee08a" text-anchor="middle">FUNCTION</text>
-                    <text id="tsLedStereo" data-on="#ff4a3a" data-off="#3a1512" x="155" y="76" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2.5" fill="#3a1512" text-anchor="middle">STEREO</text>
-                    <text id="tsLedLock" data-on="#ffd24a" data-off="#3a3012" x="155" y="95" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2.5" fill="#3a3012" text-anchor="middle">LOCKED</text>
-                    <text id="tsLedBlend" data-on="#ff9a3a" data-off="#3a2312" x="155" y="114" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2.5" fill="#3a2312" text-anchor="middle">FILTER</text>
+                    <rect x="70" y="60" width="240" height="145" rx="4" fill="#050506" stroke="#6b6648" stroke-width="1.6"/>
+                    <text x="190" y="88" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="2.5" fill="#7ee08a" text-anchor="middle">FUNCTION</text>
+                    <text id="tsLedStereo" data-on="#ff4a3a" data-off="#3a1512" x="190" y="126" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#3a1512" text-anchor="middle">STEREO</text>
+                    <text id="tsLedLock" data-on="#ffd24a" data-off="#3a3012" x="190" y="158" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#3a3012" text-anchor="middle">LOCKED</text>
+                    <text id="tsLedBlend" data-on="#ff9a3a" data-off="#3a2312" x="190" y="190" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#3a2312" text-anchor="middle">FILTER</text>
                     <!-- STATION 표시창 -->
-                    <rect x="60" y="132" width="190" height="84" rx="3" fill="#050506" stroke="#6b6648" stroke-width="1.4"/>
-                    <text x="155" y="148" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" letter-spacing="2" fill="#7ee08a" text-anchor="middle">STATION</text>
-                    <text id="tsFreqGlow" x="155" y="196" font-family="'Courier New', monospace" font-size="40" font-weight="700" fill="#0d1f30" text-anchor="middle" filter="url(#mrGlow)">--.-</text>
-                    <text id="tsFreq" x="155" y="196" font-family="'Courier New', monospace" font-size="40" font-weight="700" fill="#16324d" text-anchor="middle">--.-</text>
+                    <rect x="70" y="225" width="240" height="145" rx="4" fill="#050506" stroke="#6b6648" stroke-width="1.6"/>
+                    <text x="190" y="253" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="2.5" fill="#7ee08a" text-anchor="middle">STATION</text>
+                    <text id="tsFreqGlow" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#0d1f30" text-anchor="middle" filter="url(#mrGlow)">--.-</text>
+                    <text id="tsFreq" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#16324d" text-anchor="middle">--.-</text>
                     <!-- 다이얼 창 (블랙글라스) -->
-                    <rect x="290" y="36" width="1270" height="180" rx="3" fill="#060607" stroke="#6b6648" stroke-width="1.4"/>
-                    <g font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#f2f2f2" text-anchor="middle">
-                        <text x="380" y="88">88</text><text x="489" y="88">90</text><text x="598" y="88">92</text><text x="707" y="88">94</text><text x="816" y="88">96</text><text x="925" y="88">98</text><text x="1034" y="88">100</text><text x="1143" y="88">102</text><text x="1252" y="88">104</text><text x="1361" y="88">106</text><text x="1470" y="88">108</text>
+                    <rect x="350" y="60" width="1210" height="310" rx="4" fill="#060607" stroke="#6b6648" stroke-width="1.6"/>
+                    <g font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#f2f2f2" text-anchor="middle">
+                        <text x="430" y="130">88</text><text x="538" y="130">90</text><text x="646" y="130">92</text><text x="754" y="130">94</text><text x="862" y="130">96</text><text x="970" y="130">98</text><text x="1078" y="130">100</text><text x="1186" y="130">102</text><text x="1294" y="130">104</text><text x="1402" y="130">106</text><text x="1510" y="130">108</text>
                     </g>
-                    <rect x="380" y="100" width="1090" height="10" fill="url(#mrTickMinor)"/>
-                    <rect x="380" y="100" width="1090" height="18" fill="url(#mrTickMajor)"/>
-                    <g font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#cfcfcf" text-anchor="middle">
-                        <text x="380" y="148">0</text><text x="489" y="148">10</text><text x="598" y="148">20</text><text x="707" y="148">30</text><text x="816" y="148">40</text><text x="925" y="148">50</text><text x="1034" y="148">60</text><text x="1143" y="148">70</text><text x="1252" y="148">80</text><text x="1361" y="148">90</text><text x="1470" y="148">100</text>
-                    </g>
+                    <rect x="430" y="150" width="1080" height="16" fill="url(#mrTickMinor)"/>
+                    <rect x="430" y="150" width="1080" height="26" fill="url(#mrTickMajor)"/>
                     <g id="tsStationMarks"></g>
+                    <g font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#cfcfcf" text-anchor="middle">
+                        <text x="430" y="238">0</text><text x="538" y="238">10</text><text x="646" y="238">20</text><text x="754" y="238">30</text><text x="862" y="238">40</text><text x="970" y="238">50</text><text x="1078" y="238">60</text><text x="1186" y="238">70</text><text x="1294" y="238">80</text><text x="1402" y="238">90</text><text x="1510" y="238">100</text>
+                    </g>
                     <g id="tsDialPtr">
-                        <rect x="923" y="96" width="4" height="58" fill="#ff2a1a" filter="url(#mrGlow)"/>
-                        <rect x="924" y="96" width="2" height="58" fill="#ff6a4a"/>
+                        <rect x="968" y="115" width="4" height="135" fill="#ff2a1a" filter="url(#mrGlow)"/>
+                        <rect x="969" y="115" width="2" height="135" fill="#ff6a4a"/>
                     </g>
                     <!-- 틸 미터 (SIGNAL / TUNING) -->
-                    <text x="555" y="158" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#7ee08a" text-anchor="middle">SIGNAL STRENGTH</text>
-                    <rect x="430" y="164" width="250" height="42" rx="2" fill="url(#mrMeter)"/>
-                    <g stroke="#134a44" stroke-width="1.2">
-                        <line x1="455" y1="170" x2="455" y2="182"/><line x1="490" y1="172" x2="490" y2="182"/><line x1="525" y1="170" x2="525" y2="182"/><line x1="560" y1="172" x2="560" y2="182"/><line x1="595" y1="170" x2="595" y2="182"/><line x1="630" y1="172" x2="630" y2="182"/><line x1="660" y1="170" x2="660" y2="182"/>
+                    <text x="560" y="266" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="2" fill="#7ee08a" text-anchor="middle">SIGNAL STRENGTH</text>
+                    <rect x="420" y="276" width="280" height="60" rx="3" fill="url(#mrMeter)"/>
+                    <g stroke="#134a44" stroke-width="1.4">
+                        <line x1="450" y1="286" x2="450" y2="302"/><line x1="490" y1="290" x2="490" y2="302"/><line x1="530" y1="286" x2="530" y2="302"/><line x1="570" y1="290" x2="570" y2="302"/><line x1="610" y1="286" x2="610" y2="302"/><line x1="650" y1="290" x2="650" y2="302"/><line x1="680" y1="286" x2="680" y2="302"/>
                     </g>
                     <g id="tsSignalPtr">
-                        <rect x="553.5" y="167" width="3" height="36" fill="#0a1a18"/>
+                        <rect x="558" y="280" width="4" height="52" fill="#0a1a18"/>
                     </g>
-                    <text x="1295" y="158" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" fill="#7ee08a" text-anchor="middle">TUNING</text>
-                    <rect x="1170" y="164" width="250" height="42" rx="2" fill="url(#mrMeter)"/>
-                    <g stroke="#134a44" stroke-width="1.2">
-                        <line x1="1195" y1="170" x2="1195" y2="182"/><line x1="1245" y1="172" x2="1245" y2="182"/><line x1="1295" y1="168" x2="1295" y2="184"/><line x1="1345" y1="172" x2="1345" y2="182"/><line x1="1395" y1="170" x2="1395" y2="182"/>
+                    <text x="1350" y="266" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="2" fill="#7ee08a" text-anchor="middle">TUNING</text>
+                    <rect x="1210" y="276" width="280" height="60" rx="3" fill="url(#mrMeter)"/>
+                    <g stroke="#134a44" stroke-width="1.4">
+                        <line x1="1240" y1="288" x2="1240" y2="302"/><line x1="1295" y1="290" x2="1295" y2="302"/><line x1="1350" y1="284" x2="1350" y2="304"/><line x1="1405" y1="290" x2="1405" y2="302"/><line x1="1460" y1="288" x2="1460" y2="302"/>
                     </g>
                     <g id="tsTunePtr">
-                        <rect x="1293.5" y="167" width="3" height="36" fill="#0a1a18"/>
+                        <rect x="1348" y="280" width="4" height="52" fill="#0a1a18"/>
                     </g>
                     <!-- 브랜드 -->
-                    <text x="925" y="184" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="38" font-weight="700" fill="#d8b060" text-anchor="middle">McIntoch</text>
-                    <text x="925" y="207" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="6" fill="#e8e8ea" text-anchor="middle">MR 78 FM TUNER</text>
-                    <!-- 하단 노브 행 -->
-                    <g font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" letter-spacing="1.5" fill="#7ee08a" text-anchor="middle">
-                        <text x="93" y="232">POWER</text><text x="340" y="228">REC CAL</text><text x="560" y="228">TIMER</text><text x="780" y="228">FILTER</text><text x="1000" y="228">MUTING</text><text x="1220" y="228">MODE</text><text x="1440" y="228">LIST</text>
-                    </g>
-                    <circle cx="93" cy="248" r="13" fill="#1c1c22" stroke="#8a8a92" stroke-width="1.4"/>
-                    <circle id="tsSwPwr" cx="93" cy="245" r="6" fill="#55555c"/>
-                    <g>
-                        <circle cx="340" cy="247" r="16" fill="url(#mrKnob)" stroke="#8a8a92" stroke-width="1.2"/><rect id="tsSwRec" x="338.5" y="233" width="3" height="11" rx="1.5" fill="#d8d8dc"/>
-                        <circle cx="560" cy="247" r="16" fill="url(#mrKnob)" stroke="#8a8a92" stroke-width="1.2"/><rect id="tsSwIf" x="558.5" y="233" width="3" height="11" rx="1.5" fill="#d8d8dc"/>
-                        <circle cx="780" cy="247" r="16" fill="url(#mrKnob)" stroke="#8a8a92" stroke-width="1.2"/><rect id="tsSwBlend" x="778.5" y="233" width="3" height="11" rx="1.5" fill="#d8d8dc"/>
-                        <circle cx="1000" cy="247" r="16" fill="url(#mrKnob)" stroke="#8a8a92" stroke-width="1.2"/><rect id="tsSwMute" x="998.5" y="233" width="3" height="11" rx="1.5" fill="#d8d8dc"/>
-                        <circle cx="1220" cy="247" r="16" fill="url(#mrKnob)" stroke="#8a8a92" stroke-width="1.2"/><rect id="tsSwMode" x="1218.5" y="233" width="3" height="11" rx="1.5" fill="#d8d8dc"/>
-                        <circle cx="1440" cy="247" r="16" fill="url(#mrKnob)" stroke="#8a8a92" stroke-width="1.2"/><rect id="tsSwRf" x="1438.5" y="233" width="3" height="11" rx="1.5" fill="#d8d8dc"/>
-                    </g>
-                    <!-- 튜닝 노브 -->
-                    <circle cx="1770" cy="128" r="98" fill="#050507"/>
+                    <text x="955" y="310" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#d8b060" text-anchor="middle">McIntoch</text>
+                    <text x="955" y="345" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="7" fill="#e8e8ea" text-anchor="middle">MR 78 FM TUNER</text>
+                    <!-- 튜닝 노브 (우상단, 다이얼 높이) -->
+                    <circle cx="1755" cy="215" r="134" fill="#050507"/>
                     <g id="tsKnob">
-                        <circle cx="1770" cy="126" r="95" fill="url(#mrKnob)" stroke="#9a9aa2" stroke-width="2"/>
-                        <circle cx="1770" cy="60" r="6" fill="#3a3a42"/>
+                        <circle cx="1755" cy="215" r="130" fill="url(#mrKnob)" stroke="#c8c8ce" stroke-width="3"/>
+                        <circle cx="1755" cy="215" r="112" fill="none" stroke="#3a3a42" stroke-width="1.5"/>
+                        <circle cx="1755" cy="123" r="8" fill="#4a4a52"/>
                     </g>
-                    <ellipse cx="1740" cy="100" rx="36" ry="28" fill="#ffffff" opacity="0.05" pointer-events="none"/>
+                    <ellipse cx="1712" cy="176" rx="46" ry="36" fill="#ffffff" opacity="0.05" pointer-events="none"/>
+                    <!-- 하단 노브 행 (글라스 위) -->
+                    <g font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2" fill="#7ee08a" text-anchor="middle">
+                        <text x="380" y="462">SELECTIVITY</text><text x="620" y="462">METER</text><text x="860" y="462">FILTER</text><text x="1100" y="462">MUTING</text><text x="1340" y="462">MODE</text><text x="1580" y="462">VOLUME</text>
+                    </g>
+                    <g font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="1" fill="#4e8a5a" text-anchor="middle">
+                        <text x="380" y="480">REC</text><text x="620" y="480">TIMER</text><text x="860" y="480">HI BLEND</text><text x="1100" y="480">MUTE</text><text x="1340" y="480">STEREO/MONO</text><text x="1580" y="480">LIST</text>
+                    </g>
+                    <g>
+                        <circle cx="380" cy="533" r="40" fill="url(#mrKnob)" stroke="#9a9aa2" stroke-width="2"/><rect id="tsSwRec" x="378" y="497" width="4" height="18" rx="2" fill="#d8d8dc"/>
+                        <circle cx="620" cy="533" r="40" fill="url(#mrKnob)" stroke="#9a9aa2" stroke-width="2"/><rect id="tsSwIf" x="618" y="497" width="4" height="18" rx="2" fill="#d8d8dc"/>
+                        <circle cx="860" cy="533" r="40" fill="url(#mrKnob)" stroke="#9a9aa2" stroke-width="2"/><rect id="tsSwBlend" x="858" y="497" width="4" height="18" rx="2" fill="#d8d8dc"/>
+                        <circle cx="1100" cy="533" r="40" fill="url(#mrKnob)" stroke="#9a9aa2" stroke-width="2"/><rect id="tsSwMute" x="1098" y="497" width="4" height="18" rx="2" fill="#d8d8dc"/>
+                        <circle cx="1340" cy="533" r="40" fill="url(#mrKnob)" stroke="#9a9aa2" stroke-width="2"/><rect id="tsSwMode" x="1338" y="497" width="4" height="18" rx="2" fill="#d8d8dc"/>
+                        <circle cx="1580" cy="533" r="40" fill="url(#mrKnob)" stroke="#9a9aa2" stroke-width="2"/><rect id="tsSwRf" x="1578" y="497" width="4" height="18" rx="2" fill="#d8d8dc"/>
+                    </g>
+                    <!-- PANLOC (좌 = 전원) -->
+                    <circle cx="105" cy="560" r="20" fill="#1c1c22" stroke="#8a8a92" stroke-width="1.6"/>
+                    <circle id="tsSwPwr" cx="105" cy="556" r="9" fill="#55555c"/>
+                    <text x="105" y="608" font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="1.5" fill="#7ee08a" text-anchor="middle">PANLOC</text>
+                    <circle cx="1895" cy="560" r="20" fill="#1c1c22" stroke="#8a8a92" stroke-width="1.6"/>
+                    <circle cx="1895" cy="556" r="9" fill="#55555c"/>
+                    <text x="1895" y="608" font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="1.5" fill="#7ee08a" text-anchor="middle">PANLOC</text>
+                    <!-- 하단 로고 -->
+                    <text x="955" y="655" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="22" font-weight="700" fill="#3a3a42" text-anchor="middle">McIntoch</text>
                 </svg>`
             },
             m10b: {
                 label: "Maranz 10B",
                 cfg: {
-                    freq: { x88: 340, px: 67, drawX: 1010 },
-                    mark: { y: 112, h: 6, hOn: 11, color: "#4ac8c8", colorOn: "#ff7a2a" },
-                    signal: { drawX: 1590, baseX: 1460, travel: 260 },
-                    tune: { travel: 130 },
-                    knob: { cx: 1000, cy: 208 },
-                    swTravel: 5,
+                    freq: { x88: 430, px: 57.5, drawX: 1005 },
+                    mark: { y: 340, h: 7, hOn: 12, color: "#4ac8c8", colorOn: "#ff7a2a" },
+                    signal: { drawX: 1530, baseX: 1460, travel: 140 },
+                    tune: { travel: 140 },
+                    knob: { cx: 1000, cy: 515 },
+                    swTravel: 6,
                     led: { on: "#ff3a2a", off: "#2a0d0a" },
-                    digit: { lit: "#ff4a2a", glow: "#d02a12", dim: "#4a170e", dimGlow: "#2a0d08" },
-                    hits: { power: [1795, 168, 90, 80], dial: [340, 108, 1360, 44], rec: [295, 168, 90, 80], blend: [475, 168, 90, 80], mode: [655, 168, 90, 80], mute: [1255, 168, 90, 80], if: [1435, 168, 90, 80], rf: [1615, 168, 90, 80], knob: [1000, 208, 54] }
+                    digit: { lit: "#ff4a2a", glow: "#d02a12", dim: "#3a1410", dimGlow: "#200c08" },
+                    hits: { power: [1450, 450, 140, 140], dial: [430, 292, 1150, 92], rec: [300, 225, 60, 60], blend: [410, 450, 140, 140], mode: [610, 450, 140, 140], mute: [1650, 450, 140, 140], if: [1250, 450, 140, 140], rf: [1640, 225, 60, 60], knob: [1000, 515, 100] }
                 },
-                svg: `<svg class="tuner-svg" viewBox="0 0 2000 269" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maranz Model 10B Stereo FM Tuner">
+                svg: `<svg class="tuner-svg" viewBox="0 0 2000 730" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maranz Model 10B Stereo FM Tuner">
                     <defs>
-                        <linearGradient id="mzPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9cfb3"/><stop offset="0.5" stop-color="#c9bfa1"/><stop offset="1" stop-color="#b3a988"/></linearGradient>
+                        <linearGradient id="mzWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4a2c"/><stop offset="0.5" stop-color="#5d3620"/><stop offset="1" stop-color="#402414"/></linearGradient>
+                        <linearGradient id="mzPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfd6bd"/><stop offset="0.5" stop-color="#cfc6aa"/><stop offset="1" stop-color="#b8ae90"/></linearGradient>
                         <radialGradient id="mzKnob" cx="0.4" cy="0.32" r="0.9"><stop offset="0" stop-color="#f2eee2"/><stop offset="0.55" stop-color="#c9c2ae"/><stop offset="1" stop-color="#8f8a76"/></radialGradient>
-                        <linearGradient id="mzScope" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#03150a"/><stop offset="1" stop-color="#020a05"/></linearGradient>
+                        <linearGradient id="mzScope" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#04170b"/><stop offset="1" stop-color="#020a05"/></linearGradient>
                         <filter id="mzGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6"/></filter>
-                        <pattern id="mzBrush" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#ffffff" opacity="0.035"/></pattern>
-                        <pattern id="mzTick" width="6.7" height="10" patternUnits="userSpaceOnUse"><circle cx="1.6" cy="5" r="1.5" fill="#4ac8c8"/></pattern>
+                        <pattern id="mzBrush" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#ffffff" opacity="0.04"/></pattern>
+                        <pattern id="mzTick" width="11.5" height="14" patternUnits="userSpaceOnUse"><circle cx="2" cy="7" r="1.9" fill="#4ac8c8"/></pattern>
                     </defs>
-                    <rect x="0" y="0" width="2000" height="269" rx="6" fill="url(#mzPanel)"/>
-                    <rect x="0" y="0" width="2000" height="269" rx="6" fill="url(#mzBrush)"/>
-                    <circle cx="34" cy="30" r="7" fill="#8f8a76"/><circle cx="1966" cy="30" r="7" fill="#8f8a76"/><circle cx="34" cy="240" r="7" fill="#8f8a76"/><circle cx="1966" cy="240" r="7" fill="#8f8a76"/>
+                    <!-- 월넛 우드 케이스 -->
+                    <rect x="0" y="0" width="2000" height="730" rx="12" fill="url(#mzWood)"/>
+                    <rect x="0" y="0" width="2000" height="730" rx="12" fill="none" stroke="#2a1810" stroke-width="3"/>
+                    <rect x="20" y="14" width="1960" height="8" rx="4" fill="#8a5a36" opacity="0.5"/>
+                    <rect x="20" y="706" width="1960" height="8" rx="4" fill="#1c0f08" opacity="0.6"/>
+                    <!-- 샴페인 알루미늄 패널 -->
+                    <rect x="90" y="60" width="1820" height="610" rx="4" fill="url(#mzPanel)"/>
+                    <rect x="90" y="60" width="1820" height="610" rx="4" fill="url(#mzBrush)"/>
+                    <circle cx="130" cy="100" r="8" fill="#9a9076"/><circle cx="1870" cy="100" r="8" fill="#9a9076"/><circle cx="130" cy="630" r="8" fill="#9a9076"/><circle cx="1870" cy="630" r="8" fill="#9a9076"/>
                     <!-- 블랙 윈도우 -->
-                    <rect x="250" y="30" width="1500" height="126" rx="8" fill="#070707" stroke="#1c1a16" stroke-width="2"/>
+                    <rect x="360" y="120" width="1280" height="270" rx="6" fill="#070707" stroke="#1c1a16" stroke-width="3"/>
                     <!-- 오실로스코프 -->
-                    <rect x="280" y="38" width="320" height="74" rx="4" fill="url(#mzScope)" stroke="#0d2a16" stroke-width="1.5"/>
-                    <text x="440" y="52" font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="2" fill="#3fd06a" text-anchor="middle" opacity="0.9">TUNE TO CENTER</text>
-                    <line x1="300" y1="86" x2="580" y2="86" stroke="#1f7a3c" stroke-width="1"/>
-                    <g stroke="#1f7a3c" stroke-width="1">
-                        <line x1="370" y1="80" x2="370" y2="92"/><line x1="405" y1="82" x2="405" y2="90"/><line x1="440" y1="76" x2="440" y2="96"/><line x1="475" y1="82" x2="475" y2="90"/><line x1="510" y1="80" x2="510" y2="92"/>
+                    <rect x="390" y="140" width="370" height="230" rx="4" fill="url(#mzScope)" stroke="#0d2a16" stroke-width="2"/>
+                    <text x="575" y="168" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="3" fill="#3fd06a" text-anchor="middle" opacity="0.9">TUNE TO CENTER</text>
+                    <g stroke="#1f7a3c" stroke-width="1.2" opacity="0.8">
+                        <line x1="575" y1="185" x2="575" y2="350"/>
+                        <line x1="545" y1="205" x2="605" y2="205"/><line x1="555" y1="235" x2="595" y2="235"/><line x1="535" y1="267" x2="615" y2="267"/><line x1="555" y1="299" x2="595" y2="299"/><line x1="545" y1="330" x2="605" y2="330"/>
                     </g>
                     <g id="tsTunePtr">
-                        <rect x="438" y="58" width="4" height="48" fill="#3fd06a" filter="url(#mzGlow)"/>
-                        <rect x="439" y="58" width="2" height="48" fill="#8af0a8"/>
+                        <rect x="572" y="185" width="6" height="165" fill="#ffb03a" filter="url(#mzGlow)" opacity="0.9"/>
+                        <rect x="574" y="185" width="2.5" height="165" fill="#ffd98a"/>
                     </g>
                     <!-- 브랜드 -->
-                    <text x="1000" y="78" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="1" fill="#e8e2cf" text-anchor="middle">maranz<tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="400" dx="10">Stereo</tspan><tspan dx="10" font-size="20">fm tuner</tspan></text>
-                    <text x="1000" y="100" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="4" fill="#a8a28c" text-anchor="middle">MODEL 10 B</text>
-                    <!-- STEREO 램프 + 신호 미터 -->
-                    <rect id="tsLedStereo" data-on="#ff3a2a" data-off="#2a0d0a" x="1545" y="60" width="90" height="24" rx="3" fill="#2a0d0a"/>
-                    <text x="1590" y="77" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="2" fill="#12060a" text-anchor="middle" pointer-events="none">STEREO</text>
-                    <circle id="tsLedLock" data-on="#62e07a" data-off="#12300f" cx="1668" cy="72" r="7" fill="#12300f"/>
-                    <circle id="tsLedBlend" data-on="#ffb03a" data-off="#3a2a10" cx="1706" cy="72" r="7" fill="#3a2a10"/>
-                    <rect x="1450" y="34" width="280" height="18" rx="2" fill="#0d0d0d" stroke="#1e1c18"/>
-                    <g id="tsSignalPtr">
-                        <rect x="1588.5" y="36" width="3" height="14" fill="#e8e2cf"/>
-                    </g>
+                    <text x="1130" y="230" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="1" fill="#e8e2cf" text-anchor="middle">maranz<tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="400" fill="#4ac8c8" dx="14">Stereo</tspan><tspan dx="14" font-size="28">fm tuner</tspan><tspan dx="18" font-size="15" fill="#ff8a3a" letter-spacing="2">MODEL 10 B</tspan></text>
+                    <!-- STEREO 표시창 + LOCK/BLEND 램프 -->
+                    <rect x="1450" y="196" width="130" height="44" rx="3" fill="#0d0808" stroke="#2a2a2e" stroke-width="1.5"/>
+                    <text id="tsLedStereo" data-on="#ff4a3a" data-off="#241012" x="1515" y="225" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="2.5" fill="#241012" text-anchor="middle">STEREO</text>
+                    <circle id="tsLedLock" data-on="#62e07a" data-off="#12300f" cx="1608" cy="207" r="6" fill="#12300f"/>
+                    <circle id="tsLedBlend" data-on="#ffb03a" data-off="#3a2a10" cx="1608" cy="230" r="6" fill="#3a2a10"/>
+                    <!-- STATION 디지트 (윈도우 내 우측) -->
+                    <text id="tsFreqGlow" x="1595" y="290" font-family="'Courier New', monospace" font-size="32" font-weight="700" fill="#200c08" text-anchor="end" filter="url(#mzGlow)">--.-</text>
+                    <text id="tsFreq" x="1595" y="290" font-family="'Courier New', monospace" font-size="32" font-weight="700" fill="#3a1410" text-anchor="end">--.-</text>
                     <!-- 주파수 스케일 -->
-                    <g font-family="Georgia, 'Times New Roman', serif" font-size="21" fill="#e6dfc6" text-anchor="middle">
-                        <text x="340" y="130">88</text><text x="474" y="130">90</text><text x="608" y="130">92</text><text x="742" y="130">94</text><text x="876" y="130">96</text><text x="1010" y="130">98</text><text x="1144" y="130">100</text><text x="1278" y="130">102</text><text x="1412" y="130">104</text><text x="1546" y="130">106</text><text x="1680" y="130">108</text>
+                    <g font-family="Georgia, 'Times New Roman', serif" font-size="30" fill="#e6dfc6" text-anchor="middle">
+                        <text x="430" y="332">88</text><text x="545" y="332">90</text><text x="660" y="332">92</text><text x="775" y="332">94</text><text x="890" y="332">96</text><text x="1005" y="332">98</text><text x="1120" y="332">100</text><text x="1235" y="332">102</text><text x="1350" y="332">104</text><text x="1465" y="332">106</text><text x="1580" y="332">108</text>
                     </g>
-                    <rect x="340" y="136" width="1340" height="10" fill="url(#mzTick)"/>
                     <g id="tsStationMarks"></g>
+                    <rect x="430" y="348" width="1150" height="14" fill="url(#mzTick)"/>
                     <g id="tsDialPtr">
-                        <rect x="1008" y="112" width="4" height="40" fill="#ff7a2a" filter="url(#mzGlow)"/>
-                        <rect x="1009" y="112" width="2" height="40" fill="#ffb07a"/>
+                        <rect x="1003" y="302" width="4" height="66" fill="#ff7a2a" filter="url(#mzGlow)"/>
+                        <rect x="1004" y="302" width="2" height="66" fill="#ffb07a"/>
                     </g>
-                    <!-- STATION 디지트 -->
-                    <rect x="1770" y="44" width="186" height="64" rx="4" fill="#070707" stroke="#8f8a76" stroke-width="1.4"/>
-                    <text x="1786" y="68" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" fill="#c23018">FM</text>
-                    <text x="1786" y="86" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#7a2416">MHz</text>
-                    <text id="tsFreqGlow" x="1940" y="92" font-family="'Courier New', monospace" font-size="36" font-weight="700" fill="#2a0d08" text-anchor="end" filter="url(#mzGlow)">--.-</text>
-                    <text id="tsFreq" x="1940" y="92" font-family="'Courier New', monospace" font-size="36" font-weight="700" fill="#4a170e" text-anchor="end">--.-</text>
+                    <!-- Vert./Hor. 소형 버튼 -->
+                    <circle cx="330" cy="255" r="10" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/>
+                    <circle id="tsSwRec" cx="330" cy="255" r="4" fill="#b8ae90"/>
+                    <text x="330" y="285" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" fill="#4a4436" text-anchor="middle">Vert.</text>
+                    <circle cx="1670" cy="255" r="10" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/>
+                    <circle id="tsSwRf" cx="1670" cy="255" r="4" fill="#b8ae90"/>
+                    <text x="1670" y="285" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" fill="#4a4436" text-anchor="middle">Hor.</text>
+                    <!-- 신호 미터 (우측 슬롯) -->
+                    <text x="1435" y="434" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" fill="#4a4436" text-anchor="end">signal</text>
+                    <rect x="1450" y="415" width="160" height="27" rx="3" fill="#0d0d0d" stroke="#8f8a76" stroke-width="1.2"/>
+                    <g id="tsSignalPtr">
+                        <rect x="1528.5" y="419" width="3" height="19" fill="#e8e2cf"/>
+                    </g>
                     <!-- 컨트롤 노브 -->
-                    <g font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="15" fill="#4a4436" text-anchor="middle">
-                        <text x="340" y="258">record</text><text x="520" y="258">blend</text><text x="700" y="258">mode</text><text x="1000" y="266">tuning</text><text x="1300" y="258">muting</text><text x="1480" y="258">timer</text><text x="1660" y="258">list</text><text x="1840" y="258">power</text>
+                    <g font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="17" font-weight="700" fill="#2a2a2e" text-anchor="middle">
+                        <text x="480" y="596">blend</text><text x="680" y="596">mode</text><text x="1000" y="648">tuning</text><text x="1320" y="596">timer</text><text x="1520" y="596">power</text><text x="1720" y="596">muting</text>
                     </g>
                     <g>
-                        <circle cx="340" cy="208" r="22" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.2"/><rect id="tsSwRec" x="338.5" y="188" width="3" height="13" rx="1.5" fill="#4a4436"/>
-                        <circle cx="520" cy="208" r="22" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.2"/><rect id="tsSwBlend" x="518.5" y="188" width="3" height="13" rx="1.5" fill="#4a4436"/>
-                        <circle cx="700" cy="208" r="22" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.2"/><rect id="tsSwMode" x="698.5" y="188" width="3" height="13" rx="1.5" fill="#4a4436"/>
-                        <circle cx="1300" cy="208" r="22" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.2"/><rect id="tsSwMute" x="1298.5" y="188" width="3" height="13" rx="1.5" fill="#4a4436"/>
-                        <circle cx="1480" cy="208" r="22" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.2"/><rect id="tsSwIf" x="1478.5" y="188" width="3" height="13" rx="1.5" fill="#4a4436"/>
-                        <circle cx="1660" cy="208" r="22" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.2"/><rect id="tsSwRf" x="1658.5" y="188" width="3" height="13" rx="1.5" fill="#4a4436"/>
-                        <circle cx="1840" cy="208" r="22" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.2"/><rect id="tsSwPwr" x="1838.5" y="188" width="3" height="13" rx="1.5" fill="#4a4436"/>
+                        <circle cx="480" cy="520" r="38" fill="#8f8a76"/><circle cx="480" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><rect id="tsSwBlend" x="478" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
+                        <circle cx="680" cy="520" r="38" fill="#8f8a76"/><circle cx="680" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><rect id="tsSwMode" x="678" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
+                        <circle cx="1320" cy="520" r="38" fill="#8f8a76"/><circle cx="1320" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><rect id="tsSwIf" x="1318" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
+                        <circle cx="1520" cy="520" r="38" fill="#8f8a76"/><circle cx="1520" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><rect id="tsSwPwr" x="1518" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
+                        <circle cx="1720" cy="520" r="38" fill="#8f8a76"/><circle cx="1720" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><rect id="tsSwMute" x="1718" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
                     </g>
-                    <circle cx="1000" cy="210" r="54" fill="#8f8a76"/>
+                    <circle cx="1000" cy="519" r="99" fill="#8f8a76"/>
                     <g id="tsKnob">
-                        <circle cx="1000" cy="208" r="52" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.6"/>
-                        <circle cx="1000" cy="170" r="4.5" fill="#4a4436"/>
+                        <circle cx="1000" cy="515" r="95" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="2"/>
+                        <circle cx="1000" cy="446" r="6" fill="#4a4436"/>
                     </g>
+                    <ellipse cx="968" cy="482" rx="34" ry="26" fill="#ffffff" opacity="0.25" pointer-events="none"/>
                 </svg>`
             },
             tu9900: {
                 label: "Sansul TU-9900",
                 cfg: {
-                    freq: { x88: 420, px: 52, drawX: 940 },
-                    mark: { y: 114, h: 7, hOn: 12, color: "#9fd8ff", colorOn: "#ff5a3a" },
-                    signal: { drawX: 450, baseX: 355, travel: 190 },
-                    tune: { travel: 90 },
-                    knob: { cx: 1810, cy: 125 },
-                    swTravel: 8,
+                    freq: { x88: 440, px: 56, drawX: 1000 },
+                    mark: { y: 186, h: 9, hOn: 15, color: "#9fd8ff", colorOn: "#ff5a3a" },
+                    signal: { drawX: 520, baseX: 405, travel: 230 },
+                    tune: { travel: 115 },
+                    knob: { cx: 1815, cy: 310 },
+                    swTravel: 9,
                     led: { on: "#ff3a2a", off: "#3a1210" },
                     digit: { lit: "#ff3a26", glow: "#c8200f", dim: "#441410", dimGlow: "#280c08" },
-                    hits: { power: [40, 228, 220, 36], dial: [420, 50, 1160, 68], rec: [40, 46, 230, 28], blend: [40, 76, 230, 28], mode: [40, 106, 230, 28], mute: [40, 136, 230, 28], if: [40, 166, 230, 28], rf: [40, 196, 230, 28], knob: [1810, 125, 102] }
+                    hits: { power: [40, 545, 270, 64], dial: [440, 74, 1130, 150], rec: [40, 116, 270, 48], blend: [40, 172, 270, 48], mode: [40, 228, 270, 48], mute: [40, 284, 270, 48], if: [40, 340, 270, 48], rf: [40, 396, 270, 48], knob: [1815, 310, 150] }
                 },
-                svg: `<svg class="tuner-svg" viewBox="0 0 2000 269" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sansul TU-9900 AM/FM Stereo Tuner">
+                svg: `<svg class="tuner-svg" viewBox="0 0 2000 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sansul TU-9900 AM/FM Stereo Tuner">
                     <defs>
                         <linearGradient id="suPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1b1f"/><stop offset="0.5" stop-color="#121215"/><stop offset="1" stop-color="#0b0b0d"/></linearGradient>
-                        <linearGradient id="suDial" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#122132"/><stop offset="0.35" stop-color="#0a1220"/><stop offset="1" stop-color="#05070c"/></linearGradient>
+                        <linearGradient id="suDial" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16283c"/><stop offset="0.35" stop-color="#0c1626"/><stop offset="1" stop-color="#05070c"/></linearGradient>
                         <radialGradient id="suKnob" cx="0.38" cy="0.32" r="0.9"><stop offset="0" stop-color="#f0f0f4"/><stop offset="0.5" stop-color="#b8b8c0"/><stop offset="1" stop-color="#6a6a72"/></radialGradient>
-                        <linearGradient id="suMeter" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16202e"/><stop offset="1" stop-color="#0a0f16"/></linearGradient>
+                        <linearGradient id="suMeter" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a4258"/><stop offset="1" stop-color="#101a26"/></linearGradient>
                         <filter id="suGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6"/></filter>
-                        <pattern id="suTickMinor" width="10.4" height="16" patternUnits="userSpaceOnUse"><rect width="1.1" height="8" fill="#cfe4f5" opacity="0.7"/></pattern>
-                        <pattern id="suTickMajor" width="52" height="16" patternUnits="userSpaceOnUse"><rect width="1.8" height="14" fill="#ffffff"/></pattern>
+                        <pattern id="suTickMinor" width="11.2" height="24" patternUnits="userSpaceOnUse"><rect width="1.2" height="12" fill="#cfe4f5" opacity="0.7"/></pattern>
+                        <pattern id="suTickMajor" width="56" height="24" patternUnits="userSpaceOnUse"><rect width="2" height="20" fill="#ffffff"/></pattern>
                     </defs>
-                    <rect x="0" y="0" width="2000" height="269" rx="6" fill="url(#suPanel)"/>
-                    <rect x="0" y="30" width="2000" height="1.5" fill="#3a3a42" opacity="0.8"/>
+                    <rect x="0" y="0" width="2000" height="660" rx="8" fill="url(#suPanel)"/>
+                    <rect x="0" y="48" width="2000" height="2" fill="#3a3a42" opacity="0.8"/>
+                    <rect x="0" y="646" width="2000" height="14" fill="#000000" opacity="0.4"/>
                     <!-- 상단 브랜드 스트립 -->
-                    <text x="300" y="22" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="1" fill="#e8e8ec">TU-9900</text>
-                    <text x="430" y="23" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="20" font-weight="700" fill="#f0f0f2">Sansul</text>
-                    <text x="1540" y="22" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="1.5" fill="#c8c8d0">AM/FM Stereo Tuner</text>
+                    <text x="310" y="33" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="1" fill="#e8e8ec">TU-9900</text>
+                    <text x="460" y="35" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="24" font-weight="700" fill="#f0f0f2">Sansul</text>
+                    <text x="1530" y="33" font-family="Arial, Helvetica, sans-serif" font-size="16" letter-spacing="1.5" fill="#c8c8d0">AM/FM Stereo Tuner</text>
                     <!-- 좌측 레버 컬럼 -->
-                    <g font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="0.8" fill="#c8c8d0">
-                        <text x="100" y="64">CAL LEVEL</text><text x="100" y="94">BAND WIDTH</text><text x="100" y="124">FM MODE</text><text x="100" y="154">MUTING</text><text x="100" y="184">SLEEP</text><text x="100" y="214">MET SELECT</text>
+                    <rect x="56" y="76" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect x="62" y="80" width="24" height="9" rx="2" fill="#55555c"/>
+                    <text x="108" y="95" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="0.8" fill="#8a8a94">ANT ATT</text>
+                    <g font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="0.8" fill="#c8c8d0">
+                        <text x="108" y="145">CAL LEVEL</text><text x="108" y="201">BAND WIDTH</text><text x="108" y="257">FM MODE</text><text x="108" y="313">MUTING</text><text x="108" y="369">SLEEP</text><text x="108" y="425">MET SELECT</text>
                     </g>
                     <g>
-                        <rect x="56" y="50" width="30" height="20" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwRec" x="61" y="53" width="20" height="7" rx="2" fill="#8a8a94"/>
-                        <rect x="56" y="80" width="30" height="20" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwBlend" x="61" y="83" width="20" height="7" rx="2" fill="#8a8a94"/>
-                        <rect x="56" y="110" width="30" height="20" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwMode" x="61" y="113" width="20" height="7" rx="2" fill="#8a8a94"/>
-                        <rect x="56" y="140" width="30" height="20" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwMute" x="61" y="143" width="20" height="7" rx="2" fill="#8a8a94"/>
-                        <rect x="56" y="170" width="30" height="20" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwIf" x="61" y="173" width="20" height="7" rx="2" fill="#8a8a94"/>
-                        <rect x="56" y="200" width="30" height="20" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwRf" x="61" y="203" width="20" height="7" rx="2" fill="#8a8a94"/>
+                        <rect x="56" y="128" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwRec" x="62" y="132" width="24" height="9" rx="2" fill="#8a8a94"/>
+                        <rect x="56" y="184" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwBlend" x="62" y="188" width="24" height="9" rx="2" fill="#8a8a94"/>
+                        <rect x="56" y="240" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwMode" x="62" y="244" width="24" height="9" rx="2" fill="#8a8a94"/>
+                        <rect x="56" y="296" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwMute" x="62" y="300" width="24" height="9" rx="2" fill="#8a8a94"/>
+                        <rect x="56" y="352" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwIf" x="62" y="356" width="24" height="9" rx="2" fill="#8a8a94"/>
+                        <rect x="56" y="408" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect id="tsSwRf" x="62" y="412" width="24" height="9" rx="2" fill="#8a8a94"/>
                     </g>
-                    <rect x="52" y="232" width="38" height="28" rx="3" fill="#26262c" stroke="#3a3a42"/>
-                    <rect id="tsSwPwr" x="58" y="236" width="26" height="9" rx="2" fill="#8a8a94"/>
-                    <text x="100" y="252" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#e8e8ec">POWER</text>
+                    <!-- OUTPUT LEVEL(장식) + POWER -->
+                    <circle cx="95" cy="490" r="26" fill="url(#suKnob)" stroke="#4a4a52" stroke-width="1.6"/>
+                    <rect x="93" y="466" width="4" height="12" rx="2" fill="#26262c"/>
+                    <text x="150" y="495" font-family="Arial, Helvetica, sans-serif" font-size="11" letter-spacing="0.8" fill="#8a8a94">OUTPUT LEVEL</text>
+                    <rect x="52" y="560" width="48" height="34" rx="4" fill="#26262c" stroke="#3a3a42"/>
+                    <rect id="tsSwPwr" x="59" y="566" width="34" height="11" rx="2" fill="#8a8a94"/>
+                    <text x="115" y="583" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="1" fill="#e8e8ec">POWER</text>
                     <!-- 다이얼 창 -->
-                    <rect x="300" y="40" width="1340" height="170" rx="4" fill="url(#suDial)" stroke="#26262c" stroke-width="2"/>
-                    <rect x="300" y="40" width="1340" height="36" fill="#bfe8ff" opacity="0.08"/>
-                    <text x="330" y="86" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#cfeaff">FM</text>
-                    <g font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="600" fill="#f2f6fa" text-anchor="middle">
-                        <text x="420" y="88">88</text><text x="524" y="88">90</text><text x="628" y="88">92</text><text x="732" y="88">94</text><text x="836" y="88">96</text><text x="940" y="88">98</text><text x="1044" y="88">100</text><text x="1148" y="88">102</text><text x="1252" y="88">104</text><text x="1356" y="88">106</text><text x="1460" y="88">108</text>
+                    <rect x="320" y="64" width="1320" height="376" rx="5" fill="url(#suDial)" stroke="#26262c" stroke-width="2.5"/>
+                    <rect x="320" y="66" width="1320" height="58" fill="#bfe8ff" opacity="0.1"/>
+                    <text x="352" y="142" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#cfeaff">FM</text>
+                    <g font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" fill="#f2f6fa" text-anchor="middle">
+                        <text x="440" y="142">88</text><text x="552" y="142">90</text><text x="664" y="142">92</text><text x="776" y="142">94</text><text x="888" y="142">96</text><text x="1000" y="142">98</text><text x="1112" y="142">100</text><text x="1224" y="142">102</text><text x="1336" y="142">104</text><text x="1448" y="142">106</text><text x="1560" y="142">108</text>
                     </g>
-                    <text x="1560" y="88" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#9fc8e0">MHz</text>
-                    <rect x="420" y="96" width="1040" height="8" fill="url(#suTickMinor)"/>
-                    <rect x="420" y="96" width="1040" height="14" fill="url(#suTickMajor)"/>
-                    <g font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#5a7a90" text-anchor="middle">
-                        <text x="330" y="136">AM</text><text x="520" y="136">600</text><text x="720" y="136">800</text><text x="920" y="136">1000</text><text x="1120" y="136">1200</text><text x="1320" y="136">1400</text><text x="1460" y="136">1600</text>
-                    </g>
+                    <text x="1600" y="142" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#9fc8e0">MHz</text>
+                    <rect x="440" y="158" width="1120" height="14" fill="url(#suTickMinor)"/>
+                    <rect x="440" y="158" width="1120" height="22" fill="url(#suTickMajor)"/>
                     <g id="tsStationMarks"></g>
-                    <g id="tsDialPtr">
-                        <rect x="938" y="52" width="4" height="100" fill="#bfe8ff" filter="url(#suGlow)" opacity="0.9"/>
-                        <rect x="939" y="52" width="2" height="100" fill="#ffffff"/>
+                    <g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#5a7a90" text-anchor="middle">
+                        <text x="360" y="244">AM</text><text x="560" y="244">600</text><text x="760" y="244">800</text><text x="960" y="244">1000</text><text x="1160" y="244">1200</text><text x="1360" y="244">1400</text><text x="1520" y="244">1600</text>
                     </g>
-                    <!-- 트윈 미터 -->
-                    <text x="450" y="160" font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="2" fill="#9fc8e0" text-anchor="middle">SIGNAL</text>
-                    <rect x="340" y="164" width="220" height="38" rx="3" fill="url(#suMeter)" stroke="#2a3a4a"/>
-                    <g stroke="#5a7a90" stroke-width="1">
-                        <line x1="365" y1="172" x2="365" y2="182"/><line x1="400" y1="174" x2="400" y2="182"/><line x1="435" y1="172" x2="435" y2="182"/><line x1="470" y1="174" x2="470" y2="182"/><line x1="505" y1="172" x2="505" y2="182"/><line x1="540" y1="174" x2="540" y2="182"/>
+                    <g id="tsDialPtr">
+                        <rect x="998" y="78" width="4" height="234" fill="#bfe8ff" filter="url(#suGlow)" opacity="0.9"/>
+                        <rect x="999" y="78" width="2" height="234" fill="#ffffff"/>
+                    </g>
+                    <!-- 트윈 미터 (아이스블루 백라이트) -->
+                    <text x="520" y="302" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="2.5" fill="#9fc8e0" text-anchor="middle">SIGNAL</text>
+                    <rect x="390" y="312" width="260" height="108" rx="4" fill="url(#suMeter)" stroke="#2a3a4a" stroke-width="1.6"/>
+                    <rect x="394" y="316" width="252" height="100" fill="#bfe8ff" opacity="0.1"/>
+                    <g stroke="#9fc8e0" stroke-width="1.2" opacity="0.7">
+                        <line x1="420" y1="340" x2="420" y2="362"/><line x1="460" y1="346" x2="460" y2="362"/><line x1="500" y1="340" x2="500" y2="362"/><line x1="540" y1="346" x2="540" y2="362"/><line x1="580" y1="340" x2="580" y2="362"/><line x1="620" y1="346" x2="620" y2="362"/>
                     </g>
                     <g id="tsSignalPtr">
-                        <rect x="448.5" y="168" width="3" height="30" fill="#dff2ff" filter="url(#suGlow)"/>
+                        <rect x="518" y="320" width="4" height="92" fill="#dff2ff" filter="url(#suGlow)"/>
                     </g>
-                    <text x="690" y="160" font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="2" fill="#9fc8e0" text-anchor="middle">TUNE</text>
-                    <rect x="580" y="164" width="220" height="38" rx="3" fill="url(#suMeter)" stroke="#2a3a4a"/>
-                    <g stroke="#5a7a90" stroke-width="1">
-                        <line x1="620" y1="174" x2="620" y2="182"/><line x1="655" y1="174" x2="655" y2="182"/><line x1="690" y1="170" x2="690" y2="184"/><line x1="725" y1="174" x2="725" y2="182"/><line x1="760" y1="174" x2="760" y2="182"/>
+                    <text x="830" y="302" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="2.5" fill="#9fc8e0" text-anchor="middle">TUNE</text>
+                    <rect x="700" y="312" width="260" height="108" rx="4" fill="url(#suMeter)" stroke="#2a3a4a" stroke-width="1.6"/>
+                    <rect x="704" y="316" width="252" height="100" fill="#bfe8ff" opacity="0.1"/>
+                    <g stroke="#9fc8e0" stroke-width="1.2" opacity="0.7">
+                        <line x1="740" y1="346" x2="740" y2="362"/><line x1="785" y1="346" x2="785" y2="362"/><line x1="830" y1="338" x2="830" y2="364"/><line x1="875" y1="346" x2="875" y2="362"/><line x1="920" y1="346" x2="920" y2="362"/>
                     </g>
                     <g id="tsTunePtr">
-                        <rect x="688.5" y="168" width="3" height="30" fill="#dff2ff" filter="url(#suGlow)"/>
+                        <rect x="828" y="320" width="4" height="92" fill="#dff2ff" filter="url(#suGlow)"/>
                     </g>
-                    <!-- 램프 -->
-                    <circle id="tsLedStereo" data-on="#ff3a2a" data-off="#3a1210" cx="1020" cy="172" r="7" fill="#3a1210" filter="url(#suGlow)"/>
-                    <text x="1036" y="177" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#c8d8e8">FM STEREO</text>
-                    <circle id="tsLedLock" data-on="#62e07a" data-off="#12300f" cx="1170" cy="172" r="7" fill="#12300f" filter="url(#suGlow)"/>
-                    <text x="1186" y="177" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#c8d8e8">FM AUTO</text>
-                    <circle id="tsLedBlend" data-on="#ffb03a" data-off="#3a2a10" cx="1310" cy="172" r="7" fill="#3a2a10" filter="url(#suGlow)"/>
-                    <text x="1326" y="177" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#c8d8e8">HI-BLEND</text>
+                    <!-- 램프 컬럼 -->
+                    <circle id="tsLedStereo" data-on="#ff3a2a" data-off="#3a1210" cx="1050" cy="332" r="9" fill="#3a1210" filter="url(#suGlow)"/>
+                    <text x="1072" y="338" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#c8d8e8">FM STEREO</text>
+                    <circle id="tsLedLock" data-on="#62e07a" data-off="#12300f" cx="1050" cy="374" r="9" fill="#12300f" filter="url(#suGlow)"/>
+                    <text x="1072" y="380" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#c8d8e8">FM AUTO</text>
+                    <circle id="tsLedBlend" data-on="#ffb03a" data-off="#3a2a10" cx="1050" cy="416" r="9" fill="#3a2a10" filter="url(#suGlow)"/>
+                    <text x="1072" y="422" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#c8d8e8">HI-BLEND</text>
+                    <!-- 소형 노브(장식) -->
+                    <circle cx="1250" cy="374" r="24" fill="url(#suKnob)" stroke="#4a4a52" stroke-width="1.6"/>
+                    <rect x="1248" y="352" width="4" height="12" rx="2" fill="#26262c"/>
                     <!-- STATION 디지트 -->
-                    <rect x="1450" y="148" width="150" height="50" rx="4" fill="#050505" stroke="#26303a" stroke-width="1.4"/>
-                    <text id="tsFreqGlow" x="1588" y="184" font-family="'Courier New', monospace" font-size="30" font-weight="700" fill="#280c08" text-anchor="end" filter="url(#suGlow)">--.-</text>
-                    <text id="tsFreq" x="1588" y="184" font-family="'Courier New', monospace" font-size="30" font-weight="700" fill="#441410" text-anchor="end">--.-</text>
-                    <!-- 플라이휠 노브 -->
-                    <circle cx="1810" cy="128" r="104" fill="#050507"/>
-                    <g id="tsKnob">
-                        <circle cx="1810" cy="125" r="100" fill="url(#suKnob)" stroke="#4a4a52" stroke-width="2"/>
-                        <circle cx="1810" cy="125" r="70" fill="none" stroke="#8a8a94" stroke-width="1" opacity="0.5"/>
-                        <circle cx="1810" cy="55" r="6" fill="#3a3a40"/>
+                    <rect x="1360" y="312" width="230" height="94" rx="6" fill="#050505" stroke="#26303a" stroke-width="1.6"/>
+                    <text x="1376" y="344" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#c23018">FM</text>
+                    <text x="1376" y="364" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#7a2416">MHz</text>
+                    <text id="tsFreqGlow" x="1575" y="376" font-family="'Courier New', monospace" font-size="44" font-weight="700" fill="#280c08" text-anchor="end" filter="url(#suGlow)">--.-</text>
+                    <text id="tsFreq" x="1575" y="376" font-family="'Courier New', monospace" font-size="44" font-weight="700" fill="#441410" text-anchor="end">--.-</text>
+                    <!-- 하단 통풍 슬롯(장식) -->
+                    <g fill="#0a0a0c" opacity="0.55">
+                        <rect x="360" y="480" width="12" height="110" rx="4"/><rect x="408" y="480" width="12" height="110" rx="4"/><rect x="456" y="480" width="12" height="110" rx="4"/><rect x="504" y="480" width="12" height="110" rx="4"/><rect x="552" y="480" width="12" height="110" rx="4"/><rect x="600" y="480" width="12" height="110" rx="4"/><rect x="648" y="480" width="12" height="110" rx="4"/><rect x="696" y="480" width="12" height="110" rx="4"/><rect x="744" y="480" width="12" height="110" rx="4"/><rect x="792" y="480" width="12" height="110" rx="4"/><rect x="840" y="480" width="12" height="110" rx="4"/><rect x="888" y="480" width="12" height="110" rx="4"/><rect x="936" y="480" width="12" height="110" rx="4"/><rect x="984" y="480" width="12" height="110" rx="4"/><rect x="1032" y="480" width="12" height="110" rx="4"/><rect x="1080" y="480" width="12" height="110" rx="4"/><rect x="1128" y="480" width="12" height="110" rx="4"/><rect x="1176" y="480" width="12" height="110" rx="4"/><rect x="1224" y="480" width="12" height="110" rx="4"/><rect x="1272" y="480" width="12" height="110" rx="4"/><rect x="1320" y="480" width="12" height="110" rx="4"/><rect x="1368" y="480" width="12" height="110" rx="4"/><rect x="1416" y="480" width="12" height="110" rx="4"/><rect x="1464" y="480" width="12" height="110" rx="4"/><rect x="1512" y="480" width="12" height="110" rx="4"/><rect x="1560" y="480" width="12" height="110" rx="4"/><rect x="1608" y="480" width="12" height="110" rx="4"/>
                     </g>
-                    <ellipse cx="1778" cy="98" rx="38" ry="30" fill="#ffffff" opacity="0.07" pointer-events="none"/>
-                    <text x="1810" y="250" font-family="Arial, Helvetica, sans-serif" font-size="11" letter-spacing="3" fill="#9a9aa2" text-anchor="middle">TUNING</text>
+                    <!-- 플라이휠 노브 -->
+                    <circle cx="1815" cy="314" r="154" fill="#050507"/>
+                    <g id="tsKnob">
+                        <circle cx="1815" cy="310" r="150" fill="url(#suKnob)" stroke="#4a4a52" stroke-width="2.5"/>
+                        <circle cx="1815" cy="310" r="104" fill="none" stroke="#8a8a94" stroke-width="1.2" opacity="0.5"/>
+                        <circle cx="1815" cy="190" r="8" fill="#3a3a40"/>
+                    </g>
+                    <ellipse cx="1768" cy="262" rx="46" ry="36" fill="#ffffff" opacity="0.07" pointer-events="none"/>
+                    <text x="1815" y="505" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="4" fill="#9a9aa2" text-anchor="middle">TUNING</text>
                 </svg>`
             }
         };
