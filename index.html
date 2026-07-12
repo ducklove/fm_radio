@@ -710,6 +710,42 @@
             cursor: grabbing;
         }
 
+        .list-toggle-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 2px 0 16px;
+        }
+
+        .list-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 999px;
+            background: var(--panel-soft);
+            border: 1px solid var(--line);
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .list-toggle:hover {
+            background: rgba(255, 248, 240, 0.08);
+        }
+
+        .list-toggle-chevron {
+            transition: transform 0.2s ease;
+        }
+
+        .list-toggle[aria-expanded="true"] .list-toggle-chevron {
+            transform: rotate(180deg);
+        }
+
+        #stationMain.collapsed {
+            display: none;
+        }
+
         @media (max-width: 720px) {
             .page-shell {
                 width: min(100% - 18px, 100%);
@@ -944,16 +980,18 @@
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
                             <span id="timerLabel">타이머</span>
                         </button>
-                        <label class="volume-control" for="volumeSlider">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"></path></svg>
-                            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80" aria-label="볼륨" oninput="setVolume(this.value)">
-                        </label>
                     </div>
                 </section>
             </div>
         </section>
 
-        <main>
+        <div class="list-toggle-wrap">
+            <button class="list-toggle" id="listToggle" type="button" aria-expanded="false" aria-controls="stationMain" onclick="toggleStationList()">
+                <span id="listToggleLabel">전체 채널 목록</span>
+                <svg class="list-toggle-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+        </div>
+        <main id="stationMain" class="collapsed">
             <section class="group" id="favGroup" hidden>
                 <div class="group-header">
                     <div class="group-title">즐겨찾기</div>
@@ -1225,11 +1263,19 @@
             if (currentStation) togglePlay();
         });
 
+        // 채널 목록 접기/펼치기 (기본 접힘 — 튜너 중심)
+        function toggleStationList() {
+            const main = document.getElementById("stationMain");
+            const collapsed = main.classList.toggle("collapsed");
+            document.getElementById("listToggle").setAttribute("aria-expanded", String(!collapsed));
+            document.getElementById("listToggleLabel").textContent = collapsed ? "전체 채널 목록" : "목록 접기";
+        }
+
         let currentStation = null;
         let isPlaying = false;
         let hls = null;
         let streamLoaded = false;
-        let volumeLevel = 0.8;
+        let volumeLevel = 1.0;
         let accentColor = "#d36a42";
         let favorites = loadJson("fmRadio.favorites", []);
 
