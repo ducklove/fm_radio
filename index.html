@@ -1137,13 +1137,15 @@
         // 모든 랙 유닛에 동일한 광원(전방 상단)을 입힌다: 상단 글로스, 수직 셰이드, 비네트.
         // url(#id)는 문서 전체에서 해석되므로 defs는 중복 마운트되어도 무해하다.
         const LZ_DEFS = '<defs>' +
-            '<linearGradient id="lzGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.15"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0.04"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
-            '<linearGradient id="lzShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="0.7" stop-color="#000000" stop-opacity="0.06"/><stop offset="1" stop-color="#000000" stop-opacity="0.3"/></linearGradient>' +
-            '<radialGradient id="lzVign" cx="0.5" cy="0.4" r="0.9"><stop offset="0.6" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></radialGradient>' +
-            '<linearGradient id="lzInset" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0.5"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>' +
-            '<linearGradient id="lzStreak" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.09"/><stop offset="0.22" stop-color="#ffffff" stop-opacity="0.02"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
+            '<linearGradient id="lzGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.06"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0.015"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
+            '<linearGradient id="lzShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="0.7" stop-color="#000000" stop-opacity="0.04"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></linearGradient>' +
+            '<radialGradient id="lzVign" cx="0.5" cy="0.4" r="0.9"><stop offset="0.62" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.12"/></radialGradient>' +
+            '<linearGradient id="lzInset" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0.42"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>' +
+            '<linearGradient id="lzStreak" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.04"/><stop offset="0.22" stop-color="#ffffff" stop-opacity="0.01"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
             '<radialGradient id="lzLamp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd9a0" stop-opacity="0.30"/><stop offset="0.55" stop-color="#ffc070" stop-opacity="0.10"/><stop offset="1" stop-color="#ffb050" stop-opacity="0"/></radialGradient>' +
             '<radialGradient id="lzLampCool" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#cfe8ff" stop-opacity="0.26"/><stop offset="0.55" stop-color="#9fc8f0" stop-opacity="0.09"/><stop offset="1" stop-color="#7fa8d8" stop-opacity="0"/></radialGradient>' +
+            '<radialGradient id="lzLampGreen" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#c4f0d0" stop-opacity="0.26"/><stop offset="0.55" stop-color="#7fd8a0" stop-opacity="0.1"/><stop offset="1" stop-color="#4fb878" stop-opacity="0"/></radialGradient>' +
+            '<radialGradient id="lzLampBlue" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#a8d4ff" stop-opacity="0.3"/><stop offset="0.55" stop-color="#4a9fe8" stop-opacity="0.12"/><stop offset="1" stop-color="#2a6fd0" stop-opacity="0"/></radialGradient>' +
             '<filter id="lzBloom" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>' +
             '</defs>';
 
@@ -1209,7 +1211,7 @@
                     <text x="160" y="43" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" letter-spacing="1.5" fill="#e6e5e8">YAHAMA</text>
                     <text x="298" y="41" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="2" fill="#b3b1b8">NATURAL SOUND<tspan dx="18">FM STEREO TUNER</tspan><tspan dx="18" font-weight="700" fill="#c8c6cd">T-2</tspan></text>
                     <rect x="128" y="58" width="1272" height="64" rx="4" fill="url(#tnDialWin)" stroke="#0a0b06" stroke-width="2"/>
-                    <ellipse class="lampGlow" cx="764" cy="92" rx="560" ry="52" fill="url(#lzLamp)" opacity="0.4"/>
+                    <ellipse class="lampGlow" cx="764" cy="92" rx="560" ry="52" fill="url(#lzLampGreen)" opacity="0.4"/>
                     <rect x="128" y="58" width="1272" height="16" fill="url(#lzInset)" opacity="0.8"/>
                     <g font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#cfc78a" text-anchor="middle">
                         <text x="150" y="76" fill="#d8d0a0">FM</text><text x="300" y="76">88</text><text x="488" y="76">92</text><text x="676" y="76">96</text><text x="864" y="76">100</text><text x="1052" y="76">104</text><text x="1240" y="76">108</text><text x="1360" y="76" fill="#a49c6a">MHz</text>
@@ -1315,7 +1317,7 @@
                     <text id="tsFreq" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#16324d" text-anchor="middle">--.-</text>
                     <!-- 다이얼 창 (블랙글라스) -->
                     <rect x="350" y="60" width="1210" height="310" rx="4" fill="#060607" stroke="#6b6648" stroke-width="1.6"/>
-                    <ellipse class="lampGlow" cx="955" cy="150" rx="540" ry="85" fill="url(#lzLampCool)" opacity="0.4"/>
+                    <ellipse class="lampGlow" cx="955" cy="150" rx="540" ry="85" fill="url(#lzLampBlue)" opacity="0.4"/>
                     <rect x="350" y="60" width="1210" height="20" fill="url(#lzInset)" opacity="0.8"/>
                     <g font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#f2f2f2" text-anchor="middle">
                         <text x="430" y="130">88</text><text x="538" y="130">90</text><text x="646" y="130">92</text><text x="754" y="130">94</text><text x="862" y="130">96</text><text x="970" y="130">98</text><text x="1078" y="130">100</text><text x="1186" y="130">102</text><text x="1294" y="130">104</text><text x="1402" y="130">106</text><text x="1510" y="130">108</text>
@@ -1696,10 +1698,11 @@
                     const n = Math.floor(tsFreqData.length * 0.6);
                     let sum = 0;
                     for (let i = 0; i < n; i++) sum += tsFreqData[i];
-                    target = Math.min(1, (sum / n / 255) * 1.6 + 0.32);
+                    // 바닥값 없이 실측 기반 — VU가 중간대에서 놀도록 캘리브레이션
+                    target = Math.min(1, (sum / n / 255) * 1.35 + 0.04);
                 } else {
                     // iOS 네이티브 HLS: 오디오 분석 불가 → '수신 양호'를 자연스럽게 시뮬레이션
-                    target = 0.78 + Math.sin(performance.now() / 300) * 0.08 + (Math.random() - 0.5) * 0.05;
+                    target = 0.52 + Math.sin(performance.now() / 300) * 0.06 + (Math.random() - 0.5) * 0.04;
                 }
             }
             tsSignal += (target - tsSignal) * 0.16;
@@ -2235,6 +2238,7 @@
                 <rect x="1044" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1043" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1055" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampGlow" x="1063" y="156" width="6" height="82" rx="3" fill="#ffb03a" opacity="0.08"/>
                 <rect x="1124" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1123" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1135" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampGlow" x="1143" y="156" width="6" height="82" rx="3" fill="#ffb03a" opacity="0.08"/>
             </g>
+            <rect class="tubeDark" x="42" y="42" width="1916" height="230" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="20" fill="url(#lzInset)" opacity="0.85"/>
             <polygon points="40,40 760,40 320,274 40,274" fill="url(#lzStreak)"/>
             <rect x="40" y="280" width="1920" height="3" fill="#c8a860" opacity="0.5"/>
@@ -2317,6 +2321,7 @@
                 <rect x="1653" y="148" width="22" height="70" rx="4" fill="#231e16" opacity="0.85"/>
                 <rect class="ampGlow" x="1661" y="144" width="6" height="80" rx="3" fill="#ffc05a" opacity="0.1"/>
             </g>
+            <rect class="tubeDark" x="42" y="42" width="1916" height="218" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="18" fill="url(#lzInset)" opacity="0.85"/>
             <polygon points="40,40 720,40 300,262 40,262" fill="url(#lzStreak)"/>
             <rect x="60" y="268" width="1880" height="22" rx="11" fill="url(#weKnob)"/>
@@ -2431,6 +2436,7 @@
                 <rect x="1808" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1806" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1817" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampGlow" x="1825" y="188" width="6" height="72" rx="3" fill="#8af0a8" opacity="0.09"/>
                 <rect x="1878" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1876" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1887" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampGlow" x="1895" y="188" width="6" height="72" rx="3" fill="#8af0a8" opacity="0.09"/>
             </g>
+            <rect class="tubeDark" x="42" y="42" width="1916" height="248" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="20" fill="url(#lzInset)" opacity="0.9"/>
             <polygon points="40,40 780,40 330,292 40,292" fill="url(#lzStreak)"/>
             <g>
@@ -2514,6 +2520,8 @@
 
         // ----- 턴테이블 (YAHAMA PL-12) — 아날로그 감성 재현 -----
         const PHONO_BASE = "https://upload.wikimedia.org/wikipedia/commons/";
+        // 클래식 녹음은 방송 스트림보다 레벨이 낮아 포노 재생 시 체인 게인을 보정한다 (Web Audio 경로에서만)
+        const PHONO_GAIN = 2.0;
         const RECORD = {
             title: "무반주 첼로 모음곡 제1번 G장조",
             bwv: "BWV 1007",
@@ -2536,6 +2544,7 @@
         let ttArmAng = -26;
         let ttRpm45 = false;
         let ttLastTs = 0;
+        let tubeWarm = 0;   // 진공관 웜업 상태 0..1 (켜면 서서히 달아오르고, 꺼지면 더 천천히 식는다)
 
         function mountTurntable() {
             let grooves = "";
@@ -2639,6 +2648,7 @@
             if (typeof Hls !== "undefined" && Hls.isSupported()) ensureAudioGraph();
             phonoActive = true;
             phonoTrack = i;
+            if (gainNode) gainNode.gain.value = volumeLevel * PHONO_GAIN;
             currentStation = null;
             tunerSetStation(null);
             document.querySelectorAll(".station").forEach((el) => el.classList.remove("active", "playing", "loading"));
@@ -2663,6 +2673,7 @@
             try { audio.preservesPitch = true; audio.webkitPreservesPitch = true; } catch (e) {}
             try { audio.playbackRate = 1; } catch (e) {}
             if (crackleGain) crackleGain.gain.value = 0;
+            if (gainNode) gainNode.gain.value = volumeLevel;
             updatePhonoVisuals();
         }
 
@@ -2762,9 +2773,17 @@
                 crackleGain.gain.value += (target - crackleGain.gain.value) * 0.08;
             }
 
-            // 앰프: 진공관 글로우·VU 바늘·전원 LED
+            // 진공관 웜업: 켜면 ~2초에 걸쳐 달아오르고, 꺼지면 열이 식듯 더 천천히 어두워진다
+            const warmTarget = isPlaying ? 1 : 0;
+            const warmRate = warmTarget > tubeWarm ? dt / 2.0 : dt / 3.5;
+            tubeWarm = Math.max(0, Math.min(1, tubeWarm + (warmTarget > tubeWarm ? 1 : -1) * warmRate));
+
+            // 앰프: 진공관 글로우(웜업 연동)·갤러리 어둠·VU 바늘·전원 LED
             document.querySelectorAll(".ampGlow").forEach((el) => {
-                el.style.opacity = isPlaying ? (0.3 + tsSignal * 0.55) : 0.06;
+                el.style.opacity = (0.012 + tubeWarm * (0.25 + tsSignal * 0.5)).toFixed(3);
+            });
+            document.querySelectorAll(".tubeDark").forEach((el) => {
+                el.style.opacity = (0.74 - tubeWarm * 0.62).toFixed(3);
             });
             const vuAng = -42 + Math.max(0, Math.min(1, tsSignal)) * 84;
             ["ampVuL", "ampVuR"].forEach((id, idx) => {
@@ -2774,17 +2793,19 @@
             const pled = document.getElementById("ampPwrLed");
             if (pled) pled.style.fill = isPlaying ? "#ff7a3a" : "#3a2012";
 
-            // EQ 레벨 LED 컬럼
+            // EQ 레벨 LED 컬럼 — 점등 시 발광(블룸), 소등 시 거의 꺼진 상태
             for (let i = 0; i < 12; i++) {
                 const el = document.getElementById("eqLvl" + i);
                 if (!el) break;
                 const on = eqState.on && isPlaying && (i / 12) < tsSignal;
-                el.style.fill = on ? (i >= 10 ? "#ff5a3a" : "#ffb03a") : "#33251a";
+                const color = i >= 10 ? "#ff5a3a" : "#ffb03a";
+                el.style.fill = on ? color : "#1e1610";
+                el.style.filter = on ? "drop-shadow(0 0 5px " + color + ") drop-shadow(0 0 12px " + color + "66)" : "none";
             }
 
-            // 다이얼 백라이트 (재생 시 램프가 밝아진다)
+            // 다이얼 백라이트 (재생 시에만 은은하게 점등 — 꺼지면 어둡게)
             document.querySelectorAll(".lampGlow").forEach((el) => {
-                el.style.opacity = isPlaying ? 0.95 : 0.4;
+                el.style.opacity = isPlaying ? 0.75 : 0.06;
             });
         }
 
@@ -3161,7 +3182,7 @@
         function setVolume(value) {
             volumeLevel = value / 100;
             if (gainNode) {
-                gainNode.gain.value = volumeLevel;
+                gainNode.gain.value = volumeLevel * (phonoActive ? PHONO_GAIN : 1);
             } else {
                 audio.volume = volumeLevel;
             }
@@ -3219,7 +3240,7 @@
                 applyMono();
                 applyEq();
                 applyAmp();
-                gainNode.gain.value = volumeLevel;
+                gainNode.gain.value = volumeLevel * (phonoActive ? PHONO_GAIN : 1);
                 audio.volume = 1;
                 if (audioCtx.state === "suspended") {
                     audioCtx.resume();
