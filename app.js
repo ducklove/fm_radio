@@ -812,6 +812,422 @@ const RECORDS = [
             { t: "Variatio 7 — al tempo di Giga", f: "e/e3/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_08_Variatio_7_a_1_ovvero_2_Clav.mp3" }
         ]
     }
+,
+    {
+        title: "골드베르크 변주곡 — B면", bwv: "BWV 988", composer: "J. S. BACH", performer: "Kimiko Ishizaka, piano", credit: "음원: Open Goldberg Variations · Kimiko Ishizaka · CC0 · Wikimedia Commons",
+        labelBig: "BACH", labelTitle: "골드베르크 변주곡", labelArtist: "KIMIKO ISHIZAKA, PIANO", jTitle: "GOLDBERG", jSub1: "바흐 골드베르크 변주곡", jSub2: "Var. 8–15 · BWV 988",
+        labelBg: "#e4dccb", jacketBg: "#e6ded0", accent: "#7a5a24", side: "B",
+        tracks: [
+            { t: "Variatio 8", f: "d/d8/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_09_Variatio_8_a_2_Clav.mp3" },
+            { t: "Variatio 9 Canone alla Terza", f: "9/99/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_10_Variatio_9_a_1_Clav._Canone_alla_Terza.mp3" },
+            { t: "Variatio 10 Fughetta", f: "8/88/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_11_Variatio_10_a_1_Clav._Fughetta.mp3" },
+            { t: "Variatio 11", f: "3/37/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_12_Variatio_11_a_2_Clav.mp3" },
+            { t: "Variatio 12 Canone alla Quarta", f: "9/94/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_13_Variatio_12_Canone_alla_Quarta.mp3" },
+            { t: "Variatio 13", f: "3/3e/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_14_Variatio_13_a_2_Clav.mp3" },
+            { t: "Variatio 14", f: "1/1d/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_15_Variatio_14_a_2_Clav.mp3" },
+            { t: "Variatio 15 Canone alla Quinta", f: "5/50/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_16_Variatio_15_a_1_Clav._Canone_alla_Quinta.mp3" },
+        ]
+    },
+    {
+        title: "골드베르크 변주곡 — C면", bwv: "BWV 988", composer: "J. S. BACH", performer: "Kimiko Ishizaka, piano", credit: "음원: Open Goldberg Variations · Kimiko Ishizaka · CC0 · Wikimedia Commons",
+        labelBig: "BACH", labelTitle: "골드베르크 변주곡", labelArtist: "KIMIKO ISHIZAKA, PIANO", jTitle: "GOLDBERG", jSub1: "바흐 골드베르크 변주곡", jSub2: "Var. 16–23 · BWV 988",
+        labelBg: "#dcd6c4", jacketBg: "#e0d8c8", accent: "#6e5320", side: "C",
+        tracks: [
+            { t: "Variatio 16 Ouverture", f: "6/62/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_17_Variatio_16_a_1_Clav._Ouverture.mp3" },
+            { t: "Variatio 17", f: "6/6e/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_18_Variatio_17_a_2_Clav.mp3" },
+            { t: "Variatio 18 Canone alla Sexta", f: "6/6a/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_19_Variatio_18_a_1_Clav._Canone_alla_Sexta.mp3" },
+            { t: "Variatio 19", f: "5/57/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_20_Variatio_19_a_1_Clav.mp3" },
+            { t: "Variatio 20", f: "e/e5/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_21_Variatio_20_a_2_Clav.mp3" },
+            { t: "Variatio 21 Canone alla Settima", f: "6/65/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_22_Variatio_21_Canone_alla_Settima.mp3" },
+            { t: "Variatio 22", f: "e/e7/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_23_Variatio_22_a_1_Clav.mp3" },
+            { t: "Variatio 23", f: "c/c8/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_24_Variatio_23_a_2_Clav.mp3" },
+        ]
+    },
+    {
+        title: "골드베르크 변주곡 — D면", bwv: "BWV 988", composer: "J. S. BACH", performer: "Kimiko Ishizaka, piano", credit: "음원: Open Goldberg Variations · Kimiko Ishizaka · CC0 · Wikimedia Commons",
+        labelBig: "BACH", labelTitle: "골드베르크 변주곡", labelArtist: "KIMIKO ISHIZAKA, PIANO", jTitle: "GOLDBERG", jSub1: "바흐 골드베르크 변주곡", jSub2: "Var. 24–30, Aria da Capo",
+        labelBg: "#e8e0cf", jacketBg: "#eae2d2", accent: "#7f6026", side: "D",
+        tracks: [
+            { t: "Variatio 24 Canone all Ottava", f: "f/f6/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_25_Variatio_24_a_1_Clav._Canone_all_Ottava.mp3" },
+            { t: "Variatio 25", f: "2/26/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_26_Variatio_25_a_2_Clav.mp3" },
+            { t: "Variatio 26", f: "1/13/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_27_Variatio_26_a_2_Clav.mp3" },
+            { t: "Variatio 27", f: "6/6a/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_28_Variatio_27_a_2_Clav._Canone_alla_Nona_-_Variatio_28_a_2_Clav.mp3" },
+            { t: "Variatio 29", f: "9/98/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_29_Variatio_29_a_1_ovvero_2_Clav.mp3" },
+            { t: "Variatio 30 Quodlibet", f: "4/42/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_30_Variatio_30_a_1_Clav._Quodlibet.mp3" },
+            { t: "Aria da Capo è Fine", f: "d/db/Kimiko_Ishizaka_-_J.S._Bach-_-Open-_Goldberg_Variations%2C_BWV_988_%28Piano%29_-_31_Aria_da_Capo_%C3%A8_Fine.mp3" },
+        ]
+    },
+    {
+        title: "평균율 클라비어곡집 1권 — 제1집", bwv: "BWV 846–869", composer: "J. S. BACH", performer: "Kimiko Ishizaka, piano", credit: "음원: Open Well-Tempered Clavier · Kimiko Ishizaka · CC0 · Wikimedia Commons",
+        labelBig: "BACH", labelTitle: "평균율 1권 · No.1–6", labelArtist: "KIMIKO ISHIZAKA, PIANO", jTitle: "WTC I", jSub1: "Well-Tempered Clavier, Book I", jSub2: "Prelude & Fugue No. 1–6",
+        labelBg: "#e7e2d6", jacketBg: "#e9e4d8", accent: "#3a5a3f", side: "I",
+        tracks: [
+            { t: "Prelude 1 · C major", f: "b/b6/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_01_Prelude_No._1_in_C_major%2C_BWV_846.ogg" },
+            { t: "Fugue 1 · C major", f: "e/e1/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_02_Fugue_No._1_in_C_major%2C_BWV_846.ogg" },
+            { t: "Prelude 2 · C minor", f: "4/4d/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_03_Prelude_No._2_in_C_minor%2C_BWV_847.ogg" },
+            { t: "Fugue 2 · C minor", f: "b/b0/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_04_Fugue_No._2_in_C_minor%2C_BWV_847.ogg" },
+            { t: "Prelude 3 · C-sharp major", f: "5/59/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_05_Prelude_No._3_in_C-sharp_major%2C_BWV_848.ogg" },
+            { t: "Fugue 3 · C-sharp major", f: "b/b7/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_06_Fugue_No._3_in_C-sharp_major%2C_BWV_848.ogg" },
+            { t: "Prelude 4 · C-sharp minor", f: "f/f9/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_07_Prelude_No._4_in_C-sharp_minor%2C_BWV_849.ogg" },
+            { t: "Fugue 4 · C-sharp minor", f: "2/21/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_08_Fugue_No._4_in_C-sharp_minor%2C_BWV_849.ogg" },
+            { t: "Prelude 5 · D major", f: "a/a0/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_09_Prelude_No._5_in_D_major%2C_BWV_850.ogg" },
+            { t: "Fugue 5 · D major", f: "d/d4/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_10_Fugue_No._5_in_D_major%2C_BWV_850.ogg" },
+            { t: "Prelude 6 · D minor", f: "7/71/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_11_Prelude_No._6_in_D_minor%2C_BWV_851.ogg" },
+            { t: "Fugue 6 · D minor", f: "9/97/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_12_Fugue_No._6_in_D_minor%2C_BWV_851.ogg" },
+        ]
+    },
+    {
+        title: "평균율 클라비어곡집 1권 — 제2집", bwv: "BWV 846–869", composer: "J. S. BACH", performer: "Kimiko Ishizaka, piano", credit: "음원: Open Well-Tempered Clavier · Kimiko Ishizaka · CC0 · Wikimedia Commons",
+        labelBig: "BACH", labelTitle: "평균율 1권 · No.7–12", labelArtist: "KIMIKO ISHIZAKA, PIANO", jTitle: "WTC I", jSub1: "Well-Tempered Clavier, Book I", jSub2: "Prelude & Fugue No. 7–12",
+        labelBg: "#e2ddd0", jacketBg: "#e4dfd2", accent: "#2f5555", side: "II",
+        tracks: [
+            { t: "Prelude 7 · E-flat major", f: "a/aa/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_13_Prelude_No._7_in_E-flat_major%2C_BWV_852.ogg" },
+            { t: "Fugue 7 · E-flat major", f: "7/7b/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_14_Fugue_No._7_in_E-flat_major%2C_BWV_852.ogg" },
+            { t: "Prelude 8 · E-flat minor", f: "3/35/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_15_Prelude_No._8_in_E-flat_minor%2C_BWV_853.ogg" },
+            { t: "Fugue 8 · D-sharp minor", f: "1/16/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_16_Fugue_No._8_in_D-sharp_minor%2C_BWV_853.ogg" },
+            { t: "Prelude 9 · E major", f: "b/bc/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_17_Prelude_No._9_in_E_major%2C_BWV_854.ogg" },
+            { t: "Fugue 9 · E major", f: "2/2d/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_18_Fugue_No._9_in_E_major%2C_BWV_854.ogg" },
+            { t: "Prelude 10 · E minor", f: "c/cb/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_19_Prelude_No._10_in_E_minor%2C_BWV_855.ogg" },
+            { t: "Fugue 10 · E minor", f: "5/5c/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_20_Fugue_No._10_in_E_minor%2C_BWV_855.ogg" },
+            { t: "Prelude 11 · F major", f: "4/4a/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_21_Prelude_No._11_in_F_major%2C_BWV_856.ogg" },
+            { t: "Fugue 11 · F major", f: "b/bd/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_22_Fugue_No._11_in_F_major%2C_BWV_856.ogg" },
+            { t: "Prelude 12 · F minor", f: "f/f3/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_23_Prelude_No._12_in_F_minor%2C_BWV_857.ogg" },
+            { t: "Fugue 12 · F minor", f: "b/b9/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_24_Fugue_No._12_in_F_minor%2C_BWV_857.ogg" },
+        ]
+    },
+    {
+        title: "평균율 클라비어곡집 1권 — 제3집", bwv: "BWV 846–869", composer: "J. S. BACH", performer: "Kimiko Ishizaka, piano", credit: "음원: Open Well-Tempered Clavier · Kimiko Ishizaka · CC0 · Wikimedia Commons",
+        labelBig: "BACH", labelTitle: "평균율 1권 · No.13–18", labelArtist: "KIMIKO ISHIZAKA, PIANO", jTitle: "WTC I", jSub1: "Well-Tempered Clavier, Book I", jSub2: "Prelude & Fugue No. 13–18",
+        labelBg: "#e5e0d2", jacketBg: "#e7e2d4", accent: "#4a4a72", side: "III",
+        tracks: [
+            { t: "Prelude 13 · F-sharp major", f: "e/e0/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_25_Prelude_No._13_in_F-sharp_major%2C_BWV_858.ogg" },
+            { t: "Fugue 13 · F-sharp major", f: "4/46/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_26_Fugue_No._13_in_F-sharp_major%2C_BWV_858.ogg" },
+            { t: "Prelude 14 · F-sharp minor", f: "f/fc/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_27_Prelude_No._14_in_F-sharp_minor%2C_BWV_859.ogg" },
+            { t: "Fugue 14 · F-sharp minor", f: "0/0d/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_28_Fugue_No._14_in_F-sharp_minor%2C_BWV_859.ogg" },
+            { t: "Prelude 15 · G major", f: "8/81/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_29_Prelude_No._15_in_G_major%2C_BWV_860.ogg" },
+            { t: "Fugue 15 · G major", f: "d/d0/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_30_Fugue_No._15_in_G_major%2C_BWV_860.ogg" },
+            { t: "Prelude 16 · G minor", f: "1/19/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_31_Prelude_No._16_in_G_minor%2C_BWV_861.ogg" },
+            { t: "Fugue 16 · G minor", f: "2/23/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_32_Fugue_No._16_in_G_minor%2C_BWV_861.ogg" },
+            { t: "Prelude 17 · A-flat major", f: "8/86/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_33_Prelude_No._17_in_A-flat_major%2C_BWV_862.ogg" },
+            { t: "Fugue 17 · A-flat major", f: "f/fd/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_34_Fugue_No._17_in_A-flat_major%2C_BWV_862.ogg" },
+            { t: "Prelude 18 · G-sharp minor", f: "5/5c/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_35_Prelude_No._18_in_G-sharp_minor%2C_BWV_863.ogg" },
+            { t: "Fugue 18 · G-sharp minor", f: "c/c6/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_36_Fugue_No._18_in_G-sharp_minor%2C_BWV_863.ogg" },
+        ]
+    },
+    {
+        title: "평균율 클라비어곡집 1권 — 제4집", bwv: "BWV 846–869", composer: "J. S. BACH", performer: "Kimiko Ishizaka, piano", credit: "음원: Open Well-Tempered Clavier · Kimiko Ishizaka · CC0 · Wikimedia Commons",
+        labelBig: "BACH", labelTitle: "평균율 1권 · No.19–24", labelArtist: "KIMIKO ISHIZAKA, PIANO", jTitle: "WTC I", jSub1: "Well-Tempered Clavier, Book I", jSub2: "Prelude & Fugue No. 19–24",
+        labelBg: "#e3ddce", jacketBg: "#e5dfd0", accent: "#6b4a6a", side: "IV",
+        tracks: [
+            { t: "Prelude 19 · A major", f: "b/be/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_37_Prelude_No._19_in_A_major%2C_BWV_864.ogg" },
+            { t: "Fugue 19 · A major", f: "2/24/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_38_Fugue_No._19_in_A_major%2C_BWV_864.ogg" },
+            { t: "Prelude 20 · A minor", f: "9/9f/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_39_Prelude_No._20_in_A_minor%2C_BWV_865.ogg" },
+            { t: "Fugue 20 · A minor", f: "c/c0/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_40_Fugue_No._20_in_A_minor%2C_BWV_865.ogg" },
+            { t: "Prelude 21 · B-flat major", f: "b/b0/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_41_Prelude_No._21_in_B-flat_major%2C_BWV_866.ogg" },
+            { t: "Fugue 21 · B-flat major", f: "5/57/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_42_Fugue_No._21_in_B-flat_major%2C_BWV_866.ogg" },
+            { t: "Prelude 22 · B-flat minor", f: "1/16/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_43_Prelude_No._22_in_B-flat_minor%2C_BWV_867.ogg" },
+            { t: "Fugue 22 · B-flat minor", f: "5/5d/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_44_Fugue_No._22_in_B-flat_minor%2C_BWV_867.ogg" },
+            { t: "Prelude 23 · B major", f: "6/63/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_45_Prelude_No._23_in_B_major%2C_BWV_868.ogg" },
+            { t: "Fugue 23 · B major", f: "8/88/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_46_Fugue_No._23_in_B_major%2C_BWV_868.ogg" },
+            { t: "Prelude 24 · B minor", f: "2/2e/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_47_Prelude_No._24_in_B_minor%2C_BWV_869.ogg" },
+            { t: "Fugue 24 · B minor", f: "5/5d/Kimiko_Ishizaka_-_Bach_-_Well-Tempered_Clavier%2C_Book_1_-_48_Fugue_No._24_in_B_minor%2C_BWV_869.ogg" },
+        ]
+    },
+    {
+        title: "사계", bwv: "Op. 8 · RV 269–297", composer: "A. VIVALDI", performer: "The Modena Chamber Orchestra", credit: "음원: Modena Chamber Orchestra · Musopen · PD · Wikimedia Commons",
+        labelBig: "VIVALDI", labelTitle: "사계 (Le quattro stagioni)", labelArtist: "MODENA CHAMBER ORCH.", jTitle: "LE QUATTRO STAGIONI", jSub1: "비발디 · 사계", jSub2: "The Four Seasons · Op. 8",
+        labelBg: "#dfe7d3", jacketBg: "#e2e9d7", accent: "#3f6b34", side: "A",
+        tracks: [
+            { t: "La primavera I · Allegro", f: "1/18/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Spring%2C_RV_269_-_I._Allegro.ogg" },
+            { t: "La primavera II · Largo", f: "3/39/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Spring%2C_RV_269_-_II._Largo.ogg" },
+            { t: "La primavera III · Allegro", f: "7/7c/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Spring%2C_RV_269_-_III._Allegro.ogg" },
+            { t: "L'estate I · Allegro non molto", f: "3/3d/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Summer%2C_RV_315_-_I._Allegro_non_molto.ogg" },
+            { t: "L'estate II · Adagio", f: "1/17/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Summer%2C_RV_315_-_II._Adagio.ogg" },
+            { t: "L'estate III · Presto", f: "1/17/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Summer%2C_RV_315_-_III._Presto.ogg" },
+            { t: "L'autunno I · Allegro", f: "c/c4/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Autumn%2C_RV_293_-_I._Allegro.ogg" },
+            { t: "L'autunno II · Adagio molto", f: "8/83/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Autumn%2C_RV_293_-_II._Adagio_molto.ogg" },
+            { t: "L'autunno III · Allegro", f: "7/79/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Autumn%2C_RV_293_-_III._Allegro.ogg" },
+            { t: "L'inverno I · Allegro non molto", f: "9/9c/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Winter%2C_RV_297_-_I._Allegro_non_molto.ogg" },
+            { t: "L'inverno II · Largo", f: "8/8b/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Winter%2C_RV_297_-_II._Largo.ogg" },
+            { t: "L'inverno III · Allegro", f: "3/3d/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Winter%2C_RV_297_-_III._Allegro.ogg" },
+        ]
+    },
+    {
+        title: "비발디 협주곡집", bwv: "RV 498 · 532 · 536", composer: "A. VIVALDI", performer: "The Modena Chamber Orchestra", credit: "음원: Modena Chamber Orchestra · Musopen · PD · Wikimedia Commons",
+        labelBig: "VIVALDI", labelTitle: "협주곡집", labelArtist: "MODENA CHAMBER ORCH.", jTitle: "CONCERTI", jSub1: "비발디 협주곡집", jSub2: "Bassoon · Mandolins · Oboes",
+        labelBg: "#d8e0e6", jacketBg: "#dbe3e9", accent: "#2f5a72", side: "A",
+        tracks: [
+            { t: "바순 협주곡 RV 498 · I", f: "2/26/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Bassoon_Concerto_in_A_minor%2C_RV_498_-_I._Allegro_%28ma_molto_moderato%29.ogg" },
+            { t: "바순 협주곡 RV 498 · II", f: "a/a7/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Bassoon_Concerto_in_A_minor%2C_RV_498_-_II._Larghetto.ogg" },
+            { t: "바순 협주곡 RV 498 · III", f: "a/a2/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Bassoon_Concerto_in_A_minor%2C_RV_498_-_III._Allegro.ogg" },
+            { t: "2대의 만돌린 RV 532 · I", f: "c/c7/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Concerto_for_2_Mandolins_in_G_major%2C_RV_532_-_I._Allegro.ogg" },
+            { t: "2대의 만돌린 RV 532 · II", f: "b/b3/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Concerto_for_2_Mandolins_in_G_major%2C_RV_532_-_II._Andante.ogg" },
+            { t: "2대의 만돌린 RV 532 · III", f: "8/8c/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Concerto_for_2_Mandolins_in_G_major%2C_RV_532_-_III._Allegro.ogg" },
+            { t: "2대의 오보에 RV 536 · I", f: "6/6e/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Concerto_for_2_Oboes_in_A_minor%2C_RV_536_-_I._Allegro.ogg" },
+            { t: "2대의 오보에 RV 536 · II", f: "0/0a/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Concerto_for_2_Oboes_in_A_minor%2C_RV_536_-_II._Largo.ogg" },
+            { t: "2대의 오보에 RV 536 · III", f: "c/c0/The_Modena_Chamber_Orchestra_-_Vivaldi%27s_Concerto_for_2_Oboes_in_A_minor%2C_RV_536_-_III._Allegro.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제5번 '운명'", bwv: "Op. 67", composer: "L. van BEETHOVEN", performer: "Musopen Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "BEETHOVEN", labelTitle: "교향곡 5번 c단조", labelArtist: "MUSOPEN SYMPHONY", jTitle: "SYMPHONY No.5", jSub1: "베토벤 교향곡 5번 '운명'", jSub2: "C minor · Op. 67",
+        labelBg: "#e0cfc0", jacketBg: "#2a1f1a", accent: "#8a2020", side: "A",
+        tracks: [
+            { t: "I. Allegro con brio", f: "e/e6/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_i._allegro_con_brio.ogg" },
+            { t: "II. Andante con moto", f: "c/c0/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_ii._andante_con_moto.ogg" },
+            { t: "III. Allegro", f: "5/5b/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_iii._allegro.ogg" },
+            { t: "IV. Allegro", f: "4/47/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_iv._allegro.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제6번 '전원'", bwv: "Op. 68", composer: "L. van BEETHOVEN", performer: "Musopen Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "BEETHOVEN", labelTitle: "교향곡 6번 F장조", labelArtist: "MUSOPEN SYMPHONY", jTitle: "PASTORAL", jSub1: "베토벤 교향곡 6번 '전원'", jSub2: "F major · Op. 68",
+        labelBg: "#d7e0cd", jacketBg: "#33402c", accent: "#4a7a3a", side: "A",
+        tracks: [
+            { t: "I. Allegro ma non troppo", f: "d/d5/Ludwig_van_Beethoven_-_symphony_no._6_in_f_major_%27pastoral%27%2C_op._68_-_i._allegro_non_troppo.ogg" },
+            { t: "II. Andante molto mosso", f: "a/a9/Ludwig_van_Beethoven_-_symphony_no._6_in_f_major_%27pastoral%27%2C_op._68_-_ii._andante_molto_mosso.ogg" },
+            { t: "III. Allegro", f: "b/ba/Ludwig_van_Beethoven_-_symphony_no._6_in_f_major_%27pastoral%27%2C_op._68_-_iii._allegro.ogg" },
+            { t: "IV. Allegro (Storm)", f: "1/15/Ludwig_van_Beethoven_-_symphony_no._6_in_f_major_%27pastoral%27%2C_op._68_-_iv._allegro.ogg" },
+            { t: "V. Allegretto", f: "6/67/Ludwig_van_Beethoven_-_symphony_no._6_in_f_major_%27pastoral%27%2C_op._68_-_v._allegretto.ogg" },
+        ]
+    },
+    {
+        title: "피아노 소나타 제8번 '비창'", bwv: "Op. 13", composer: "L. van BEETHOVEN", performer: "Paul Pitman, piano", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "BEETHOVEN", labelTitle: "비창 소나타 c단조", labelArtist: "PAUL PITMAN, PIANO", jTitle: "PATHÉTIQUE", jSub1: "베토벤 피아노 소나타 8번 '비창'", jSub2: "C minor · Op. 13",
+        labelBg: "#d9d2cc", jacketBg: "#2b2b30", accent: "#5a2a4a", side: "A",
+        tracks: [
+            { t: "I. Grave – Allegro di molto e con brio", f: "2/26/Beethoven%2C_Sonata_No._8_in_C_Minor_Pathetique%2C_Op._13_-_I._Grave_-_Allegro_di_molto_e_con_brio.ogg" },
+            { t: "II. Adagio cantabile", f: "6/63/Beethoven%2C_Sonata_No._8_in_C_Minor_Pathetique%2C_Op._13_-_II._Adagio_cantabile.ogg" },
+            { t: "III. Rondo – Allegro", f: "8/87/Beethoven%2C_Sonata_No._8_in_C_Minor_Pathetique%2C_Op._13_-_III._Rondo_-_Allegro.ogg" },
+        ]
+    },
+    {
+        title: "피아노 협주곡 제1번", bwv: "Op. 15", composer: "L. van BEETHOVEN", performer: "Musopen Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "BEETHOVEN", labelTitle: "피아노 협주곡 1번 C장조", labelArtist: "MUSOPEN ORCHESTRA", jTitle: "CONCERTO No.1", jSub1: "베토벤 피아노 협주곡 1번", jSub2: "C major · Op. 15",
+        labelBg: "#e0d6c2", jacketBg: "#2e2a22", accent: "#8a6a2a", side: "A",
+        tracks: [
+            { t: "I. Allegro con brio", f: "6/6f/Ludwig_van_Beethoven_-_piano_concerto_no._1_in_c_major%2C_op._15_-_i._allegro_con_brio.ogg" },
+            { t: "II. Largo", f: "b/b4/Ludwig_van_Beethoven_-_piano_concerto_no._1_in_c_major%2C_op._15_-_ii._largo.ogg" },
+            { t: "III. Rondo (Allegro scherzando)", f: "c/c4/Ludwig_van_Beethoven_-_piano_concerto_no._1_in_c_major%2C_op._15_-_iii._rondo_%28allegro_scherzando%29.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제1번", bwv: "Op. 68", composer: "J. BRAHMS", performer: "Musopen Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "BRAHMS", labelTitle: "교향곡 1번 c단조", labelArtist: "MUSOPEN SYMPHONY", jTitle: "SYMPHONY No.1", jSub1: "브람스 교향곡 1번", jSub2: "C minor · Op. 68",
+        labelBg: "#d5d8cf", jacketBg: "#26302a", accent: "#3a5a44", side: "A",
+        tracks: [
+            { t: "I. Un poco sostenuto – Allegro", f: "a/a7/Brahms%2C_Symphony_No._1_in_C_Minor%2C_Op._68_-_I._Un_poco_sostenuto_-_Allegro.ogg" },
+            { t: "II. Andante sostenuto", f: "1/1f/Brahms%2C_Symphony_No._1_in_C_Minor%2C_Op._68_-_II._Andante_sostenuto.ogg" },
+            { t: "III. Un poco allegretto e grazioso", f: "9/99/Brahms%2C_Symphony_No._1_in_C_Minor%2C_Op._68_-_III._Un_poco_allegretto_e_grazioso.ogg" },
+            { t: "IV. Adagio – Allegro non troppo", f: "9/98/Brahms%2C_Symphony_No._1_in_C_Minor%2C_Op._68_-_IV._Adagio_-_Pi%C3%B9_andante_-_Allegro_non_troppo%2C_ma_con_brio.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제4번", bwv: "Op. 98", composer: "J. BRAHMS", performer: "Musopen Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "BRAHMS", labelTitle: "교향곡 4번 e단조", labelArtist: "MUSOPEN SYMPHONY", jTitle: "SYMPHONY No.4", jSub1: "브람스 교향곡 4번", jSub2: "E minor · Op. 98",
+        labelBg: "#d8d4cd", jacketBg: "#2c281f", accent: "#6b4a2a", side: "A",
+        tracks: [
+            { t: "I. Allegro non troppo", f: "7/79/Brahms%2C_Symphony_No._4_in_E_Minor%2C_Op._98_-_I._Allegro_Non_Troppo.ogg" },
+            { t: "II. Andante moderato", f: "a/a1/Brahms%2C_Symphony_No._4_in_E_Minor%2C_Op._98_-_II._Andante_Moderato.ogg" },
+            { t: "III. Allegro giocoso", f: "7/7a/Brahms%2C_Symphony_No._4_in_E_Minor%2C_Op._98_-_III._Allegro_Giocoso.ogg" },
+            { t: "IV. Allegro energico e passionato", f: "e/e0/Brahms%2C_Symphony_No._4_in_E_Minor%2C_Op._98_-_IV._Allegro_Energico_e_Passionato.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제6번 '비창'", bwv: "Op. 74", composer: "P. I. TCHAIKOVSKY", performer: "Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "TCHAIKOVSKY", labelTitle: "교향곡 6번 b단조", labelArtist: "SYMPHONY ORCHESTRA", jTitle: "PATHÉTIQUE", jSub1: "차이코프스키 교향곡 6번", jSub2: "B minor · Op. 74",
+        labelBg: "#cdd4e0", jacketBg: "#20283a", accent: "#3a4a8a", side: "A",
+        tracks: [
+            { t: "I. Adagio – Allegro non troppo", f: "b/b7/Tchaikovsky%2C_Symphony_No._6_In_B_Minor%2C_Op._74%2C_%27Pathetique%27_-_I._Adagio%2C_Allegro_Non_Troppo.ogg" },
+            { t: "II. Allegro con grazia", f: "a/aa/Tchaikovsky%2C_Symphony_No._6_in_B_minor%2C_Op._74%2C_%27Pathetique%27_-_II._Allegro_con_gracia.ogg" },
+            { t: "III. Allegro molto vivace", f: "c/c4/Tchaikovsky%2C_Symphony_No._6_in_B_minor%2C_Op._74%2C_%27Pathetique%27_-_III._Allegro_molto_vivace.ogg" },
+            { t: "IV. Finale – Adagio lamentoso", f: "e/e8/Tchaikovsky%2C_Symphony_No._6_in_B_minor%2C_Op._74%2C_%27Pathetique%27_-_IV._Finale_Adagio_lamentoso.ogg" },
+        ]
+    },
+    {
+        title: "피아노 협주곡 제1번", bwv: "Op. 23", composer: "P. I. TCHAIKOVSKY", performer: "Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "TCHAIKOVSKY", labelTitle: "피아노 협주곡 1번", labelArtist: "SYMPHONY ORCHESTRA", jTitle: "CONCERTO No.1", jSub1: "차이코프스키 피아노 협주곡 1번", jSub2: "B-flat minor · Op. 23",
+        labelBg: "#d4cfe0", jacketBg: "#241f30", accent: "#5a3a8a", side: "A",
+        tracks: [
+            { t: "I. Allegro non troppo e molto maestoso", f: "4/48/Tchaikovsky%2C_Concerto_No.1_in_B-flat_minor_Op.23%2C_I._Allegro.ogg" },
+            { t: "II. Andantino semplice", f: "e/e2/Tchaikovsky%2C_Concerto_No.1_in_B-flat_minor_Op.23%2C_II._Andantino.ogg" },
+            { t: "III. Allegro con fuoco", f: "0/01/Tchaikovsky%2C_Concerto_No.1_in_B-flat_minor_Op.23%2C_III._Allegro.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제9번 '신세계로부터'", bwv: "Op. 95", composer: "A. DVOŘÁK", performer: "Musopen Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "DVOŘÁK", labelTitle: "교향곡 9번 e단조", labelArtist: "MUSOPEN SYMPHONY", jTitle: "NEW WORLD", jSub1: "드보르작 교향곡 9번", jSub2: "'From the New World' · Op. 95",
+        labelBg: "#d5ddd0", jacketBg: "#232f26", accent: "#3a6b4a", side: "A",
+        tracks: [
+            { t: "I. Adagio – Allegro molto", f: "5/5c/Antonin_Dvorak_-_symphony_no._9_in_e_minor_%27from_the_new_world%27%2C_op._95_-_i._adagio_-_allegro_molto.ogg" },
+            { t: "II. Largo", f: "c/c3/Antonin_Dvorak_-_symphony_no._9_in_e_minor_%27from_the_new_world%27%2C_op._95_-_ii._largo.ogg" },
+            { t: "III. Molto vivace", f: "b/bd/Antonin_Dvorak_-_symphony_no._9_in_e_minor_%27from_the_new_world%27%2C_op._95_-_iii._molto_vivace.ogg" },
+            { t: "IV. Allegro con fuoco", f: "1/17/Antonin_Dvorak_-_symphony_no._9_in_e_minor_%27from_the_new_world%27%2C_op._95_-_iv._allegro_con_fuoco.ogg" },
+        ]
+    },
+    {
+        title: "아이네 클라이네 나흐트무지크", bwv: "K. 525", composer: "W. A. MOZART", performer: "Serenade Ensemble", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "MOZART", labelTitle: "세레나데 13번 G장조", labelArtist: "SERENADE ENSEMBLE", jTitle: "K. 525", jSub1: "아이네 클라이네 나흐트무지크", jSub2: "Serenade No. 13 · G major",
+        labelBg: "#eadfc4", jacketBg: "#e9e0c8", accent: "#8a6a1f", side: "A",
+        tracks: [
+            { t: "I. Allegro", f: "6/68/Mozart_K525_Serenade_in_G_Major_1_-_Allegro.ogg" },
+            { t: "II. Romanze", f: "b/be/Mozart_K525_Serenade_in_G_Major_2_-_Romance.ogg" },
+            { t: "III. Menuetto", f: "a/a0/Mozart_K525_Serenade_in_G_Major_3_-_Minuet.ogg" },
+            { t: "IV. Rondo", f: "3/3b/Mozart_K525_Serenade_in_G_Major_4_-_Rondo.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제35번 '하프너'", bwv: "K. 385", composer: "W. A. MOZART", performer: "European Archive", credit: "음원: European Archive · Musopen · PD · Wikimedia Commons",
+        labelBig: "MOZART", labelTitle: "교향곡 35번 D장조", labelArtist: "EUROPEAN ARCHIVE", jTitle: "HAFFNER", jSub1: "모차르트 교향곡 35번 '하프너'", jSub2: "D major · K. 385",
+        labelBg: "#e6dcc0", jacketBg: "#2c2820", accent: "#8a6a2a", side: "A",
+        tracks: [
+            { t: "I. Allegro con spirito", f: "7/78/Symphony_no._35_in_D_%27Haffner%27_K._385_I._Allegro_con_spirito_%28Mozart%29_European_Archive.ogg" },
+            { t: "II. Andante", f: "a/a1/Symphony_no._35_in_D_%27Haffner%27_K._385_II._Andante_%28Mozart%29_European_Archive.ogg" },
+            { t: "III. Minuetto", f: "c/cc/Symphony_no._35_in_D_%27Haffner%27_K._385_III._Minuetto_%28Mozart%29_European_Archive.ogg" },
+            { t: "IV. Finale · Presto", f: "7/7a/Symphony_no._35_in_D_%27Haffner%27_K._385_IV._Finale_Presto_%28Mozart%29_European_Archive.ogg" },
+        ]
+    },
+    {
+        title: "교향곡 제4번 '이탈리아'", bwv: "Op. 90", composer: "F. MENDELSSOHN", performer: "Musopen Symphony Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "MENDELSSOHN", labelTitle: "교향곡 4번 A장조", labelArtist: "MUSOPEN SYMPHONY", jTitle: "ITALIAN", jSub1: "멘델스존 교향곡 4번 '이탈리아'", jSub2: "A major · Op. 90",
+        labelBg: "#e6dcc2", jacketBg: "#2e2820", accent: "#b07a1f", side: "A",
+        tracks: [
+            { t: "I. Allegro vivace", f: "6/67/Mendelssohn%2C_Symphony_No._4_in_A_Major%2C_Op._90_%27Italian%27_-_I._Allegro_vivace.ogg" },
+            { t: "II. Andante con moto", f: "9/9f/Mendelssohn%2C_Symphony_No._4_in_A_Major%2C_Op._90_%27Italian%27_-_II._Andante_con_moto.ogg" },
+            { t: "III. Con moto moderato", f: "3/3f/Mendelssohn%2C_Symphony_No._4_in_A_Major%2C_Op._90_%27Italian%27_-_III._Con_moto_moderato.ogg" },
+            { t: "IV. Saltarello (Presto)", f: "1/1d/Mendelssohn%2C_Symphony_No._4_in_A_Major%2C_Op._90_%27Italian%27_-_IV._Saltarello_%28Presto%29.ogg" },
+        ]
+    },
+    {
+        title: "피아노 협주곡 a단조", bwv: "Op. 16", composer: "E. GRIEG", performer: "Musopen Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "GRIEG", labelTitle: "피아노 협주곡 a단조", labelArtist: "MUSOPEN ORCHESTRA", jTitle: "CONCERTO", jSub1: "그리그 피아노 협주곡", jSub2: "A minor · Op. 16",
+        labelBg: "#cfdae0", jacketBg: "#1f2a30", accent: "#2f6a8a", side: "A",
+        tracks: [
+            { t: "I. Allegro molto moderato", f: "9/9a/Edvard_Grieg_-_piano_concerto_in_a_minor%2C_op._16_-_i._allegro_molto_moderato.ogg" },
+            { t: "II. Adagio", f: "9/9d/Edvard_Grieg_-_piano_concerto_in_a_minor%2C_op._16_-_ii._adagio.ogg" },
+            { t: "III. Allegro moderato molto e marcato", f: "1/11/Edvard_Grieg_-_piano_concerto_in_a_minor%2C_op._16_-_iii._allegro_moderato_molto.ogg" },
+        ]
+    },
+    {
+        title: "방랑자 환상곡", bwv: "D. 760", composer: "F. SCHUBERT", performer: "Piano solo", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "SCHUBERT", labelTitle: "환상곡 C장조 '방랑자'", labelArtist: "PIANO SOLO", jTitle: "WANDERER", jSub1: "슈베르트 방랑자 환상곡", jSub2: "C major · Op. 15 · D. 760",
+        labelBg: "#e0d2d4", jacketBg: "#2c2226", accent: "#8a3a5a", side: "A",
+        tracks: [
+            { t: "I. Allegro con fuoco", f: "4/41/Franz_Schubert_-_fantasy_in_c_major_op.15_d.760_%27wanderer%27_-_i._allegro_con_fuoco.ogg" },
+            { t: "II. Adagio", f: "1/1f/Franz_Schubert_-_fantasy_in_c_major_op.15_d.760_%27wanderer%27_-_ii._adagio.ogg" },
+            { t: "III. Presto", f: "a/a4/Franz_Schubert_-_fantasy_in_c_major_op.15_d.760_%27wanderer%27_-_iii._presto.ogg" },
+            { t: "IV. Allegro", f: "1/1e/Franz_Schubert_-_fantasy_in_c_major_op.15_d.760_%27wanderer%27_-_iv._allegro.ogg" },
+        ]
+    },
+    {
+        title: "어린이 정경", bwv: "Op. 15", composer: "R. SCHUMANN", performer: "Piano solo", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "SCHUMANN", labelTitle: "어린이 정경", labelArtist: "PIANO SOLO", jTitle: "KINDERSZENEN", jSub1: "슈만 어린이 정경", jSub2: "Scenes from Childhood · Op. 15",
+        labelBg: "#e2d8cc", jacketBg: "#2a241e", accent: "#7a5236", side: "A",
+        tracks: [
+            { t: "1. 낯선 나라와 사람들", f: "c/ce/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_i._of_foreign_lands_and_peoples.ogg" },
+            { t: "2. 이상한 이야기", f: "2/2d/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_ii._a_curious_story.ogg" },
+            { t: "3. 술래잡기", f: "b/b3/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_iii._blind_man%27s_buff.ogg" },
+            { t: "4. 조르는 아이", f: "4/49/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_iv._pleading_child.ogg" },
+            { t: "5. 만족", f: "0/04/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_v._happiness.ogg" },
+            { t: "6. 중대한 사건", f: "1/14/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_vi._an_important_event.ogg" },
+            { t: "7. 트로이메라이", f: "0/06/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_vii._dreaming.ogg" },
+            { t: "8. 난롯가에서", f: "0/0a/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_viii._at_the_fireside.ogg" },
+            { t: "9. 목마의 기사", f: "7/78/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_ix._knight_of_the_hobbyhorse.ogg" },
+            { t: "10. 지나치게 진지하게", f: "5/5a/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_x._almost_too_serious.ogg" },
+            { t: "11. 무서움", f: "f/f9/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_xi._frightening.ogg" },
+            { t: "12. 잠자는 아이", f: "f/fa/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_xii._child_falling_asleep.ogg" },
+            { t: "13. 시인은 말한다", f: "4/42/Robert_Schumann_-_scenes_from_childhood%2C_op._15_-_xiii._the_poet_speaks.ogg" },
+        ]
+    },
+    {
+        title: "발라드 전곡", bwv: "Op. 23·38·47·52", composer: "F. CHOPIN", performer: "Piano solo", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "CHOPIN", labelTitle: "4개의 발라드", labelArtist: "PIANO SOLO", jTitle: "BALLADES", jSub1: "쇼팽 발라드 전곡", jSub2: "Four Ballades",
+        labelBg: "#ddd0d4", jacketBg: "#241c20", accent: "#7a2a4a", side: "A",
+        tracks: [
+            { t: "No. 1 in G minor, Op. 23", f: "3/33/Frederic_Chopin_-_ballade_no._1_in_g_minor%2C_op._23.ogg" },
+            { t: "No. 2 in F major, Op. 38", f: "c/cf/Frederic_Chopin_-_ballade_no._2_in_f_major%2C_op._38.ogg" },
+            { t: "No. 3 in A-flat major, Op. 47", f: "c/c8/Frederic_Chopin_-_ballade_no._3_in_a_flat_major%2C_op._47.ogg" },
+            { t: "No. 4 in F minor, Op. 52", f: "4/4f/Chopin%2C_Fr%C3%A9d%C3%A9ric_-_Ballade_no._4_in_f_minor%2C_op._52.ogg" },
+        ]
+    },
+    {
+        title: "스케르초 전곡", bwv: "Op. 20·31·39·54", composer: "F. CHOPIN", performer: "Alice Gi-Young Hwang, piano", credit: "음원: Alice Gi-Young Hwang · Musopen · CC · Wikimedia Commons",
+        labelBig: "CHOPIN", labelTitle: "4개의 스케르초", labelArtist: "ALICE GI-YOUNG HWANG", jTitle: "SCHERZI", jSub1: "쇼팽 스케르초 전곡", jSub2: "Four Scherzi",
+        labelBg: "#d4d0dd", jacketBg: "#1e1c26", accent: "#4a3a7a", side: "A",
+        tracks: [
+            { t: "No. 1 in B minor, Op. 20", f: "f/f3/Chopin_Scherzo_no._1_in_B_minor%2C_Op._20%2C_Alice_Gi-Young_Hwang.ogg" },
+            { t: "No. 2 in B-flat minor, Op. 31", f: "4/45/Chopin_Scherzo_no._2_in_B_flat_minor%2C_Op._31%2C_Alice_Gi-Young_Hwang.ogg" },
+            { t: "No. 3 in C-sharp minor, Op. 39", f: "9/91/Chopin_Scherzo_no._3_in_C_sharp_minor%2C_Op._39%2C_Alice_Gi-Young_Hwang.ogg" },
+            { t: "No. 4 in E major, Op. 54", f: "8/80/Chopin_Scherzo_no._4_in_E_major%2C_Op._54%2C_Alice_Gi-Young_Hwang.ogg" },
+        ]
+    },
+    {
+        title: "피아노 소나타 제2번 '장송'", bwv: "Op. 35", composer: "F. CHOPIN", performer: "Piano solo", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "CHOPIN", labelTitle: "소나타 2번 b♭단조", labelArtist: "PIANO SOLO", jTitle: "Op. 35", jSub1: "쇼팽 피아노 소나타 2번", jSub2: "'Funeral March' · B-flat minor",
+        labelBg: "#d2ccce", jacketBg: "#1c1a1c", accent: "#5a2a3a", side: "A",
+        tracks: [
+            { t: "I. Grave – Doppio movimento", f: "3/39/Frederic_Chopin_Piano_Sonata_No.2_in_B_flat_minor_Op35_-_I_Grave_Doppio_Movimento.ogg" },
+            { t: "II. Scherzo", f: "f/f7/Frederic_Chopin_Piano_Sonata_No.2_in_B_flat_minor_Op35_-_II_Scherzo.ogg" },
+            { t: "III. Marche funèbre", f: "b/b2/Frederic_Chopin_Piano_Sonata_No.2_in_B_flat_minor_Op35_-_III_Marche_Funebre.ogg" },
+            { t: "IV. Finale · Presto", f: "7/73/Frederic_Chopin_Piano_Sonata_No.2_in_B_flat_minor_Op35_-_IV_Finale_Presto.ogg" },
+        ]
+    },
+    {
+        title: "녹턴집", bwv: "Op. 9·15·48·55·72", composer: "F. CHOPIN", performer: "Piano solo", credit: "음원: Musopen · PD/CC · Wikimedia Commons",
+        labelBig: "CHOPIN", labelTitle: "녹턴 선집", labelArtist: "PIANO SOLO", jTitle: "NOCTURNES", jSub1: "쇼팽 녹턴집", jSub2: "Selected Nocturnes",
+        labelBg: "#cdd0d8", jacketBg: "#161822", accent: "#3a4a6a", side: "A",
+        tracks: [
+            { t: "Op. 9 No. 1 in B-flat minor", f: "b/bf/Chopin%2C_Nocturne_No._1_in_B_Flat_Minor%2C_Op._9.ogg" },
+            { t: "Op. 9 No. 2 in E-flat major", f: "0/04/Chopin_Nocturne_No._2_in_E_Flat_Major%2C_Op._9.ogg" },
+            { t: "Op. 15 No. 1 in F major", f: "5/56/Chopin_-_Nocturne_Op._15_no._1_in_F_major.ogg" },
+            { t: "Op. 15 No. 2 in F-sharp major", f: "2/29/Chopin_-_Nocturne_Op._15_no._2_in_F_sharp_major.ogg" },
+            { t: "Op. 48 No. 1 in C minor", f: "e/e7/Chopin_Nocturne_in_C_minor_Op._48_no._1_Luke_Faulkner.ogg" },
+            { t: "Op. 48 No. 2 in F-sharp minor", f: "a/a0/Chopin_Nocturne_in_F_sharp_minor_Op_48_no_2_Luke_Faulkner.ogg" },
+            { t: "Op. 55 No. 1 in F minor", f: "2/2f/Chopin_-_Nocturne-op-55-no-1.ogg" },
+            { t: "Op. 55 No. 2 in E-flat major", f: "8/8f/Chopin_-_Nocturne-op-55-no-2.ogg" },
+            { t: "Op. posth. 72 No. 1 in E minor", f: "c/c2/Chopin_-_Nocturne_Op._posth._72_no._1.ogg" },
+        ]
+    },
+    {
+        title: "현악 4중주 '종달새'", bwv: "Op. 64-5", composer: "J. HAYDN", performer: "String Quartet", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "HAYDN", labelTitle: "현악 4중주 D장조", labelArtist: "STRING QUARTET", jTitle: "THE LARK", jSub1: "하이든 현악 4중주 '종달새'", jSub2: "D major · Op. 64 No. 5",
+        labelBg: "#dce0d2", jacketBg: "#282e22", accent: "#5a6a2a", side: "A",
+        tracks: [
+            { t: "I. Allegro moderato", f: "1/11/Haydn_StringQuartetInDMajorOp.64_JosephHaydn-StringQuartetInDOp.645H363Lark-01-AllegroModerato.ogg" },
+            { t: "II. Adagio cantabile", f: "f/f0/Haydn_StringQuartetInDMajorOp.64_JosephHaydn-StringQuartetInDOp.645H363Lark-02-AdagioCantabile.ogg" },
+            { t: "III. Menuetto · Allegretto", f: "0/01/Haydn_StringQuartetInDMajorOp.64_JosephHaydn-StringQuartetInDOp.645H363Lark-03-MenuettoAllegretto.ogg" },
+            { t: "IV. Finale · Vivace", f: "4/4d/Haydn_StringQuartetInDMajorOp.64_JosephHaydn-StringQuartetInDOp.645H363Lark-04-FinaleVivace.ogg" },
+        ]
+    },
+    {
+        title: "비엔나 왈츠집", bwv: "Waltzes", composer: "J. STRAUSS II", performer: "Orchestra", credit: "음원: Musopen · PD · Wikimedia Commons",
+        labelBig: "J. STRAUSS", labelTitle: "비엔나 왈츠집", labelArtist: "ORCHESTRA", jTitle: "WIENER WALZER", jSub1: "요한 슈트라우스 2세", jSub2: "Viennese Waltzes",
+        labelBg: "#eaddc2", jacketBg: "#2e2618", accent: "#b0862a", side: "A",
+        tracks: [
+            { t: "아름답고 푸른 도나우", f: "9/91/Strauss%2C_An_der_sch%C3%B6nen_blauen_Donau.ogg" },
+            { t: "황제 왈츠", f: "a/a6/Strauss%2C_Kaiserwalzer.ogg" },
+            { t: "비엔나 기질", f: "a/a9/Johann_Strauss_-_Wiener_Blut_Op._354.ogg" },
+            { t: "남국의 장미", f: "b/bd/Strauss%2C_Rosen_aus_dem_S%C3%BCden.ogg" },
+            { t: "예술가의 생애", f: "e/ea/Strauss%2C_K%C3%BCnstlerleben.ogg" },
+            { t: "빈 숲속의 이야기", f: "1/19/Johann_Strauss_-_G%27schichten_aus_dem_Wienerwald%2C_Op.325.ogg" },
+        ]
+    },
+    {
+        title: "첼로 소품집", bwv: "Cello Encores", composer: "CELLO RECITAL", performer: "John Michel, violoncello", credit: "음원: John Michel · CC BY-SA 3.0 · Wikimedia Commons",
+        labelBig: "ENCORES", labelTitle: "첼로 앙코르 소품집", labelArtist: "JOHN MICHEL, CELLO", jTitle: "CELLO", jSub1: "존 미셸 첼로 소품집", jSub2: "Encores & Miniatures",
+        labelBg: "#d8c8b0", jacketBg: "#2a2018", accent: "#7a4a24", side: "A",
+        tracks: [
+            { t: "Saint-Saëns · 백조", f: "d/db/JOHN_MICHEL_CELLO-SAINT_SAENS_CARNIVAL_OF_ANIMALS_THE_SWAN.ogg" },
+            { t: "Bach · 아베 마리아", f: "d/d4/JOHN_MICHEL_CELLO-BACH_AVE_MARIA.ogg" },
+            { t: "Cassadó · Requiebros", f: "6/6a/CELLO_ENCORES_JOHN_MICHEL-Cassado_Requiebros.ogg" },
+            { t: "Popper · 요정의 춤", f: "5/55/CELLO_ENCORES_JOHN_MICHEL-Popper_Dance_of_the_Elves.ogg" },
+            { t: "Goens · Scherzo", f: "3/31/CELLO_ENCORES_JOHN_MICHEL-Goens_Scherzo.ogg" },
+            { t: "de Falla · 스페인 모음곡 1", f: "7/7f/CELLO_ENCORES_JOHN_MICHEL-da_Falla_Suite_Populaire_Espagnole_1st.ogg" },
+            { t: "de Falla · 스페인 모음곡 5", f: "9/90/CELLO_ENCORES_JOHN_MICHEL-da_Falla_Suite_Populaire_Espagnole_5th.ogg" },
+            { t: "Lidström · Tango", f: "e/e1/CELLO_ENCORES_JOHN_MICHEL-Mats_Lidstrom_Tango.ogg" },
+            { t: "Paganini · 한 줄을 위한 변주곡", f: "3/39/CELLO_ENCORES_JOHN_MICHEL-Paganini_Variations_on_One_String.ogg" },
+        ]
+    }
 ];
 let recordIdx = loadJson("fmRadio.record", 0);
 if (typeof recordIdx !== "number" || !RECORDS[recordIdx]) recordIdx = 0;
@@ -847,13 +1263,14 @@ function mountTurntable() {
     for (let i = 0; i < 6; i++) {
         grooves += '<circle cx="560" cy="330" r="' + (116 + i * 22) + '" fill="none" stroke="#2e2e33" stroke-width="4" opacity="0.5"/>';
     }
-    // 트랙 수에 따라 행 간격을 조인다 (골드베르크 A면은 8트랙)
-    const rowStep = RECORD.tracks.length > 6 ? 42 : 50;
-    const rowFont = RECORD.tracks.length > 6 ? 15 : 17;
+    // 트랙 수에 따라 행 간격을 조인다 (최대 13트랙 — 슈만 어린이 정경까지 수용)
+    const nTracks = RECORD.tracks.length;
+    const rowStep = nTracks > 12 ? 34 : nTracks > 8 ? 38 : nTracks > 6 ? 42 : 50;
+    const rowFont = nTracks > 12 ? 13 : nTracks > 8 ? 14 : nTracks > 6 ? 15 : 17;
     const rows = RECORD.tracks.map((tr, i) => {
         const y = 128 + i * rowStep;
         return '<rect id="ttTrackBg' + i + '" x="1600" y="' + (y - 26) + '" width="360" height="' + (rowStep - 6) + '" rx="6" fill="#d36a42" opacity="0"/>' +
-            '<text x="1622" y="' + y + '" font-family="Arial" font-size="16" font-weight="700" fill="#8a7d70">' + (i + 1) + '</text>' +
+            '<text x="1622" y="' + y + '" font-family="Arial" font-size="' + (rowFont + 1) + '" font-weight="700" fill="#8a7d70">' + (i + 1) + '</text>' +
             '<text x="1652" y="' + y + '" font-family="Georgia, serif" font-size="' + rowFont + '" fill="#d9cfc0">' + tr.t + '</text>' +
             '<rect id="ttTrackHit' + i + '" x="1600" y="' + (y - 26) + '" width="360" height="' + (rowStep - 4) + '" fill="#000" fill-opacity="0" style="cursor:pointer"><title>' + tr.t + ' 재생</title></rect>';
     }).join("");
@@ -883,7 +1300,7 @@ function mountTurntable() {
         '<circle cx="560" cy="330" r="86" fill="none" stroke="' + RECORD.accent + '" stroke-width="3"/>' +
         '<text x="560" y="290" font-family="Georgia, serif" font-size="26" font-weight="700" fill="' + RECORD.accent + '" text-anchor="middle">' + RECORD.labelBig + '</text>' +
         '<text x="560" y="314" font-family="Arial" font-size="11" fill="#3a2b1e" text-anchor="middle">' + RECORD.labelTitle + '</text>' +
-        '<text x="560" y="332" font-family="Arial" font-size="10" fill="#3a2b1e" text-anchor="middle">' + RECORD.bwv + ' · SIDE A</text>' +
+        '<text x="560" y="332" font-family="Arial" font-size="10" fill="#3a2b1e" text-anchor="middle">' + RECORD.bwv + ' · SIDE ' + (RECORD.side || 'A') + '</text>' +
         '<text x="560" y="360" font-family="Arial" font-size="9" fill="#6b5d4a" text-anchor="middle">' + RECORD.labelArtist + '</text>' +
         '<text x="560" y="380" font-family="Arial" font-size="9" letter-spacing="1" fill="' + RECORD.accent + '" text-anchor="middle">YAHAMA RECORDS · 33&#8531;</text>' +
         '<circle cx="560" cy="330" r="7" fill="#c9c2ae" stroke="#55504a"/><circle cx="560" cy="330" r="2.5" fill="#111"/>' +
@@ -905,7 +1322,7 @@ function mountTurntable() {
         '<rect x="1188" y="70" width="380" height="380" rx="4" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/>' +
         '<rect x="1180" y="60" width="380" height="380" rx="4" fill="' + RECORD.jacketBg + '" stroke="#b3a988" stroke-width="2"/>' +
         '<rect x="1196" y="76" width="348" height="348" fill="none" stroke="#8a7d5a" stroke-width="1" opacity="0.6"/>' +
-        '<text x="1370" y="170" font-family="Georgia, serif" font-size="' + (RECORD.jTitle.length > 6 ? 48 : 64) + '" font-weight="700" fill="#3a2b1e" text-anchor="middle">' + RECORD.jTitle + '</text>' +
+        '<text x="1370" y="170" font-family="Georgia, serif" font-size="' + (RECORD.jTitle.length > 16 ? 24 : RECORD.jTitle.length > 11 ? 30 : RECORD.jTitle.length > 6 ? 44 : 64) + '" font-weight="700" fill="#3a2b1e" text-anchor="middle">' + RECORD.jTitle + '</text>' +
         '<text x="1370" y="212" font-family="Arial" font-size="20" fill="#5d4430" text-anchor="middle">' + RECORD.jSub1 + '</text>' +
         '<text x="1370" y="240" font-family="Arial" font-size="15" fill="#5d4430" text-anchor="middle">' + RECORD.jSub2 + '</text>' +
         '<line x1="1260" y1="266" x2="1480" y2="266" stroke="#8a7d5a" stroke-width="1"/>' +
@@ -918,7 +1335,7 @@ function mountTurntable() {
         '<text x="1590" y="259" font-family="Georgia, serif" font-size="26" fill="#d9cfc0" text-anchor="middle" pointer-events="none">&#8250;</text>' +
         '<text x="1370" y="462" font-family="Arial" font-size="11" fill="#8a7d70" text-anchor="middle">음반 ' + (recordIdx + 1) + ' / ' + RECORDS.length + '</text>' +
         // 트랙 리스트
-        '<text x="1600" y="86" font-family="Arial" font-size="14" font-weight="700" letter-spacing="2" fill="#8a7d70">SIDE A</text>' +
+        '<text x="1600" y="86" font-family="Arial" font-size="14" font-weight="700" letter-spacing="2" fill="#8a7d70">SIDE ' + (RECORD.side || 'A') + '</text>' +
         rows +
         // 컨트롤
         '<rect id="ttStartBtn" x="1180" y="480" width="240" height="76" rx="8" fill="#26262b" stroke="#4a4a52" stroke-width="2" style="cursor:pointer"><title>START/STOP</title></rect>' +
