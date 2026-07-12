@@ -1231,6 +1231,10 @@
                 <div class="skin-picker" id="ampPicker" role="group" aria-label="앰프 모델 선택"></div>
             </div>
             <div class="settings-sec">
+                <div class="settings-title">이퀄라이저</div>
+                <div class="skin-picker" id="eqPicker" role="group" aria-label="이퀄라이저 모델 선택"></div>
+            </div>
+            <div class="settings-sec">
                 <div class="settings-title">채널</div>
                 <button class="skin-btn" type="button" onclick="toggleSettings(false); openListFromSettings();">전체 채널 목록 열기</button>
             </div>
@@ -1299,7 +1303,9 @@
             '<filter id="lzBloom" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>' +
             '<linearGradient id="lzFil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a" stop-opacity="0.35"/><stop offset="0.28" stop-color="#ffc46a"/><stop offset="0.5" stop-color="#fff2c8"/><stop offset="0.72" stop-color="#ffc46a"/><stop offset="1" stop-color="#ff8a2a" stop-opacity="0.35"/></linearGradient>' +
             '<linearGradient id="lzFilG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fd07a" stop-opacity="0.35"/><stop offset="0.28" stop-color="#9af0b8"/><stop offset="0.5" stop-color="#e8fff0"/><stop offset="0.72" stop-color="#9af0b8"/><stop offset="1" stop-color="#4fd07a" stop-opacity="0.35"/></linearGradient>' +
-            '<linearGradient id="lzMcBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa8f0" stop-opacity="0.5"/><stop offset="0.45" stop-color="#3f92e6" stop-opacity="0.58"/><stop offset="1" stop-color="#2668c8" stop-opacity="0.48"/></linearGradient>' +
+            '<linearGradient id="lzMcBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#28a9ff" stop-opacity="0.58"/><stop offset="0.45" stop-color="#0d86e8" stop-opacity="0.64"/><stop offset="1" stop-color="#0057b8" stop-opacity="0.54"/></linearGradient>' +
+            '<linearGradient id="lzTubeGlass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#17171c" stop-opacity="0.9"/><stop offset="0.26" stop-color="#4c4c56" stop-opacity="0.42"/><stop offset="0.5" stop-color="#83838f" stop-opacity="0.18"/><stop offset="0.74" stop-color="#33333c" stop-opacity="0.55"/><stop offset="1" stop-color="#0e0e12" stop-opacity="0.92"/></linearGradient>' +
+            '<radialGradient id="lzGetter" cx="0.4" cy="0.35" r="0.9"><stop offset="0" stop-color="#dfe5ee" stop-opacity="0.55"/><stop offset="0.45" stop-color="#98a0b2" stop-opacity="0.6"/><stop offset="1" stop-color="#20242e" stop-opacity="0.85"/></radialGradient>' +
             '</defs>';
 
         function applyPanelLighting(svg) {
@@ -1319,7 +1325,6 @@
         const TS_HIT_META = {
             power: { title: "전원 — 재생/정지", cursor: "pointer" },
             dial: { title: "드래그하여 주파수를 맞추세요", cursor: "ew-resize" },
-            rec: { title: "녹음 시작/정지", cursor: "pointer" },
             blend: { title: "하이블렌드 — 고음 잡음 감쇠", cursor: "pointer" },
             mode: { title: "스테레오/모노 전환", cursor: "pointer" },
             mute: { title: "음소거", cursor: "pointer" },
@@ -2011,13 +2016,7 @@
             knob.addEventListener("keydown", stepByKey);
 
             on("tsPowerHit", () => { if (currentStation) togglePlay(); });
-            on("tsRecHit", () => {
-                if (recorder || (currentStation && isPlaying)) {
-                    toggleRecording();
-                } else {
-                    playerSubtext.textContent = "녹음은 재생 중에만 시작할 수 있습니다.";
-                }
-            });
+            // 녹음은 카세트 데크 전담 — 튜너의 REC 계열 스위치는 녹음 상태 표시등으로만 남는다
             on("tsBlendHit", () => {
                 blendOn = !blendOn;
                 applyBlend();
@@ -2158,18 +2157,99 @@
         }
 
         // ----- 그래픽 이퀄라이저 (YAHAMA GE-5) -----
-        const EQ_FREQS = [60, 250, 1000, 4000, 12000];
-        const EQ_LABELS = ["60", "250", "1k", "4k", "12k"];
-        const EQ_X = [800, 1030, 1260, 1490, 1720];
+        // EQ 모델: GE-5(5밴드) / GE-10(옥타브 10밴드)
+        const EQ_MODELS = {
+            ge5: { pill: "GE-5 · 5밴드", name: "GE-5", q: 1.0, capW: 60,
+                freqs: [60, 250, 1000, 4000, 12000],
+                labels: ["60", "250", "1k", "4k", "12k"],
+                xs: [800, 1030, 1260, 1490, 1720] },
+            ge10: { pill: "GE-10 · 10밴드", name: "GE-10", q: 1.4, capW: 44,
+                freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+                labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
+                xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] }
+        };
+        const EQ_ORDER = ["ge5", "ge10"];
         const EQ_TOP = 100;
         const EQ_BOT = 320;
         const EQ_VB_H = 400;
-        let eqState = loadJson("fmRadio.eq", { on: true, gains: [0, 0, 0, 0, 0] });
-        if (!Array.isArray(eqState.gains) || eqState.gains.length !== 5) eqState = { on: true, gains: [0, 0, 0, 0, 0] };
+        let EQ_FREQS = [], EQ_LABELS = [], EQ_X = [], EQ_CAPW = 60;
+
+        const eqSaved = loadJson("fmRadio.eq", null);
+        let eqModelId = (eqSaved && EQ_MODELS[eqSaved.model]) ? eqSaved.model : "ge5";
+        let eqState = { on: !eqSaved || eqSaved.on !== false, gains: {} };
+        EQ_ORDER.forEach((k) => {
+            const n = EQ_MODELS[k].freqs.length;
+            const saved = eqSaved && eqSaved.gains && Array.isArray(eqSaved.gains[k]) && eqSaved.gains[k].length === n ? eqSaved.gains[k] : null;
+            eqState.gains[k] = saved || new Array(n).fill(0);
+        });
+        // 구버전(단일 배열) 마이그레이션
+        if (eqSaved && Array.isArray(eqSaved.gains) && eqSaved.gains.length === 5) eqState.gains.ge5 = eqSaved.gains;
+
+        function eqApplyModelCfg() {
+            const m = EQ_MODELS[eqModelId];
+            EQ_FREQS = m.freqs;
+            EQ_LABELS = m.labels;
+            EQ_X = m.xs;
+            EQ_CAPW = m.capW;
+        }
+        eqApplyModelCfg();
+
+        function saveEq() {
+            saveJson("fmRadio.eq", { on: eqState.on, model: eqModelId, gains: eqState.gains });
+        }
 
         function applyEq() {
             if (!eqNodes) return;
-            eqNodes.forEach((b, i) => { b.gain.value = eqState.on ? eqState.gains[i] : 0; });
+            const g = eqState.gains[eqModelId];
+            eqNodes.forEach((b, i) => { b.gain.value = eqState.on ? (g[i] || 0) : 0; });
+        }
+
+        // EQ 밴드를 현재 모델로 (재)구성해 monoGain→EQ→ampDrive로 연결한다.
+        // 크랙클·히스처럼 EQ 입력에 물리는 소스도 함께 재연결한다.
+        function buildEqChain() {
+            if (!audioCtx || !monoGain || !ampDrive) return;
+            try { monoGain.disconnect(); } catch (e) {}
+            if (eqNodes) eqNodes.forEach((n) => { try { n.disconnect(); } catch (e) {} });
+            if (crackleGain) { try { crackleGain.disconnect(); } catch (e) {} }
+            if (hissGain) { try { hissGain.disconnect(); } catch (e) {} }
+            const m = EQ_MODELS[eqModelId];
+            eqNodes = m.freqs.map((f) => {
+                const b = audioCtx.createBiquadFilter();
+                b.type = "peaking";
+                b.frequency.value = f;
+                b.Q.value = m.q;
+                return b;
+            });
+            let head = monoGain;
+            eqNodes.forEach((b) => { head = head.connect(b); });
+            head.connect(ampDrive);
+            if (crackleGain) crackleGain.connect(eqNodes[0]);
+            if (hissGain) hissGain.connect(eqNodes[0]);
+            applyEq();
+        }
+
+        function setEqModel(id) {
+            if (!EQ_MODELS[id] || id === eqModelId) return;
+            eqModelId = id;
+            eqApplyModelCfg();
+            buildEqChain();
+            mountEq();
+            saveEq();
+            playerSubtext.textContent = "이퀄라이저: " + EQ_MODELS[id].pill;
+        }
+
+        function renderEqPicker() {
+            const el = document.getElementById("eqPicker");
+            if (!el) return;
+            el.innerHTML = "";
+            EQ_ORDER.forEach((id) => {
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = "skin-btn" + (id === eqModelId ? " active" : "");
+                b.textContent = EQ_MODELS[id].pill;
+                b.addEventListener("click", () => setEqModel(id));
+                el.appendChild(b);
+            });
         }
 
         function eqGainToY(g) {
@@ -2183,17 +2263,19 @@
                 const y = eqGainToY(g);
                 grid += '<line x1="700" y1="' + y + '" x2="1900" y2="' + y + '" stroke="#3a3a40" stroke-width="' + (g === 0 ? 2 : 0.8) + '" opacity="' + (g === 0 ? 0.9 : 0.5) + '"/>';
             });
+            const hw = EQ_CAPW / 2;
+            const hitHw = Math.min(58, Math.floor((EQ_X[1] - EQ_X[0]) / 2) - 3);
             const sliders = EQ_FREQS.map((f, i) => {
                 const x = EQ_X[i];
                 return '<rect x="' + (x - 5) + '" y="' + (EQ_TOP - 8) + '" width="10" height="' + (EQ_BOT - EQ_TOP + 16) + '" rx="5" fill="#050506" stroke="#2e2e34" stroke-width="1.2"/>' +
                     '<g id="eqH' + i + '">' +
-                    '<rect x="' + (x - 30) + '" y="-15" width="60" height="30" rx="4" fill="#26262c" stroke="#0a0a0c" stroke-width="1.5"/>' +
-                    '<rect x="' + (x - 30) + '" y="-15" width="60" height="6" rx="3" fill="#3c3c44"/>' +
-                    '<rect x="' + (x - 30) + '" y="-2.5" width="60" height="5" fill="#f2f2f4"/>' +
+                    '<rect x="' + (x - hw) + '" y="-15" width="' + EQ_CAPW + '" height="30" rx="4" fill="#26262c" stroke="#0a0a0c" stroke-width="1.5"/>' +
+                    '<rect x="' + (x - hw) + '" y="-15" width="' + EQ_CAPW + '" height="6" rx="3" fill="#3c3c44"/>' +
+                    '<rect x="' + (x - hw) + '" y="-2.5" width="' + EQ_CAPW + '" height="5" fill="#f2f2f4"/>' +
                     '</g>' +
-                    '<text id="eqV' + i + '" x="' + x + '" y="78" font-family="Arial" font-size="14" font-weight="700" fill="#9a9aa2" text-anchor="middle">0</text>' +
-                    '<text x="' + x + '" y="354" font-family="Arial" font-size="15" font-weight="600" letter-spacing="1" fill="#8a8a94" text-anchor="middle">' + EQ_LABELS[i] + '</text>' +
-                    '<rect id="eqHit' + i + '" x="' + (x - 58) + '" y="66" width="116" height="300" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none" tabindex="0" role="slider" aria-label="' + EQ_LABELS[i] + 'Hz 게인" aria-valuemin="-12" aria-valuemax="12"><title>' + EQ_LABELS[i] + 'Hz &#177;12dB</title></rect>';
+                    '<text id="eqV' + i + '" x="' + x + '" y="78" font-family="Arial" font-size="13" font-weight="700" fill="#9a9aa2" text-anchor="middle">0</text>' +
+                    '<text x="' + x + '" y="354" font-family="Arial" font-size="14" font-weight="600" letter-spacing="0.5" fill="#8a8a94" text-anchor="middle">' + EQ_LABELS[i] + '</text>' +
+                    '<rect id="eqHit' + i + '" x="' + (x - hitHw) + '" y="66" width="' + (hitHw * 2) + '" height="300" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none" tabindex="0" role="slider" aria-label="' + EQ_LABELS[i] + 'Hz 게인" aria-valuemin="-12" aria-valuemax="12"><title>' + EQ_LABELS[i] + 'Hz &#177;12dB</title></rect>';
             }).join("");
             let lvl = "";
             for (let i = 0; i < 12; i++) {
@@ -2213,7 +2295,7 @@
                 '<rect x="1956" y="0" width="44" height="400" rx="8" fill="#101013"/><circle cx="1978" cy="52" r="9" fill="#26262c" stroke="#3c3c44"/><circle cx="1978" cy="348" r="9" fill="#26262c" stroke="#3c3c44"/>' +
                 // 좌측 컨트롤 블록
                 '<text x="90" y="96" font-family="Arial" font-size="30" font-weight="700" letter-spacing="1.5" fill="#f0f0f2">YAHAMA</text>' +
-                '<text x="90" y="126" font-family="Arial" font-size="14" letter-spacing="1.5" fill="#8a8a94">Stereo Graphic Equalizer GE-5</text>' +
+                '<text x="90" y="126" font-family="Arial" font-size="14" letter-spacing="1.5" fill="#8a8a94">Stereo Graphic Equalizer ' + EQ_MODELS[eqModelId].name + '</text>' +
                 '<text x="92" y="196" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a94">power</text>' +
                 '<rect x="90" y="206" width="34" height="64" rx="3" fill="#e8e8ec" stroke="#0a0a0c" stroke-width="1.5"/>' +
                 '<text x="92" y="304" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a94">tape monitor</text>' +
@@ -2249,22 +2331,22 @@
                     let g = 12 - (y - EQ_TOP) / (EQ_BOT - EQ_TOP) * 24;
                     g = Math.max(-12, Math.min(12, g));
                     if (Math.abs(g) < 0.7) g = 0;      // 센터 디텐트
-                    eqState.gains[i] = Math.round(g * 2) / 2;
+                    eqState.gains[eqModelId][i] = Math.round(g * 2) / 2;
                     applyEq();
                     updateEqVisuals();
                 };
                 hit.addEventListener("pointerdown", (e) => { drag = true; try { hit.setPointerCapture(e.pointerId); } catch (err) {} setFromY(e.clientY); e.preventDefault(); });
                 hit.addEventListener("pointermove", (e) => { if (drag) setFromY(e.clientY); });
-                hit.addEventListener("pointerup", () => { drag = false; saveJson("fmRadio.eq", eqState); });
+                hit.addEventListener("pointerup", () => { drag = false; saveEq(); });
                 hit.addEventListener("pointercancel", () => { drag = false; });
                 hit.addEventListener("keydown", (e) => {
                     const step = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0;
                     if (!step) return;
                     e.preventDefault();
-                    eqState.gains[i] = Math.max(-12, Math.min(12, eqState.gains[i] + step));
+                    eqState.gains[eqModelId][i] = Math.max(-12, Math.min(12, eqState.gains[eqModelId][i] + step));
                     applyEq();
                     updateEqVisuals();
-                    saveJson("fmRadio.eq", eqState);
+                    saveEq();
                 });
             });
             const defeatBtn = document.getElementById("eqDefeatBtn");
@@ -2272,7 +2354,7 @@
                 eqState.on = !eqState.on;
                 applyEq();
                 updateEqVisuals();
-                saveJson("fmRadio.eq", eqState);
+                saveEq();
                 playerSubtext.textContent = eqState.on ? "이퀄라이저 ON" : "이퀄라이저 DEFEAT (바이패스)";
             };
             defeatBtn.addEventListener("click", toggleDefeat);
@@ -2282,6 +2364,7 @@
                     toggleDefeat();
                 }
             });
+            renderEqPicker();
             updateEqVisuals();
         }
 
@@ -2290,14 +2373,50 @@
                 const h = document.getElementById("eqH" + i);
                 const v = document.getElementById("eqV" + i);
                 if (!h) return;
-                h.setAttribute("transform", "translate(0," + eqGainToY(eqState.gains[i]).toFixed(1) + ")");
+                h.setAttribute("transform", "translate(0," + eqGainToY(eqState.gains[eqModelId][i]).toFixed(1) + ")");
                 h.style.opacity = eqState.on ? 1 : 0.4;
-                v.textContent = (eqState.gains[i] > 0 ? "+" : "") + eqState.gains[i];
+                v.textContent = (eqState.gains[eqModelId][i] > 0 ? "+" : "") + eqState.gains[eqModelId][i];
                 const hit = document.getElementById("eqHit" + i);
-                if (hit) hit.setAttribute("aria-valuenow", eqState.gains[i]);
+                if (hit) hit.setAttribute("aria-valuenow", eqState.gains[eqModelId][i]);
             });
             const led = document.getElementById("eqLed");
             if (led) led.style.fill = eqState.on ? "#ff7a3a" : "#3a2012";
+        }
+
+        // ----- 진공관 렌더러 — 클래식 관의 실물 구조를 그린다 -----
+        // 유리 실루엣(직관형/벌룬형) + 내부 플레이트(양극)·마이카 디스크·게터 플래시(돔의 은거울면)
+        // + 필라멘트 백열 + 유리 반사. kind: "power"(앰버) | "small"(그린) | "balloon"(300B)
+        function tubeSvg(cx, baseY, w, h, kind) {
+            const grn = kind === "small";
+            const glowFill = grn ? "#7ae09a" : "#ff9a3a";
+            const filGrad = grn ? "url(#lzFilG)" : "url(#lzFil)";
+            const top = baseY - h;
+            const r = w / 2;
+            const plateW = w * 0.54, plateH = h * 0.5;
+            const plateX = cx - plateW / 2, plateY = top + h * 0.27;
+            let glass;
+            if (kind === "balloon") {
+                glass = '<path d="M ' + (cx - r) + ' ' + baseY + ' C ' + (cx - r) + ' ' + (top + h * 0.42) + ' ' + (cx - r * 0.62) + ' ' + (top + h * 0.14) + ' ' + cx + ' ' + top + ' C ' + (cx + r * 0.62) + ' ' + (top + h * 0.14) + ' ' + (cx + r) + ' ' + (top + h * 0.42) + ' ' + (cx + r) + ' ' + baseY + ' Z"';
+            } else {
+                glass = '<path d="M ' + (cx - r) + ' ' + baseY + ' L ' + (cx - r) + ' ' + (top + r * 1.05) + ' Q ' + (cx - r) + ' ' + top + ' ' + (cx - r * 0.34) + ' ' + top + ' L ' + (cx + r * 0.34) + ' ' + top + ' Q ' + (cx + r) + ' ' + top + ' ' + (cx + r) + ' ' + (top + r * 1.05) + ' L ' + (cx + r) + ' ' + baseY + ' Z"';
+            }
+            const getterCy = top + (kind === "balloon" ? h * 0.1 : r * 0.52);
+            const getterRy = kind === "balloon" ? h * 0.06 : r * 0.36;
+            return '<g>' +
+                '<ellipse class="ampGlow" cx="' + cx + '" cy="' + (top + h * 0.55).toFixed(1) + '" rx="' + (w * 0.85).toFixed(1) + '" ry="' + (h * 0.5).toFixed(1) + '" fill="' + glowFill + '" opacity="0.06" filter="url(#lzBloom)"/>' +
+                '<rect x="' + (cx - r - 5).toFixed(1) + '" y="' + (baseY - 2) + '" width="' + (w + 10) + '" height="15" rx="5" fill="#17130e"/>' +
+                '<rect x="' + (cx - r - 1).toFixed(1) + '" y="' + (baseY - 8) + '" width="' + (w + 2) + '" height="9" rx="3" fill="#2b2118"/>' +
+                glass + ' fill="url(#lzTubeGlass)" stroke="#6e6656" stroke-width="1.4"/>' +
+                '<rect x="' + plateX.toFixed(1) + '" y="' + plateY.toFixed(1) + '" width="' + plateW.toFixed(1) + '" height="' + plateH.toFixed(1) + '" rx="' + (plateW * 0.2).toFixed(1) + '" fill="#1d1c20" stroke="#0c0b0e" stroke-width="1"/>' +
+                '<rect x="' + (plateX + plateW * 0.26).toFixed(1) + '" y="' + plateY.toFixed(1) + '" width="' + (plateW * 0.12).toFixed(1) + '" height="' + plateH.toFixed(1) + '" fill="#2a2930"/>' +
+                '<rect x="' + (plateX + plateW * 0.62).toFixed(1) + '" y="' + plateY.toFixed(1) + '" width="' + (plateW * 0.12).toFixed(1) + '" height="' + plateH.toFixed(1) + '" fill="#2a2930"/>' +
+                '<ellipse cx="' + cx + '" cy="' + (plateY - 3.5).toFixed(1) + '" rx="' + (plateW * 0.64).toFixed(1) + '" ry="3.4" fill="#8f8f96" opacity="0.85"/>' +
+                '<ellipse cx="' + cx + '" cy="' + (plateY + plateH + 3.5).toFixed(1) + '" rx="' + (plateW * 0.64).toFixed(1) + '" ry="3.4" fill="#7a7a82" opacity="0.8"/>' +
+                '<rect class="ampFil" x="' + (cx - 2.5) + '" y="' + (plateY + 3).toFixed(1) + '" width="5" height="' + (plateH - 6).toFixed(1) + '" rx="2.5" fill="' + filGrad + '" opacity="0.08"/>' +
+                '<ellipse cx="' + cx + '" cy="' + getterCy.toFixed(1) + '" rx="' + (r * 0.55).toFixed(1) + '" ry="' + getterRy.toFixed(1) + '" fill="url(#lzGetter)" opacity="0.9"/>' +
+                '<path d="M ' + (cx - r * 0.64).toFixed(1) + ' ' + (top + h * 0.17).toFixed(1) + ' Q ' + (cx - r * 0.8).toFixed(1) + ' ' + (top + h * 0.52).toFixed(1) + ' ' + (cx - r * 0.58).toFixed(1) + ' ' + (baseY - h * 0.1).toFixed(1) + '" stroke="#ffffff" stroke-width="' + (w * 0.09).toFixed(1) + '" fill="none" opacity="0.16" stroke-linecap="round"/>' +
+                '<path d="M ' + (cx + r * 0.54).toFixed(1) + ' ' + (top + h * 0.22).toFixed(1) + ' Q ' + (cx + r * 0.66).toFixed(1) + ' ' + (top + h * 0.52).toFixed(1) + ' ' + (cx + r * 0.5).toFixed(1) + ' ' + (baseY - h * 0.12).toFixed(1) + '" stroke="#ffffff" stroke-width="' + (w * 0.05).toFixed(1) + '" fill="none" opacity="0.07" stroke-linecap="round"/>' +
+                '</g>';
         }
 
         // ----- 앰프 (TR 1종 + 진공관 3종, 모델별 고유 음색 · 실물 사진 기반 섀시 뷰) -----
@@ -2307,6 +2426,12 @@
                 desc: "솔리드스테이트 인티앰프 — 무색·투명, 높은 댐핑 (Yamaha CA-1000 오마주)",
                 vol: { cx: 1770, cy: 326, r: 160 },
                 drive: 1, k: 0, asym: 0, bass: [80, 0], mid: [1000, 0, 1], treble: [8000, 0], out: 1
+            },
+            mc2105: {
+                pill: "TR · MC2105",
+                desc: "매킨토시 솔리드스테이트 — 블루 와트미터, 오토포머의 여유 (MC2105 오마주)",
+                vol: { cx: 1000, cy: 442, r: 72 },
+                drive: 1, k: 0, asym: 0, bass: [60, 0.5], mid: [1000, 0, 1], treble: [12000, 0.3], out: 1
             },
             el34: {
                 pill: "EL34 · 8B",
@@ -2423,6 +2548,85 @@
             <ellipse cx="1712" cy="262" rx="54" ry="40" fill="#ffffff" opacity="0.35" pointer-events="none"/>
         </svg>`;
 
+                AMP_MODELS.mc2105.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="McIntoch MC 2105 솔리드스테이트 앰프">
+            <defs>
+                <linearGradient id="m5Glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141418"/><stop offset="0.5" stop-color="#0c0c10"/><stop offset="1" stop-color="#060608"/></linearGradient>
+                <linearGradient id="m5Rail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e2e4ea"/><stop offset="0.5" stop-color="#9aa0ac"/><stop offset="1" stop-color="#5c626e"/></linearGradient>
+                <radialGradient id="m5Knob" cx="0.38" cy="0.32" r="0.9"><stop offset="0" stop-color="#f2f4f8"/><stop offset="0.5" stop-color="#c2c6ce"/><stop offset="1" stop-color="#7a808c"/></radialGradient>
+                <radialGradient id="m5Shadow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#000000" stop-opacity="0.45"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>
+            </defs>
+            <rect width="2000" height="560" rx="8" fill="url(#m5Glass)"/>
+            <rect x="0" y="2" width="2000" height="3" fill="#ffffff" opacity="0.28"/>
+            <rect x="0" y="0" width="26" height="560" rx="8" fill="url(#m5Rail)"/>
+            <rect x="1974" y="0" width="26" height="560" rx="8" fill="url(#m5Rail)"/>
+            <rect x="52" y="56" width="26" height="448" rx="13" fill="url(#m5Rail)"/>
+            <rect x="1922" y="56" width="26" height="448" rx="13" fill="url(#m5Rail)"/>
+            <!-- 블루 와트미터 (좌) -->
+            <g>
+                <rect x="250" y="54" width="560" height="256" rx="10" fill="#101014"/>
+                <rect x="250" y="54" width="560" height="256" rx="10" fill="none" stroke="#3c4048" stroke-width="2"/>
+                <rect x="262" y="66" width="536" height="232" rx="6" fill="#04070c"/>
+                <rect class="ampLamp" x="262" y="66" width="536" height="232" rx="6" fill="url(#lzMcBlue)" opacity="0.35" style="mix-blend-mode:screen"/>
+                <path d="M 340 262 A 235 235 0 0 1 720 262" fill="none" stroke="#e8f2fc" stroke-width="2"/>
+                <g stroke="#e8f2fc" stroke-width="1.6" opacity="0.9">
+                    <line x1="348" y1="256" x2="360" y2="266"/><line x1="398" y1="212" x2="408" y2="224"/><line x1="470" y1="184" x2="476" y2="198"/><line x1="530" y1="176" x2="530" y2="190"/><line x1="590" y1="184" x2="584" y2="198"/><line x1="662" y1="212" x2="652" y2="224"/><line x1="712" y1="256" x2="700" y2="266"/>
+                </g>
+                <text x="530" y="130" font-family="Arial" font-size="15" font-weight="700" letter-spacing="3" fill="#dceafc" text-anchor="middle" opacity="0.9">WATTS</text>
+                <text x="360" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">0</text>
+                <text x="524" y="168" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">10</text>
+                <text x="694" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">105</text>
+                <line id="ampVuL" data-cx="530" data-cy="286" x1="530" y1="286" x2="530" y2="120" stroke="#f4f8fc" stroke-width="3" transform="rotate(-42 530 286)"/>
+                <circle cx="530" cy="286" r="8" fill="#0a0c10"/>
+                <polygon points="262,66 560,66 380,298 262,298" fill="url(#lzStreak)"/>
+                <rect class="meterDark" x="262" y="66" width="536" height="232" rx="6" fill="#05070a" opacity="0.55"/>
+            </g>
+            <!-- 블루 와트미터 (우) -->
+            <g>
+                <rect x="1190" y="54" width="560" height="256" rx="10" fill="#101014"/>
+                <rect x="1190" y="54" width="560" height="256" rx="10" fill="none" stroke="#3c4048" stroke-width="2"/>
+                <rect x="1202" y="66" width="536" height="232" rx="6" fill="#04070c"/>
+                <rect class="ampLamp" x="1202" y="66" width="536" height="232" rx="6" fill="url(#lzMcBlue)" opacity="0.35" style="mix-blend-mode:screen"/>
+                <path d="M 1280 262 A 235 235 0 0 1 1660 262" fill="none" stroke="#e8f2fc" stroke-width="2"/>
+                <g stroke="#e8f2fc" stroke-width="1.6" opacity="0.9">
+                    <line x1="1288" y1="256" x2="1300" y2="266"/><line x1="1338" y1="212" x2="1348" y2="224"/><line x1="1410" y1="184" x2="1416" y2="198"/><line x1="1470" y1="176" x2="1470" y2="190"/><line x1="1530" y1="184" x2="1524" y2="198"/><line x1="1602" y1="212" x2="1592" y2="224"/><line x1="1652" y1="256" x2="1640" y2="266"/>
+                </g>
+                <text x="1470" y="130" font-family="Arial" font-size="15" font-weight="700" letter-spacing="3" fill="#dceafc" text-anchor="middle" opacity="0.9">WATTS</text>
+                <text x="1300" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">0</text>
+                <text x="1464" y="168" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">10</text>
+                <text x="1634" y="240" font-family="Arial" font-size="11" fill="#bcd4ec" opacity="0.85">105</text>
+                <line id="ampVuR" data-cx="1470" data-cy="286" x1="1470" y1="286" x2="1470" y2="120" stroke="#f4f8fc" stroke-width="3" transform="rotate(-42 1470 286)"/>
+                <circle cx="1470" cy="286" r="8" fill="#0a0c10"/>
+                <polygon points="1202,66 1500,66 1320,298 1202,298" fill="url(#lzStreak)"/>
+                <rect class="meterDark" x="1202" y="66" width="536" height="232" rx="6" fill="#05070a" opacity="0.55"/>
+            </g>
+            <!-- 중앙 로고 -->
+            <text x="1000" y="150" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#d8b060" text-anchor="middle">McIntoch</text>
+            <text x="1000" y="192" font-family="Arial" font-size="19" font-weight="600" letter-spacing="7" fill="#e8e8ea" text-anchor="middle">MC 2105</text>
+            <text x="1000" y="222" font-family="Arial" font-size="12" letter-spacing="3" fill="#8a909c" text-anchor="middle">SOLID STATE STEREO POWER AMPLIFIER</text>
+            <!-- 하단 컨트롤 행 -->
+            <g font-family="Arial" font-size="12" letter-spacing="1.5" fill="#c8ccd4" text-anchor="middle">
+                <text x="290" y="382">POWER</text><text x="560" y="382">L GAIN</text><text x="1000" y="382">GAIN</text><text x="1440" y="382">R GAIN</text><text x="1710" y="382">SPEAKERS</text>
+            </g>
+            <circle cx="290" cy="436" r="15" fill="#8a6a2a"/>
+            <circle id="ampPwrLed" cx="290" cy="436" r="9" fill="#3a2012"/>
+            <ellipse cx="560" cy="486" rx="36" ry="10" fill="url(#m5Shadow)"/>
+            <circle cx="560" cy="440" r="32" fill="url(#m5Knob)" stroke="#7a808c" stroke-width="1.5"/>
+            <rect x="557" y="412" width="6" height="16" rx="3" fill="#2a2e36"/>
+            <ellipse cx="550" cy="430" rx="10" ry="8" fill="#ffffff" opacity="0.4"/>
+            <ellipse cx="1000" cy="500" rx="66" ry="14" fill="url(#m5Shadow)"/>
+            <circle cx="1000" cy="442" r="58" fill="url(#m5Knob)" stroke="#8a909c" stroke-width="2"/>
+            <circle cx="1000" cy="442" r="58" fill="none" stroke="#6a707c" stroke-width="6" stroke-dasharray="2 6" opacity="0.5"/>
+            <circle id="ampVolMark" cx="1000" cy="392" r="6" fill="#2a2e36"/>
+            <ellipse cx="982" cy="422" rx="18" ry="14" fill="#ffffff" opacity="0.4"/>
+            <ellipse cx="1440" cy="486" rx="36" ry="10" fill="url(#m5Shadow)"/>
+            <circle cx="1440" cy="440" r="32" fill="url(#m5Knob)" stroke="#7a808c" stroke-width="1.5"/>
+            <rect x="1437" y="412" width="6" height="16" rx="3" fill="#2a2e36"/>
+            <ellipse cx="1430" cy="430" rx="10" ry="8" fill="#ffffff" opacity="0.4"/>
+            <ellipse cx="1712" cy="486" rx="24" ry="8" fill="url(#m5Shadow)"/>
+            <rect x="1696" y="400" width="28" height="80" rx="7" fill="#1c1c22"/><rect x="1699" y="404" width="22" height="34" rx="4" fill="#b8bcc6"/>
+            <text x="1000" y="536" font-family="Arial" font-size="11" letter-spacing="2" fill="#4c525e" text-anchor="middle">105 WATTS PER CHANNEL</text>
+        </svg>`;
+
         AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Maranz 8B EL34 진공관 앰프">
             <defs>
                 <linearGradient id="m8Face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6ddc2"/><stop offset="0.5" stop-color="#cfc6a9"/><stop offset="1" stop-color="#aba288"/></linearGradient>
@@ -2448,48 +2652,14 @@
                 <rect x="1676" y="76" width="8" height="172" rx="4" fill="#3c3c46" opacity="0.6"/>
                 <rect x="1662" y="66" width="252" height="8" rx="4" fill="#2e2e38"/>
             </g>
-            <g>
-                <ellipse class="ampGlow" cx="560" cy="170" rx="58" ry="82" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
-                <rect x="524" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
-                <rect x="523" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
-                <rect x="541" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampFil" x="556" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
-                <circle cx="560" cy="90" r="5" fill="#2a2622"/>
-                <ellipse cx="540" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
-            </g>
-            <g>
-                <ellipse class="ampGlow" cx="700" cy="170" rx="58" ry="82" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
-                <rect x="664" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
-                <rect x="663" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
-                <rect x="681" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampFil" x="696" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
-                <circle cx="700" cy="90" r="5" fill="#2a2622"/>
-                <ellipse cx="680" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
-            </g>
-            <g>
-                <ellipse class="ampGlow" cx="1300" cy="170" rx="58" ry="82" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
-                <rect x="1264" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
-                <rect x="1263" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
-                <rect x="1281" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampFil" x="1296" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
-                <circle cx="1300" cy="90" r="5" fill="#2a2622"/>
-                <ellipse cx="1280" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
-            </g>
-            <g>
-                <ellipse class="ampGlow" cx="1440" cy="170" rx="58" ry="82" fill="#ff8a3a" opacity="0.08" filter="url(#m8Glow)"/>
-                <rect x="1404" y="252" width="72" height="14" rx="5" fill="#1c1a16"/>
-                <rect x="1403" y="78" width="74" height="176" rx="36" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.6"/>
-                <rect x="1421" y="108" width="38" height="104" rx="6" fill="#20201e" opacity="0.85"/>
-                <rect class="ampFil" x="1436" y="104" width="8" height="112" rx="4" fill="url(#lzFil)" opacity="0.08"/>
-                <circle cx="1440" cy="90" r="5" fill="#2a2622"/>
-                <ellipse cx="1420" cy="104" rx="7" ry="20" fill="#ffffff" opacity="0.2"/>
-            </g>
-            <g>
-                <rect x="884" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="883" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="895" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="903" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
-                <rect x="964" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="963" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="975" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="983" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
-                <rect x="1044" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1043" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1055" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="1063" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
-                <rect x="1124" y="256" width="44" height="10" rx="4" fill="#1c1a16"/><rect x="1123" y="140" width="46" height="118" rx="22" fill="url(#m8Glass)" stroke="#6e6656" stroke-width="1.4"/><rect x="1135" y="160" width="22" height="72" rx="4" fill="#20201e" opacity="0.85"/><rect class="ampFil" x="1143" y="156" width="6" height="82" rx="3" fill="url(#lzFil)" opacity="0.08"/>
-            </g>
+            ${tubeSvg(560, 254, 74, 176, "power")}
+            ${tubeSvg(700, 254, 74, 176, "power")}
+            ${tubeSvg(1300, 254, 74, 176, "power")}
+            ${tubeSvg(1440, 254, 74, 176, "power")}
+            ${tubeSvg(906, 258, 46, 118, "power")}
+            ${tubeSvg(986, 258, 46, 118, "power")}
+            ${tubeSvg(1066, 258, 46, 118, "power")}
+            ${tubeSvg(1146, 258, 46, 118, "power")}
             <rect class="tubeDark" x="42" y="42" width="1916" height="230" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="20" fill="url(#lzInset)" opacity="0.85"/>
             <polygon points="40,40 760,40 320,274 40,274" fill="url(#lzStreak)"/>
@@ -2557,28 +2727,9 @@
             <rect x="700" y="58" width="240" height="10" fill="#ffffff" opacity="0.25"/>
             <text x="820" y="140" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="25" font-weight="700" fill="#4a4436" text-anchor="middle">Western Eletric</text>
             <text x="820" y="188" font-family="Arial" font-size="30" letter-spacing="7" fill="#847c66" text-anchor="middle">91E</text>
-            <g>
-                <ellipse class="ampGlow" cx="1300" cy="150" rx="70" ry="95" fill="#ff9a3a" opacity="0.1" filter="url(#weGlow)"/>
-                <rect x="1262" y="234" width="76" height="16" rx="6" fill="#241d14"/>
-                <path d="M 1260 234 C 1260 152 1246 98 1300 52 C 1354 98 1340 152 1340 234 Z" fill="url(#weGlass)" stroke="#7e765f" stroke-width="1.8"/>
-                <rect x="1282" y="112" width="36" height="100" rx="6" fill="#231e16" opacity="0.85"/>
-                <rect class="ampFil" x="1296" y="96" width="9" height="126" rx="4.5" fill="url(#lzFil)" opacity="0.1"/>
-                <ellipse cx="1282" cy="86" rx="9" ry="17" fill="#ffffff" opacity="0.22"/>
-            </g>
-            <g>
-                <ellipse class="ampGlow" cx="1500" cy="150" rx="70" ry="95" fill="#ff9a3a" opacity="0.1" filter="url(#weGlow)"/>
-                <rect x="1462" y="234" width="76" height="16" rx="6" fill="#241d14"/>
-                <path d="M 1460 234 C 1460 152 1446 98 1500 52 C 1554 98 1540 152 1540 234 Z" fill="url(#weGlass)" stroke="#7e765f" stroke-width="1.8"/>
-                <rect x="1482" y="112" width="36" height="100" rx="6" fill="#231e16" opacity="0.85"/>
-                <rect class="ampFil" x="1496" y="96" width="9" height="126" rx="4.5" fill="url(#lzFil)" opacity="0.1"/>
-                <ellipse cx="1482" cy="86" rx="9" ry="17" fill="#ffffff" opacity="0.22"/>
-            </g>
-            <g>
-                <rect x="1642" y="240" width="44" height="10" rx="4" fill="#241d14"/>
-                <rect x="1641" y="128" width="46" height="114" rx="22" fill="url(#weGlass)" stroke="#7e765f" stroke-width="1.4"/>
-                <rect x="1653" y="148" width="22" height="70" rx="4" fill="#231e16" opacity="0.85"/>
-                <rect class="ampFil" x="1661" y="144" width="6" height="80" rx="3" fill="url(#lzFil)" opacity="0.1"/>
-            </g>
+            ${tubeSvg(1300, 240, 96, 195, "balloon")}
+            ${tubeSvg(1500, 240, 96, 195, "balloon")}
+            ${tubeSvg(1664, 242, 46, 114, "power")}
             <rect class="tubeDark" x="42" y="42" width="1916" height="218" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="18" fill="url(#lzInset)" opacity="0.85"/>
             <polygon points="40,40 720,40 300,262 40,262" fill="url(#lzStreak)"/>
@@ -2655,46 +2806,12 @@
                 <rect x="820" y="62" width="270" height="222" rx="14" fill="url(#mcCan)"/><rect x="820" y="62" width="270" height="8" rx="4" fill="#32323c"/><rect x="838" y="74" width="7" height="198" rx="3.5" fill="#4a4a56" opacity="0.6"/>
                 <rect x="1500" y="62" width="270" height="222" rx="14" fill="url(#mcCan)"/><rect x="1500" y="62" width="270" height="8" rx="4" fill="#32323c"/><rect x="1518" y="74" width="7" height="198" rx="3.5" fill="#4a4a56" opacity="0.6"/>
             </g>
-            <g>
-                <ellipse class="ampGlow" cx="500" cy="192" rx="60" ry="86" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
-                <rect x="462" y="270" width="76" height="15" rx="5" fill="#14141a"/>
-                <rect x="461" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
-                <rect x="480" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampFil" x="496" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
-                <circle cx="500" cy="106" r="5" fill="#2a2a32"/>
-                <ellipse cx="478" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
-            </g>
-            <g>
-                <ellipse class="ampGlow" cx="650" cy="192" rx="60" ry="86" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
-                <rect x="612" y="270" width="76" height="15" rx="5" fill="#14141a"/>
-                <rect x="611" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
-                <rect x="630" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampFil" x="646" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
-                <circle cx="650" cy="106" r="5" fill="#2a2a32"/>
-                <ellipse cx="628" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
-            </g>
-            <g>
-                <ellipse class="ampGlow" cx="1190" cy="192" rx="60" ry="86" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
-                <rect x="1152" y="270" width="76" height="15" rx="5" fill="#14141a"/>
-                <rect x="1151" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
-                <rect x="1170" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampFil" x="1186" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
-                <circle cx="1190" cy="106" r="5" fill="#2a2a32"/>
-                <ellipse cx="1168" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
-            </g>
-            <g>
-                <ellipse class="ampGlow" cx="1340" cy="192" rx="60" ry="86" fill="#ff8a3a" opacity="0.09" filter="url(#mcGlow)"/>
-                <rect x="1302" y="270" width="76" height="15" rx="5" fill="#14141a"/>
-                <rect x="1301" y="94" width="78" height="184" rx="38" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.8"/>
-                <rect x="1320" y="126" width="40" height="110" rx="6" fill="#202028" opacity="0.85"/>
-                <rect class="ampFil" x="1336" y="120" width="8" height="120" rx="4" fill="url(#lzFil)" opacity="0.09"/>
-                <circle cx="1340" cy="106" r="5" fill="#2a2a32"/>
-                <ellipse cx="1318" cy="120" rx="8" ry="22" fill="#ffffff" opacity="0.22"/>
-            </g>
-            <g>
-                <rect x="1808" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1806" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1817" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampFil" x="1825" y="188" width="6" height="72" rx="3" fill="url(#lzFilG)" opacity="0.09"/>
-                <rect x="1878" y="272" width="40" height="12" rx="4" fill="#14141a"/><rect x="1876" y="176" width="44" height="102" rx="21" fill="url(#mcGlass)" stroke="#767c88" stroke-width="1.4"/><rect x="1887" y="192" width="22" height="62" rx="4" fill="#202028" opacity="0.85"/><rect class="ampFil" x="1895" y="188" width="6" height="72" rx="3" fill="url(#lzFilG)" opacity="0.09"/>
-            </g>
+            ${tubeSvg(500, 278, 78, 184, "power")}
+            ${tubeSvg(650, 278, 78, 184, "power")}
+            ${tubeSvg(1190, 278, 78, 184, "power")}
+            ${tubeSvg(1340, 278, 78, 184, "power")}
+            ${tubeSvg(1828, 278, 44, 102, "small")}
+            ${tubeSvg(1898, 278, 44, 102, "small")}
             <rect class="tubeDark" x="42" y="42" width="1916" height="248" rx="7" fill="#050403" opacity="0.72"/>
             <rect x="40" y="40" width="1920" height="20" fill="url(#lzInset)" opacity="0.9"/>
             <polygon points="40,40 780,40 330,292 40,292" fill="url(#lzStreak)"/>
@@ -2724,7 +2841,7 @@
                 <circle cx="640" cy="480" r="10"/><circle cx="680" cy="480" r="10"/><circle cx="720" cy="480" r="10"/><circle cx="760" cy="480" r="10"/><circle cx="800" cy="480" r="10"/><circle cx="840" cy="480" r="10"/><circle cx="880" cy="480" r="10"/><circle cx="920" cy="480" r="10"/>
             </g>
         </svg>`;
-        const AMP_ORDER = ["tr", "el34", "300b", "kt88"];
+        const AMP_ORDER = ["tr", "mc2105", "el34", "300b", "kt88"];
         let ampModelId = loadJson("fmRadio.amp", "tr");
         if (!AMP_MODELS[ampModelId]) ampModelId = "tr";
 
@@ -3583,6 +3700,10 @@
             document.querySelectorAll(".lampGlow").forEach((el) => {
                 el.style.opacity = (0.06 + tunerLight * 0.69).toFixed(3);
             });
+            // 앰프 미터 백라이트(MC2105 블루 와트미터) — 시스템 웜업에 연동
+            document.querySelectorAll(".ampLamp").forEach((el) => {
+                el.style.opacity = (0.05 + tubeWarm * 0.6).toFixed(3);
+            });
             document.querySelectorAll(".dialScale").forEach((el) => {
                 el.style.opacity = (0.32 + tunerLight * 0.68).toFixed(2);
             });
@@ -4066,14 +4187,6 @@
                 blendFilter = audioCtx.createBiquadFilter();
                 blendFilter.type = "lowpass";
                 monoGain = audioCtx.createGain();
-                // 그래픽 EQ 5밴드 (peaking)
-                eqNodes = EQ_FREQS.map((f) => {
-                    const b = audioCtx.createBiquadFilter();
-                    b.type = "peaking";
-                    b.frequency.value = f;
-                    b.Q.value = 1.0;
-                    return b;
-                });
                 // 앰프 스테이지: drive → 진공관 쉐이퍼 → 톤(저/중/고) → 출력
                 ampDrive = audioCtx.createGain();
                 ampShaper = audioCtx.createWaveShaper();
@@ -4085,18 +4198,17 @@
                 ampTreble = audioCtx.createBiquadFilter();
                 ampTreble.type = "highshelf";
                 ampOut = audioCtx.createGain();
-                let head = source.connect(gainNode).connect(blendFilter).connect(monoGain);
-                eqNodes.forEach((b) => { head = head.connect(b); });
-                head.connect(ampDrive).connect(ampShaper).connect(ampBass).connect(ampMid).connect(ampTreble).connect(ampOut).connect(audioCtx.destination);
+                source.connect(gainNode).connect(blendFilter).connect(monoGain);
+                ampDrive.connect(ampShaper).connect(ampBass).connect(ampMid).connect(ampTreble).connect(ampOut).connect(audioCtx.destination);
                 // 바이닐 크랙클 (포노 재생 시에만 게인이 올라간다) — EQ 앞에 섞어 앰프 음색까지 입힌다
                 crackleGain = audioCtx.createGain();
                 crackleGain.gain.value = 0;
-                crackleGain.connect(eqNodes[0]);
+                // EQ 밴드는 현재 모델(GE-5/GE-10)로 구성 — monoGain→EQ→ampDrive + 크랙클/히스 연결
+                buildEqChain();
                 source.connect(recDest);
                 source.connect(analyser);
                 applyBlend();
                 applyMono();
-                applyEq();
                 applyAmp();
                 gainNode.gain.value = volumeLevel * (phonoActive ? PHONO_GAIN : 1);
                 audio.volume = 1;
