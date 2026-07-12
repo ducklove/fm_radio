@@ -700,9 +700,14 @@
             top: 16%;
             width: 10%;
             height: 68%;
-            cursor: pointer;
+            cursor: grab;
             z-index: 2;
             border-radius: 50%;
+            touch-action: none;
+        }
+
+        .dial-knob:active {
+            cursor: grabbing;
         }
 
         @media (max-width: 720px) {
@@ -848,6 +853,7 @@
                     </g>
                     <rect x="150" y="86" width="1210" height="14" fill="url(#tnTicksMinor)"/>
                     <rect x="150" y="86" width="1210" height="24" fill="url(#tnTicksMajor)"/>
+                    <g id="tsStationMarks"></g>
                     <g id="tsDialPtr">
                         <rect x="862" y="102" width="20" height="16" rx="2" fill="#ff5a24" filter="url(#tnGlow)"/>
                         <rect x="866" y="86" width="8" height="34" fill="#e23c14"/>
@@ -902,11 +908,17 @@
                     <text id="tsFreq" x="1600" y="200" font-family="'Courier New', monospace" font-size="38" font-weight="700" fill="#5a1e12" text-anchor="end">--.-</text>
                     <!-- knob -->
                     <ellipse cx="1852" cy="140" rx="112" ry="110" fill="#1c1b20"/>
-                    <ellipse cx="1852" cy="138" rx="110" ry="108" fill="url(#tnKnobRim)"/>
-                    <ellipse cx="1852" cy="138" rx="98" ry="97" fill="url(#tnKnobFace)"/>
-                    <ellipse cx="1820" cy="112" rx="42" ry="34" fill="#ffffff" opacity="0.05"/>
+                    <g id="tsKnob">
+                        <ellipse cx="1852" cy="138" rx="110" ry="108" fill="url(#tnKnobRim)"/>
+                        <ellipse cx="1852" cy="138" rx="98" ry="97" fill="url(#tnKnobFace)"/>
+                        <circle cx="1852" cy="62" r="7" fill="#191820"/>
+                    </g>
+                    <ellipse cx="1820" cy="112" rx="42" ry="34" fill="#ffffff" opacity="0.05" pointer-events="none"/>
+                    <!-- 조작 히트 영역 (투명) -->
+                    <rect id="tsPowerHit" x="128" y="160" width="52" height="56" fill="#000000" fill-opacity="0" style="cursor:pointer; touch-action:none"/>
+                    <rect id="tsDialHit" x="150" y="60" width="1220" height="60" fill="#000000" fill-opacity="0" style="cursor:ew-resize; touch-action:none"/>
                 </svg>
-                <div class="dial-knob" onclick="playEasterEgg()" title=""></div>
+                <div class="dial-knob" title="드래그하여 주파수를 맞추세요"></div>
             </div>
             <canvas class="vu-canvas" id="vuCanvas" aria-hidden="true"></canvas>
             <div class="hero-player-wrap">
@@ -1056,12 +1068,16 @@
                 tsFreq.style.fill = "#ff5230";
                 tsFreqGlow.style.fill = "#ff3a1e";
                 tsDialPtr.setAttribute("transform", "translate(" + (tsFreqToX(station.freq) - 864).toFixed(1) + ",0)");
+                tunerKnobAngle(station.freq);
+                highlightStationMark(station.id);
             } else {
                 tsFreq.textContent = "--.-";
                 tsFreqGlow.textContent = "--.-";
                 tsFreq.style.fill = "#5a1e12";
                 tsFreqGlow.style.fill = "#3a1208";
                 tsDialPtr.setAttribute("transform", "translate(" + (tsFreqToX(88) - 864).toFixed(1) + ",0)");
+                tunerKnobAngle(98);
+                highlightStationMark(null);
             }
         }
 
@@ -1097,6 +1113,117 @@
             tsTune = Math.max(-1, Math.min(1, tsTune));
             tsTunePtr.setAttribute("transform", "translate(" + (tsTune * 46).toFixed(1) + ",0)");
         }
+
+        // ----- 튜너 직접 조작 (다이얼/노브 튜닝, POWER 재생) -----
+        const tunerSvgEl = document.querySelector(".tuner-svg");
+        const tsKnob = document.getElementById("tsKnob");
+        const tsStationMarks = document.getElementById("tsStationMarks");
+        const SVG_NS = "http://www.w3.org/2000/svg";
+
+        // 다이얼에 방송국 마커 생성
+        stations.forEach((st) => {
+            const mark = document.createElementNS(SVG_NS, "rect");
+            mark.setAttribute("x", (tsFreqToX(st.freq) - 1.5).toFixed(1));
+            mark.setAttribute("y", "82");
+            mark.setAttribute("width", "3");
+            mark.setAttribute("height", "7");
+            mark.setAttribute("rx", "1");
+            mark.setAttribute("fill", "#e8c85a");
+            mark.setAttribute("data-station", st.id);
+            tsStationMarks.appendChild(mark);
+        });
+
+        function highlightStationMark(id) {
+            tsStationMarks.querySelectorAll("rect").forEach((m) => {
+                const on = m.getAttribute("data-station") === id;
+                m.setAttribute("fill", on ? "#ff8a3a" : "#e8c85a");
+                m.setAttribute("height", on ? "12" : "7");
+            });
+        }
+
+        function tunerKnobAngle(freq) {
+            const ang = (Math.max(88, Math.min(108, freq)) - 88) / 20 * 300 - 150;
+            tsKnob.setAttribute("transform", "rotate(" + ang.toFixed(1) + " 1852 138)");
+        }
+
+        function nearestStation(freq) {
+            return stations.reduce((a, b) => Math.abs(b.freq - freq) < Math.abs(a.freq - freq) ? b : a);
+        }
+
+        function clientXToFreq(clientX) {
+            const r = tunerSvgEl.getBoundingClientRect();
+            const svgX = (clientX - r.left) / r.width * 2000;
+            return 88 + (svgX - 300) / 47;
+        }
+
+        // 드래그 중 미리보기 — 바늘·LED·노브를 임의 주파수로 (선택은 손 뗄 때)
+        function tunerPreview(freq) {
+            freq = Math.max(88, Math.min(108, freq));
+            tsDialPtr.setAttribute("transform", "translate(" + (tsFreqToX(freq) - 864).toFixed(1) + ",0)");
+            const txt = freq.toFixed(1);
+            tsFreq.textContent = txt;
+            tsFreqGlow.textContent = txt;
+            tsFreq.style.fill = "#ff5230";
+            tsFreqGlow.style.fill = "#ff3a1e";
+            tunerKnobAngle(freq);
+            const near = nearestStation(freq);
+            nowStation.textContent = near.name;
+            playerSubtext.textContent = near.name + " · " + near.freq.toFixed(1) + "MHz — 손을 떼면 선택됩니다.";
+        }
+
+        // 다이얼: 클릭/드래그 위치로 절대 튜닝
+        (function () {
+            const hit = document.getElementById("tsDialHit");
+            let dragging = false;
+            hit.addEventListener("pointerdown", (e) => {
+                dragging = true;
+                try { hit.setPointerCapture(e.pointerId); } catch (err) {}
+                tunerPreview(clientXToFreq(e.clientX));
+                e.preventDefault();
+            });
+            hit.addEventListener("pointermove", (e) => { if (dragging) tunerPreview(clientXToFreq(e.clientX)); });
+            hit.addEventListener("pointerup", (e) => {
+                if (!dragging) return;
+                dragging = false;
+                selectStation(nearestStation(clientXToFreq(e.clientX)).id);
+            });
+            hit.addEventListener("pointercancel", () => { dragging = false; });
+        })();
+
+        // 노브: 좌우 드래그로 튜닝, 탭하면 이스터에그
+        (function () {
+            const knob = document.querySelector(".dial-knob");
+            let dragging = false, moved = false, startX = 0, startFreq = 98;
+            knob.addEventListener("pointerdown", (e) => {
+                dragging = true;
+                moved = false;
+                startX = e.clientX;
+                startFreq = currentStation ? currentStation.freq : 98;
+                try { knob.setPointerCapture(e.pointerId); } catch (err) {}
+                e.preventDefault();
+            });
+            knob.addEventListener("pointermove", (e) => {
+                if (!dragging) return;
+                const dx = e.clientX - startX;
+                if (Math.abs(dx) > 3) moved = true;
+                tunerPreview(startFreq + dx / 14);
+            });
+            knob.addEventListener("pointerup", (e) => {
+                if (!dragging) return;
+                dragging = false;
+                if (moved) {
+                    selectStation(nearestStation(Math.max(88, Math.min(108, startFreq + (e.clientX - startX) / 14))).id);
+                } else {
+                    playEasterEgg();
+                }
+            });
+            knob.addEventListener("pointercancel", () => { dragging = false; });
+        })();
+
+        // POWER 스위치: 재생/정지 토글
+        document.getElementById("tsPowerHit").addEventListener("click", () => {
+            if (currentStation) togglePlay();
+        });
 
         let currentStation = null;
         let isPlaying = false;
