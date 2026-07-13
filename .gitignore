@@ -9,3 +9,6 @@ ref_*.jpg
 # 트레이 앱 (Electron)
 tray/node_modules/
 tray/dist*/
+
+# macOS 앱 빌드 산출물
+macos/Mad for Audio.app/
