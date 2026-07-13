@@ -5,3 +5,7 @@ sansui_tu9900.jpg
 marantz10b.jpg
 ref_*.jpg
 .DS_Store
+
+# 트레이 앱 (Electron)
+tray/node_modules/
+tray/dist*/

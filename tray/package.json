@@ -1,0 +1,39 @@
+{
+  "name": "mad-for-audio-tray",
+  "version": "1.0.0",
+  "description": "Mad for Audio — 윈도우 시스템 트레이 라디오 플레이어",
+  "main": "main.js",
+  "private": true,
+  "author": "ducklove",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.madforaudio.tray",
+    "productName": "Mad for Audio",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "shell.html"
+    ],
+    "extraResources": [
+      { "from": "../widget.html", "to": "web/widget.html" },
+      { "from": "../stations.js", "to": "web/stations.js" },
+      { "from": "../player-core.js", "to": "web/player-core.js" },
+      { "from": "../icons", "to": "web/icons" }
+    ],
+    "win": {
+      "target": ["portable"],
+      "icon": "../icons/icon-512.png"
+    }
+  }
+}

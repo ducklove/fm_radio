@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Mad for Audio 트레이</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0b0a09;
+        }
+
+        iframe {
+            display: block;
+            border: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- 재생 엔진은 기존 미니 플레이어(widget.html) 그대로 — postMessage API를 IPC로 중계만 한다 -->
+    <iframe id="widgetFrame" allow="autoplay"></iframe>
+    <script>
+        const frame = document.getElementById("widgetFrame");
+        frame.src = new URLSearchParams(location.search).get("widget");
+
+        window.addEventListener("message", (event) => {
+            const data = event.data;
+            if (!data || typeof data.type !== "string" || !data.type.startsWith("fmRadio:")) return;
+            trayBridge.sendState(data);
+        });
+
+        trayBridge.onCommand((message) => {
+            if (frame.contentWindow) frame.contentWindow.postMessage(message, "*");
+        });
+    </script>
+</body>
+</html>
