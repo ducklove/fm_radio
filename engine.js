@@ -18,6 +18,8 @@ let ampTreble = null;
 let ampOut = null;
 let crackleGain = null;
 let crackleSrc = null;
+let scratchGain = null;   // 바이닐 문지름(스크래치) 노이즈 — 드래그 세기에 비례해 게인이 올라간다
+let scratchSrc = null;
 let vuRaf = null;
 let vuData = null;
 let recorder = null;
@@ -51,6 +53,7 @@ function buildEqChain() {
     try { monoGain.disconnect(); } catch (e) {}
     if (eqNodes) eqNodes.forEach((n) => { try { n.disconnect(); } catch (e) {} });
     if (crackleGain) { try { crackleGain.disconnect(); } catch (e) {} }
+    if (scratchGain) { try { scratchGain.disconnect(); } catch (e) {} }
     if (hissGain) { try { hissGain.disconnect(); } catch (e) {} }
     const m = EQ_MODELS[eqModelId];
     eqNodes = m.freqs.map((f) => {
@@ -64,6 +67,7 @@ function buildEqChain() {
     eqNodes.forEach((b) => { head = head.connect(b); });
     head.connect(ampDrive);
     if (crackleGain) crackleGain.connect(eqNodes[0]);
+    if (scratchGain) scratchGain.connect(eqNodes[0]);
     if (hissGain) hissGain.connect(eqNodes[0]);
     applyEq();
 }
@@ -148,6 +152,34 @@ function ensureCrackle() {
     } catch (e) { crackleSrc = null; }
 }
 
+// 스크래치 노이즈 — 회전 중인 판을 손으로 문지를 때의 마찰음.
+// 거친 노이즈를 밴드패스(2.4kHz)로 걸러 "치직" 대역만 남긴다. 게인은 ttFrame이 드래그 세기로 구동.
+function ensureScratch() {
+    if (!audioCtx || !scratchGain || scratchSrc) return;
+    try {
+        const sr = audioCtx.sampleRate;
+        const buf = audioCtx.createBuffer(1, sr * 2, sr);
+        const d = buf.getChannelData(0);
+        let burst = 0;
+        for (let i = 0; i < d.length; i++) {
+            let v = (Math.random() * 2 - 1) * 0.35;
+            if (Math.random() < 0.004) burst = 0.5 + Math.random() * 0.5;   // 굵은 마찰 알갱이
+            if (burst > 0.01) { v += (Math.random() * 2 - 1) * burst; burst *= 0.86; }
+            d[i] = v;
+        }
+        scratchSrc = audioCtx.createBufferSource();
+        scratchSrc.buffer = buf;
+        scratchSrc.loop = true;
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = 2400;
+        bp.Q.value = 0.7;
+        scratchSrc.connect(bp);
+        bp.connect(scratchGain);
+        scratchSrc.start();
+    } catch (e) { scratchSrc = null; }
+}
+
 function ensureAudioGraph() {
     if (audioCtx) return true;
 
@@ -182,6 +214,8 @@ function ensureAudioGraph() {
         // 바이닐 크랙클 (포노 재생 시에만 게인이 올라간다) — EQ 앞에 섞어 앰프 음색까지 입힌다
         crackleGain = audioCtx.createGain();
         crackleGain.gain.value = 0;
+        scratchGain = audioCtx.createGain();
+        scratchGain.gain.value = 0;
         // EQ 밴드는 현재 모델(GE-5/GE-10)로 구성 — monoGain→EQ→ampDrive + 크랙클/히스 연결
         buildEqChain();
         source.connect(recDest);
@@ -212,6 +246,7 @@ function ensureAudioGraph() {
         ampTreble = null;
         ampOut = null;
         crackleGain = null;
+        scratchGain = null;
         return false;
     }
 }
