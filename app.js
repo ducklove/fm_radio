@@ -1452,6 +1452,8 @@ function mountTurntable() {
         if (!ttRubLast) return;
         const dist = Math.hypot(e.clientX - ttRubLast.x, e.clientY - ttRubLast.y);
         ttRubLast = { x: e.clientX, y: e.clientY };
+        // 손으로 문지르면 지문·유분이 묻어 먼지가 급격히 쌓인다 (자연 축적의 수백 배)
+        ttDust = Math.min(1, ttDust + dist * 0.0016);
         if (phonoActive && isPlaying && ttSpin > 0.5) {
             ttScratchEnergy = Math.min(1, ttScratchEnergy + dist * 0.012);
         }
@@ -1581,7 +1583,8 @@ function ttFrame(now) {
         ttDust = Math.max(0, ttDust - dt * 1.2);
         if (ttDust === 0 && ttCleanUntil - now < 200) playerSubtext.textContent = "먼지를 말끔히 닦아냈습니다.";
     } else {
-        ttDust = Math.min(1, ttDust + dt * (0.0008 + Math.random() * 0.0016) * (phonoActive && isPlaying ? 3 : 1));
+        // 자연 축적은 아주 느리게 — 먼지는 주로 판을 만질 때 쌓인다 (문지름 핸들러 참고)
+        ttDust = Math.min(1, ttDust + dt * (0.0008 + Math.random() * 0.0016) / 30 * (phonoActive && isPlaying ? 3 : 1));
     }
     const dustG = document.getElementById("ttDustG");
     if (dustG) dustG.setAttribute("opacity", (ttDust * 0.85).toFixed(2));
