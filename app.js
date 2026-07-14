@@ -1956,6 +1956,18 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !document.getElementById("jacketOverlay").hidden) closeJacketView();
 });
 
+// WebKit(사파리·맥 앱·iOS)은 OGG(Vorbis)를 재생하지 못한다 —
+// 커먼즈가 자동 생성하는 mp3 트랜스코드로 대체한다 (같은 호스트, CORS 동일).
+const CAN_OGG = (() => {
+    try { return audio.canPlayType('audio/ogg; codecs="vorbis"') !== ""; } catch (e) { return false; }
+})();
+
+function phonoSrc(f) {
+    if (CAN_OGG || !/\.(ogg|oga)$/i.test(f)) return PHONO_BASE + f;
+    const name = f.split("/").pop();
+    return PHONO_BASE + "transcoded/" + f + "/" + name + ".mp3";
+}
+
 // 턴테이블 전원 — 일시정지와 달리 완전히 내려놓는다:
 // 톤암 복귀·플래터 런다운·소스 해제. 대기 중이던 방송국이 있으면 이어서 연결한다.
 function phonoPower() {
@@ -2208,7 +2220,7 @@ function playPhonoTrack(i, auto) {
     streamLoaded = true;
     try { audio.preservesPitch = false; audio.webkitPreservesPitch = false; } catch (e) {}
     setAudioState("resolving", "PHONO");
-    audio.src = PHONO_BASE + RECORD.tracks[i].f;
+    audio.src = phonoSrc(RECORD.tracks[i].f);
     audio.play().catch(() => { isPlaying = false; setAudioState("blocked"); updatePlayButton(); });
     isPlaying = true;
     if (!auto) needleThump();
