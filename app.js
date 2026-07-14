@@ -1969,6 +1969,12 @@ function phonoSrc(f) {
     return PHONO_BASE + "transcoded/" + f + "/" + name + ".mp3";
 }
 
+// 45회전 배속 — WebKit에서는 프레임 루프 대입이 금지라 전환 순간에만 1회 대입한다
+function applyRpmRate() {
+    if (!SAFARI_LIKE || !phonoActive) return;
+    try { audio.playbackRate = ttRpm45 ? 1.35 : 1; } catch (e) {}
+}
+
 // 턴테이블 전원 — 일시정지와 달리 완전히 내려놓는다:
 // 톤암 복귀·플래터 런다운·소스 해제. 대기 중이던 방송국이 있으면 이어서 연결한다.
 function phonoPower() {
@@ -2163,8 +2169,8 @@ function mountTurntable() {
         if (phonoActive) togglePlay();
         else playPhonoTrack(0);
     });
-    document.getElementById("tt33").addEventListener("click", () => { ttRpm45 = false; updatePhonoVisuals(); });
-    document.getElementById("tt45").addEventListener("click", () => { ttRpm45 = true; updatePhonoVisuals(); });
+    document.getElementById("tt33").addEventListener("click", () => { ttRpm45 = false; applyRpmRate(); updatePhonoVisuals(); });
+    document.getElementById("tt45").addEventListener("click", () => { ttRpm45 = true; applyRpmRate(); updatePhonoVisuals(); });
     document.getElementById("ttPrevRec").addEventListener("click", () => setRecord(recordIdx - 1));
     document.getElementById("ttNextRec").addEventListener("click", () => setRecord(recordIdx + 1));
     document.getElementById("ttCrateBtn").addEventListener("click", openCrate);
@@ -2224,6 +2230,7 @@ function playPhonoTrack(i, auto) {
     audio.src = phonoSrc(RECORD.tracks[i].f);
     audio.play().catch(() => { isPlaying = false; setAudioState("blocked"); updatePlayButton(); });
     isPlaying = true;
+    if (SAFARI_LIKE && ttRpm45) applyRpmRate();
     if (!auto) needleThump();
     nowStation.textContent = RECORD.tracks[i].t + " — " + RECORD.composer;
     playerSubtext.textContent = "PHONO · " + RECORD.title + " (" + RECORD.performer + ")";
@@ -2317,19 +2324,15 @@ function ttFrame(now) {
     if (arm) arm.setAttribute("transform", "rotate(" + ttArmAng.toFixed(2) + " 1065 120)");
 
     // 와우·플러터 + 스핀업 피치 + 45회전
-    // 주의(실측 webprobe): WebKit은 매 프레임 playbackRate를 바꾸면 미디어가
-    // 0.6초마다 리셋되어 사실상 무음이 된다 — 사파리 계열은 흔들림을 생략하고,
-    // 값이 실제로 달라질 때만(45회전·스핀업) 대입한다.
-    if (phonoActive && isPlaying) {
+    // 주의(실측 webprobe): WebKit은 playbackRate를 대입하는 것만으로 스트림을 리셋하고,
+    // 리셋이 pause 이벤트를 불러 스핀업이 재계산되는 피드백 루프에 빠진다.
+    // 사파리 계열에서는 프레임 루프에서 절대 건드리지 않는다 (45회전은 전환 시 1회 대입).
+    if (phonoActive && isPlaying && !SAFARI_LIKE) {
         const t = now / 1000;
-        const wow = SAFARI_LIKE ? 1
-            : 1 + 0.0022 * Math.sin(t * 2 * Math.PI * 0.43) + 0.0007 * Math.sin(t * 2 * Math.PI * 3.1);
+        const wow = 1 + 0.0022 * Math.sin(t * 2 * Math.PI * 0.43) + 0.0007 * Math.sin(t * 2 * Math.PI * 3.1);
         const spinPitch = ttSpin < 0.999 ? (0.5 + 0.5 * ttSpin) : 1;
         const mult = ttRpm45 ? 1.35 : 1;
-        const rate = wow * spinPitch * mult;
-        try {
-            if (Math.abs(audio.playbackRate - rate) > 0.0005) audio.playbackRate = rate;
-        } catch (e) {}
+        try { audio.playbackRate = wow * spinPitch * mult; } catch (e) {}
     }
     // 먼지 — 시간이 흐르면 랜덤하게 쌓인다 (판이 도는 동안 3배 빨리). 클리닝 중엔 빠르게 닦인다.
     const cleaning = now < ttCleanUntil;

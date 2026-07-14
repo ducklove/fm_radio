@@ -36,7 +36,9 @@ final class Probe: NSObject, WKNavigationDelegate {
         win.contentView = web
         win.orderFrontRegardless()
         objc_setAssociatedObject(self, "probeWindow", win, .OBJC_ASSOCIATION_RETAIN)
-        var req = URLRequest(url: URL(string: "https://ducklove.github.io/mad-for-audio/?view=rack&probe=1")!)
+        let urlArg = CommandLine.arguments.dropFirst().first(where: { $0.hasPrefix("http") })
+            ?? "https://ducklove.github.io/mad-for-audio/?view=rack&probe=1"
+        var req = URLRequest(url: URL(string: urlArg)!)
         req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         web.load(req)
     }
@@ -48,10 +50,6 @@ final class Probe: NSObject, WKNavigationDelegate {
           try { setRecord(0); } catch (e) {}
           playPhonoTrack(0);
           window.__fetchStat = 'pending';
-          const MP3 = 'https://upload.wikimedia.org/wikipedia/commons/transcoded/4/43/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg.mp3';
-          window.__a1 = new Audio(); __a1.src = MP3; __a1.play().catch(e => { window.__e1 = String(e).slice(0,40); });
-          window.__a2 = document.createElement('audio'); __a2.crossOrigin = 'anonymous'; __a2.src = MP3; __a2.play().catch(e => { window.__e2 = String(e).slice(0,40); });
-          window.__a3 = new Audio('data:audio/wav;base64,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'); __a3.loop = true; __a3.play().catch(e => { window.__e3 = String(e).slice(0,40); });
           fetch('https://upload.wikimedia.org/wikipedia/commons/transcoded/4/43/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg.mp3', {method:'HEAD'})
             .then(r => { window.__fetchStat = 'HTTP ' + r.status; })
             .catch(e => { window.__fetchStat = 'ERR ' + e; });
@@ -68,10 +66,7 @@ final class Probe: NSObject, WKNavigationDelegate {
                 let js = """
                 JSON.stringify({src: audio.src.slice(-70), err: audio.error ? audio.error.code : 0,
                   rs: audio.readyState, t: Math.round(audio.currentTime * 10) / 10,
-                  paused: audio.paused, fetchStat: window.__fetchStat,
-                  a1: __a1.readyState + '/' + Math.round(__a1.currentTime*10) + (window.__e1 ? '/' + __e1 : ''),
-                  a2: __a2.readyState + '/' + Math.round(__a2.currentTime*10) + (window.__e2 ? '/' + __e2 : ''),
-                  a3: __a3.readyState + '/' + Math.round(__a3.currentTime*10) + (window.__e3 ? '/' + __e3 : ''), state: (typeof audioState !== 'undefined' ? audioState : '?'),
+                  paused: audio.paused, fetchStat: window.__fetchStat, rate: Math.round(audio.playbackRate*1000)/1000, state: (typeof audioState !== 'undefined' ? audioState : '?'),
                   vol: audio.volume, muted: audio.muted})
                 """
                 self.web.evaluateJavaScript(js) { r, e in
