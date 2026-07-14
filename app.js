@@ -2580,6 +2580,13 @@ function jacketCard(rec, idx) {
     bar.style.background = rec.accent;
     bar.textContent = rec.composer;
     btn.appendChild(bar);
+    // 펼침: 높이 = 폭 (아무리 길어도 1:1 정사각) — 수치 대입이라 height 전환이 매끄럽다
+    const expand = () => { btn.style.height = btn.offsetWidth + "px"; };
+    const collapse = () => { btn.style.height = ""; };
+    btn.addEventListener("pointerenter", expand);
+    btn.addEventListener("pointerleave", collapse);
+    btn.addEventListener("focus", expand);
+    btn.addEventListener("blur", collapse);
     btn.addEventListener("click", () => pickRecord(idx));
     return btn;
 }

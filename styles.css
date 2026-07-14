@@ -1602,7 +1602,6 @@ body.mode-bar .btn-play-main {
 
 .crate-jacket:hover,
 .crate-jacket:focus-visible {
-    height: min(230px, 58vw);
     transform: none;
     z-index: auto;
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);
