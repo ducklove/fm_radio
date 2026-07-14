@@ -1584,11 +1584,11 @@ body.mode-bar .btn-play-main {
 /* ----- 수납장 = 한 줄 크레이트 -----
    슬리브 스트립(46px)이 쌓이고, 호버/포커스한 판은 높이를 벌려 아래 판들을
    실제로 밀어낸다 — 확대 팝업이 다음 판을 가리지 않아 차례로 훑을 수 있다. */
+/* CSS 컬럼 = 좌우 열이 독립된 흐름 — 한 판이 벌어져도 옆 열은 밀리지 않는다 */
 .crate-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 12px;
-    align-items: start;   /* 이웃 칸이 함께 늘어나지 않게 */
+    display: block;
+    column-count: 2;
+    column-gap: 12px;
 }
 
 .crate-jacket {
@@ -1596,12 +1596,13 @@ body.mode-bar .btn-play-main {
     height: 46px;
     aspect-ratio: auto;
     margin-bottom: 6px;
+    break-inside: avoid;   /* 슬리브가 열 경계에서 쪼개지지 않게 */
     transition: height 0.22s ease, box-shadow 0.22s ease;
 }
 
 .crate-jacket:hover,
 .crate-jacket:focus-visible {
-    height: min(320px, 80vw);
+    height: min(230px, 58vw);
     transform: none;
     z-index: auto;
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);

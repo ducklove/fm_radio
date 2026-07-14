@@ -21,7 +21,11 @@ final class Probe: NSObject, WKNavigationDelegate {
     func start() {
         let cfg = WKWebViewConfiguration()
         cfg.mediaTypesRequiringUserActionForPlayback = []
-        cfg.websiteDataStore = .nonPersistent()   // 캐시 없는 깨끗한 로드
+        if CommandLine.arguments.contains("--persistent") {
+            // 실제 앱과 같은 번들 ID로 실행하면 같은 저장소를 본다 — 사용자 상태 재현
+        } else {
+            cfg.websiteDataStore = .nonPersistent()   // 캐시 없는 깨끗한 로드
+        }
         web = WKWebView(frame: NSRect(x: 0, y: 0, width: 900, height: 700), configuration: cfg)
         if CommandLine.arguments.contains("--safari-ua") {
             web.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15"
@@ -67,7 +71,8 @@ final class Probe: NSObject, WKNavigationDelegate {
                 JSON.stringify({src: audio.src.slice(-70), err: audio.error ? audio.error.code : 0,
                   rs: audio.readyState, t: Math.round(audio.currentTime * 10) / 10,
                   paused: audio.paused, fetchStat: window.__fetchStat, rate: Math.round(audio.playbackRate*1000)/1000, state: (typeof audioState !== 'undefined' ? audioState : '?'),
-                  vol: audio.volume, muted: audio.muted})
+                  vol: audio.volume, muted: audio.muted,
+                  savedVol: localStorage.getItem('fmRadio.volume'), units: localStorage.getItem('fmRadio.units')})
                 """
                 self.web.evaluateJavaScript(js) { r, e in
                     plog("POLL\(self.polls): \(String(describing: r ?? "?"))")
