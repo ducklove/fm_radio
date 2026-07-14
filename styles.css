@@ -1585,7 +1585,10 @@ body.mode-bar .btn-play-main {
    슬리브 스트립(46px)이 쌓이고, 호버/포커스한 판은 높이를 벌려 아래 판들을
    실제로 밀어낸다 — 확대 팝업이 다음 판을 가리지 않아 차례로 훑을 수 있다. */
 .crate-grid {
-    display: block;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 12px;
+    align-items: start;   /* 이웃 칸이 함께 늘어나지 않게 */
 }
 
 .crate-jacket {

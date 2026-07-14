@@ -1958,9 +1958,10 @@ document.addEventListener("keydown", (e) => {
 
 // WebKit(사파리·맥 앱·iOS)은 OGG(Vorbis)를 재생하지 못한다 —
 // 커먼즈가 자동 생성하는 mp3 트랜스코드로 대체한다 (같은 호스트, CORS 동일).
-const CAN_OGG = (() => {
-    try { return audio.canPlayType('audio/ogg; codecs="vorbis"') !== ""; } catch (e) { return false; }
-})();
+// 주의: WebKit은 canPlayType('audio/ogg')에 "probably"라 답해 놓고 실제로는
+// readyState 0에서 오류도 없이 영원히 멈춘다 (실측: webprobe). 답변을 믿지 말고
+// 엔진으로 판단한다 — 크롬/파이어폭스 계열만 Vorbis를 정말 재생한다.
+const CAN_OGG = !SAFARI_LIKE;
 
 function phonoSrc(f) {
     if (CAN_OGG || !/\.(ogg|oga)$/i.test(f)) return PHONO_BASE + f;
