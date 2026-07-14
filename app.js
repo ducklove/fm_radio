@@ -43,7 +43,10 @@ document.addEventListener("audiostate", (e) => {
 
 // ----- 보기 모드: 간편 플레이어(simple) ↔ 하이파이 랙(rack) -----
 // 모바일(좁은 화면·터치)은 간편 모드가 기본, 데스크톱은 랙이 기본.
-let viewMode = loadJson("fmRadio.viewMode", null);
+// URL 파라미터 ?view=rack|simple 은 저장값보다 우선한다 —
+// 맥 메뉴바 앱이 팝오버를 항상 랙 뷰로 고정하는 데 쓴다.
+const urlView = new URLSearchParams(location.search).get("view");
+let viewMode = (urlView === "rack" || urlView === "simple") ? urlView : loadJson("fmRadio.viewMode", null);
 if (viewMode !== "simple" && viewMode !== "rack") {
     viewMode = window.matchMedia("(min-width: 721px) and (pointer: fine)").matches ? "rack" : "simple";
 }
@@ -514,6 +517,21 @@ function setEqModel(id) {
     playerSubtext.textContent = "이퀄라이저: " + EQ_MODELS[id].pill;
 }
 
+// EQ 유닛 표시 여부 — 숨겨도 오디오 체인의 EQ는 그대로 동작한다 (시각만 접는다)
+let eqVisible = loadJson("fmRadio.eqShow", false);
+
+function applyEqVisible() {
+    const stage = document.getElementById("eqStage");
+    if (stage) stage.hidden = !eqVisible;
+}
+
+function setEqVisible(show) {
+    eqVisible = show;
+    saveJson("fmRadio.eqShow", eqVisible);
+    applyEqVisible();
+    renderEqPicker();
+}
+
 function renderEqPicker() {
     const el = document.getElementById("eqPicker");
     if (!el) return;
@@ -521,11 +539,21 @@ function renderEqPicker() {
     EQ_ORDER.forEach((id) => {
         const b = document.createElement("button");
         b.type = "button";
-        b.className = "skin-btn" + (id === eqModelId ? " active" : "");
+        b.className = "skin-btn" + (eqVisible && id === eqModelId ? " active" : "");
         b.textContent = EQ_MODELS[id].pill;
-        b.addEventListener("click", () => setEqModel(id));
+        b.addEventListener("click", () => {
+            if (!eqVisible) setEqVisible(true);
+            setEqModel(id);
+            renderEqPicker();
+        });
         el.appendChild(b);
     });
+    const hide = document.createElement("button");
+    hide.type = "button";
+    hide.className = "skin-btn" + (eqVisible ? "" : " active");
+    hide.textContent = "숨김";
+    hide.addEventListener("click", () => setEqVisible(false));
+    el.appendChild(hide);
 }
 
 function eqGainToY(g) {
@@ -3312,6 +3340,7 @@ updateRecButton();
 openRecordingDb();
 initTunerSkin(loadJson("fmRadio.skin", "mr78"));
 mountEq();
+applyEqVisible();
 mountAmp();
 mountDeck();
 mountTurntable();

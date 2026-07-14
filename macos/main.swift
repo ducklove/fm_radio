@@ -7,7 +7,8 @@ import Cocoa
 import WebKit
 import ServiceManagement
 
-let APP_URL = URL(string: "https://ducklove.github.io/mad-for-audio/")!
+// 팝오버는 항상 랙 뷰로 연다 (?view=rack — 저장된 보기 모드보다 우선)
+let APP_URL = URL(string: "https://ducklove.github.io/mad-for-audio/?view=rack")!
 let WIDGET_URL = URL(string: "https://ducklove.github.io/mad-for-audio/widget.html?skin=tuner")!
 let FULL_SIZE = NSSize(width: 440, height: 780)
 let WIDGET_SIZE = NSSize(width: 500, height: 360)
