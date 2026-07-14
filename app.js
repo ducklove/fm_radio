@@ -217,13 +217,22 @@ function tunerLoop(now) {
     const sc = tunerCfg.signal;
     // 튜너 미터는 튜너가 수신 중일 때만 산다 (포노/테이프 중엔 소스가 튜너가 아니다)
     const sigX = sc.baseX + Math.max(0, Math.min(1, tsSignal * tunerWarm)) * sc.travel;
-    tsSignalPtr.setAttribute("transform", "translate(" + (sigX - sc.drawX).toFixed(1) + ",0)");
+    if (tsSignalPtr.dataset.cx) {
+        const a = -42 + Math.max(0, Math.min(1, tsSignal * tunerWarm)) * 84;
+        tsSignalPtr.setAttribute("transform", "rotate(" + a.toFixed(1) + " " + tsSignalPtr.dataset.cx + " " + tsSignalPtr.dataset.cy + ")");
+    } else {
+        tsSignalPtr.setAttribute("transform", "translate(" + (sigX - sc.drawX).toFixed(1) + ",0)");
+    }
 
     const tuneTarget = (isPlaying && currentStation) ? 0 : 0.85;
     const jitter = isPlaying ? (Math.random() - 0.5) * 0.05 : 0;
     tsTune += (tuneTarget - tsTune) * 0.1 + jitter;
     tsTune = Math.max(-1, Math.min(1, tsTune));
-    tsTunePtr.setAttribute("transform", "translate(" + (tsTune * tunerCfg.tune.travel).toFixed(1) + ",0)");
+    if (tsTunePtr.dataset.cx) {
+        tsTunePtr.setAttribute("transform", "rotate(" + (tsTune * 42).toFixed(1) + " " + tsTunePtr.dataset.cx + " " + tsTunePtr.dataset.cy + ")");
+    } else {
+        tsTunePtr.setAttribute("transform", "translate(" + (tsTune * tunerCfg.tune.travel).toFixed(1) + ",0)");
+    }
     tsSyncPanel();
 }
 
@@ -486,19 +495,31 @@ function svgButtonize(id, label) {
     });
 }
 
-// ----- 그래픽 이퀄라이저 (YAHAMA GE-5) -----
-// EQ 모델: GE-5(5밴드) / GE-10(옥타브 10밴드)
+// ----- 그래픽 이퀄라이저 -----
+const EQ_THEMES = {
+    black: { top: "#1b1b1f", mid: "#121215", bot: "#0b0b0d", ear: "#101013", fieldA: "#0e0e11", fieldB: "#141419", edge: "#3c3c44", ink: "#f0f0f2", sub: "#8a8a94", slot: "#050506", cap: "#26262c", capTop: "#3c3c44", mark: "#f2f2f4", ledOff: "#16221c" },
+    silver: { top: "#f2f1ec", mid: "#c8c8c5", bot: "#85878a", ear: "#a5a7a8", fieldA: "#484b4e", fieldB: "#56595c", edge: "#6d7073", ink: "#202225", sub: "#4f5255", slot: "#1b1d1f", cap: "#bfc1c2", capTop: "#f4f4f1", mark: "#2c2e31", ledOff: "#213129" },
+    chrome: { top: "#fafafa", mid: "#aeb1b5", bot: "#565a60", ear: "#777b80", fieldA: "#25282c", fieldB: "#31353a", edge: "#d8dadd", ink: "#111316", sub: "#3e4247", slot: "#090a0c", cap: "#d9dbdc", capTop: "#ffffff", mark: "#16181b", ledOff: "#1d2b24" }
+};
 const EQ_MODELS = {
-    ge5: { pill: "GE-5 · 5밴드", name: "GE-5", q: 1.0, capW: 60,
+    ge5: { pill: "GE-5 · 5밴드", name: "GE-5", theme: "black", q: 1.0, capW: 60,
         freqs: [60, 250, 1000, 4000, 12000],
         labels: ["60", "250", "1k", "4k", "12k"],
         xs: [800, 1030, 1260, 1490, 1720] },
-    ge10: { pill: "GE-10 · 10밴드", name: "GE-10", q: 1.4, capW: 44,
+    ge10: { pill: "GE-10 · 10밴드", name: "GE-10", theme: "black", q: 1.4, capW: 44,
+        freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+        labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
+        xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] },
+    ge10silver: { pill: "SILVER · 10밴드", name: "GE-10S", theme: "silver", q: 1.4, capW: 44,
+        freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+        labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
+        xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] },
+    ge10chrome: { pill: "CHROME · 10밴드", name: "GE-10C", theme: "chrome", q: 1.4, capW: 44,
         freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
         labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
         xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] }
 };
-const EQ_ORDER = ["ge5", "ge10"];
+const EQ_ORDER = ["ge5", "ge10", "ge10silver", "ge10chrome"];
 const EQ_TOP = 100;
 const EQ_BOT = 320;
 const EQ_VB_H = 400;
@@ -667,26 +688,33 @@ function eqGainToY(g) {
 }
 
 function mountEq() {
+    const model = EQ_MODELS[eqModelId];
+    const theme = EQ_THEMES[model.theme] || EQ_THEMES.black;
     // 필드 배경: dB 그리드 라인
     let grid = "";
     [-12, -9, -6, -3, 0, 3, 6, 9, 12].forEach((g) => {
         const y = eqGainToY(g);
-        grid += '<line x1="700" y1="' + y + '" x2="1900" y2="' + y + '" stroke="#3a3a40" stroke-width="' + (g === 0 ? 2 : 0.8) + '" opacity="' + (g === 0 ? 0.9 : 0.5) + '"/>';
+        grid += '<line x1="700" y1="' + y + '" x2="1900" y2="' + y + '" stroke="' + theme.edge + '" stroke-width="' + (g === 0 ? 2 : 0.8) + '" opacity="' + (g === 0 ? 0.9 : 0.5) + '"/>';
     });
     const hw = EQ_CAPW / 2;
     const hitHw = Math.min(58, Math.floor((EQ_X[1] - EQ_X[0]) / 2) - 3);
     const sliders = EQ_FREQS.map((f, i) => {
         const x = EQ_X[i];
-        return '<rect x="' + (x - 5) + '" y="' + (EQ_TOP - 8) + '" width="10" height="' + (EQ_BOT - EQ_TOP + 16) + '" rx="5" fill="#050506" stroke="#2e2e34" stroke-width="1.2"/>' +
+        const spectrum = Array.from({ length: 8 }, (_, j) => {
+            const on = j >= 6 ? "#f05a3a" : j >= 4 ? "#e4b33f" : "#54d18a";
+            return '<rect id="eqBandLvl' + i + '_' + j + '" data-on="' + on + '" data-off="' + theme.ledOff + '" x="' + (x + hw + 8) + '" y="' + (292 - j * 23) + '" width="7" height="15" rx="2" fill="' + theme.ledOff + '"/>';
+        }).join("");
+        return '<rect x="' + (x - 5) + '" y="' + (EQ_TOP - 8) + '" width="10" height="' + (EQ_BOT - EQ_TOP + 16) + '" rx="5" fill="' + theme.slot + '" stroke="' + theme.edge + '" stroke-width="1.2"/>' +
             '<rect x="' + (x - 5) + '" y="' + (EQ_TOP - 8) + '" width="10" height="14" rx="5" fill="#000000" opacity="0.6"/>' +
+            spectrum +
             '<g id="eqH' + i + '">' +
             '<rect x="' + (x - hw + 2) + '" y="-11" width="' + EQ_CAPW + '" height="30" rx="4" fill="#000000" opacity="0.42" filter="url(#lzSoft)"/>' +
-            '<rect x="' + (x - hw) + '" y="-15" width="' + EQ_CAPW + '" height="30" rx="4" fill="#26262c" stroke="#0a0a0c" stroke-width="1.5"/>' +
-            '<rect x="' + (x - hw) + '" y="-15" width="' + EQ_CAPW + '" height="6" rx="3" fill="#3c3c44"/>' +
-            '<rect x="' + (x - hw) + '" y="-2.5" width="' + EQ_CAPW + '" height="5" fill="#f2f2f4"/>' +
+            '<rect x="' + (x - hw) + '" y="-15" width="' + EQ_CAPW + '" height="30" rx="4" fill="' + theme.cap + '" stroke="#0a0a0c" stroke-width="1.5"/>' +
+            '<rect x="' + (x - hw) + '" y="-15" width="' + EQ_CAPW + '" height="6" rx="3" fill="' + theme.capTop + '"/>' +
+            '<rect x="' + (x - hw) + '" y="-2.5" width="' + EQ_CAPW + '" height="5" fill="' + theme.mark + '"/>' +
             '</g>' +
-            '<text id="eqV' + i + '" x="' + x + '" y="78" font-family="Arial" font-size="13" font-weight="700" fill="#9a9aa2" text-anchor="middle">0</text>' +
-            '<text x="' + x + '" y="354" font-family="Arial" font-size="14" font-weight="600" letter-spacing="0.5" fill="#8a8a94" text-anchor="middle">' + EQ_LABELS[i] + '</text>' +
+            '<text id="eqV' + i + '" x="' + x + '" y="78" font-family="Arial" font-size="13" font-weight="700" fill="' + theme.sub + '" text-anchor="middle">0</text>' +
+            '<text x="' + x + '" y="354" font-family="Arial" font-size="14" font-weight="600" letter-spacing="0.5" fill="' + theme.sub + '" text-anchor="middle">' + EQ_LABELS[i] + '</text>' +
             '<rect id="eqHit' + i + '" x="' + (x - hitHw) + '" y="66" width="' + (hitHw * 2) + '" height="300" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none" tabindex="0" role="slider" aria-label="' + EQ_LABELS[i] + 'Hz 게인" aria-valuemin="-12" aria-valuemax="12"><title>' + EQ_LABELS[i] + 'Hz &#177;12dB</title></rect>';
     }).join("");
     let lvl = "";
@@ -694,20 +722,20 @@ function mountEq() {
         lvl += '<rect id="eqLvl' + i + '" x="530" y="' + (300 - i * 19) + '" width="46" height="12" rx="2" fill="#33251a"/>';
     }
     document.getElementById("eqStage").innerHTML =
-        '<svg class="eq-svg" viewBox="0 0 2000 400" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="YAHAMA GE-5 스테레오 그래픽 이퀄라이저">' +
+        '<svg class="eq-svg" viewBox="0 0 2000 400" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="YAMAHA ' + model.name + ' 스테레오 그래픽 이퀄라이저">' +
         '<defs>' +
-        '<linearGradient id="eqPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1b1f"/><stop offset="0.5" stop-color="#121215"/><stop offset="1" stop-color="#0b0b0d"/></linearGradient>' +
-        '<pattern id="eqRidge" width="14" height="8" patternUnits="userSpaceOnUse"><rect width="7" height="8" fill="#0e0e11"/><rect x="7" width="7" height="8" fill="#141419"/></pattern>' +
+        '<linearGradient id="eqPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + theme.top + '"/><stop offset="0.5" stop-color="' + theme.mid + '"/><stop offset="1" stop-color="' + theme.bot + '"/></linearGradient>' +
+        '<pattern id="eqRidge" width="14" height="8" patternUnits="userSpaceOnUse"><rect width="7" height="8" fill="' + theme.fieldA + '"/><rect x="7" width="7" height="8" fill="' + theme.fieldB + '"/></pattern>' +
         '</defs>' +
         '<rect width="2000" height="400" rx="8" fill="url(#eqPanel)"/>' +
         '<rect width="2000" height="6" fill="#ffffff" opacity="0.06"/>' +
         '<rect y="388" width="2000" height="12" fill="#000" opacity="0.4"/>' +
         // 랙 이어
-        '<rect x="0" y="0" width="44" height="400" rx="8" fill="#101013"/><circle cx="22" cy="52" r="9" fill="#26262c" stroke="#3c3c44"/><circle cx="22" cy="348" r="9" fill="#26262c" stroke="#3c3c44"/>' +
-        '<rect x="1956" y="0" width="44" height="400" rx="8" fill="#101013"/><circle cx="1978" cy="52" r="9" fill="#26262c" stroke="#3c3c44"/><circle cx="1978" cy="348" r="9" fill="#26262c" stroke="#3c3c44"/>' +
+        '<rect x="0" y="0" width="44" height="400" rx="8" fill="' + theme.ear + '"/><circle cx="22" cy="52" r="9" fill="#26262c" stroke="' + theme.edge + '"/><circle cx="22" cy="348" r="9" fill="#26262c" stroke="' + theme.edge + '"/>' +
+        '<rect x="1956" y="0" width="44" height="400" rx="8" fill="' + theme.ear + '"/><circle cx="1978" cy="52" r="9" fill="#26262c" stroke="' + theme.edge + '"/><circle cx="1978" cy="348" r="9" fill="#26262c" stroke="' + theme.edge + '"/>' +
         // 좌측 컨트롤 블록
-        '<text x="90" y="96" font-family="Arial" font-size="30" font-weight="700" letter-spacing="1.5" fill="#f0f0f2">YAHAMA</text>' +
-        '<text x="90" y="126" font-family="Arial" font-size="14" letter-spacing="1.5" fill="#8a8a94">Stereo Graphic Equalizer ' + EQ_MODELS[eqModelId].name + '</text>' +
+        '<text x="90" y="96" font-family="Arial" font-size="30" font-weight="700" letter-spacing="1.5" fill="' + theme.ink + '">YAMAHA</text>' +
+        '<text x="90" y="126" font-family="Arial" font-size="14" letter-spacing="1.5" fill="' + theme.sub + '">Stereo Graphic Equalizer ' + model.name + '</text>' +
         '<text x="92" y="196" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a94">power</text>' +
         '<rect x="90" y="206" width="34" height="64" rx="3" fill="#e8e8ec" stroke="#0a0a0c" stroke-width="1.5"/>' +
         '<text x="92" y="304" font-family="Arial" font-size="11" letter-spacing="1" fill="#8a8a94">tape monitor</text>' +
@@ -723,12 +751,12 @@ function mountEq() {
         '<text x="512" y="310" font-family="Arial" font-size="10" fill="#5a5a62" text-anchor="end">-dB</text>' +
         lvl +
         // 슬라이더 필드
-        '<rect x="680" y="60" width="1240" height="310" rx="6" fill="url(#eqRidge)" stroke="#26262c" stroke-width="1.5"/>' +
+        '<rect x="680" y="60" width="1240" height="310" rx="6" fill="url(#eqRidge)" stroke="' + theme.edge + '" stroke-width="1.5"/>' +
         grid +
         '<text x="694" y="' + (EQ_TOP + 5) + '" font-family="Arial" font-size="12" fill="#8a8a94">+12</text>' +
         '<text x="694" y="' + (eqGainToY(0) + 4) + '" font-family="Arial" font-size="12" fill="#8a8a94">0</text>' +
         '<text x="694" y="' + (EQ_BOT + 5) + '" font-family="Arial" font-size="12" fill="#8a8a94">-12</text>' +
-        sliders +
+        sliders + '<text x="1900" y="82" font-family="Arial" font-size="10" letter-spacing="1.5" fill="' + theme.sub + '" text-anchor="end">REAL-TIME SPECTRUM</text>' +
         '<text x="1900" y="354" font-family="Arial" font-size="12" letter-spacing="1" fill="#5a5a62" text-anchor="end">Hz</text>' +
         '</svg>';
 
@@ -1372,9 +1400,10 @@ function ttFrame(now) {
         }
     }
 
+    const ttSpec = TT_MODELS[ttModelId] || TT_MODELS.pl12;
     const rpm = ttRpm45 ? 45 : 100 / 3;
     const spinTarget = (phonoActive && isPlaying) ? 1 : 0;
-    const step = spinTarget > ttSpin ? dt / 1.4 : dt / 2.6;   // 스핀업은 빠르게, 런다운은 관성으로
+    const step = spinTarget > ttSpin ? dt / ttSpec.spinUp : dt / ttSpec.runDown;
     ttSpin = Math.max(0, Math.min(1, ttSpin + (spinTarget > ttSpin ? 1 : -1) * step));
     if (ttSpin > 0.002) {
         ttAngle = (ttAngle + rpm / 60 * 360 * ttSpin * dt) % 360;
@@ -1423,7 +1452,7 @@ function ttFrame(now) {
     if (phonoActive && crackleGain) {
         ensureCrackle();
         // 크랙클(장작 소리)은 먼지량에 비례 — 깨끗한 판은 은은하게, 먼지 낀 판은 타닥거린다
-        const target = (isPlaying && !audio.muted) ? (0.006 + ttDust * 0.048) : 0;
+        const target = (isPlaying && !audio.muted) ? (0.006 + ttDust * 0.048) * ttSpec.noise : 0;
         crackleGain.gain.value += (target - crackleGain.gain.value) * 0.08;
     }
     // 바이닐 문지름 — 드래그로 쌓인 에너지가 마찰음 게인으로, 손을 멈추면 빠르게 잦아든다
@@ -1500,13 +1529,16 @@ function ttFrame(now) {
                 selectStation(nx2.id);
             }
         }
-        if (hissGain) hissGain.gain.value += ((deckSegPlaying ? 0.004 : 0.01) - hissGain.gain.value) * 0.1;
+        const deckSpec = DECK_MODELS[deckModelId] || DECK_MODELS.dragon;
+        if (hissGain) hissGain.gain.value += ((deckSegPlaying ? deckSpec.hissFloor : deckSpec.blankHiss) - hissGain.gain.value) * 0.1;
     } else if (deckMode === "wind") {
-        tapePos = Math.max(0, Math.min(TAPE_LEN, tapePos + windDir * 16 * dt));
+        const deckSpec = DECK_MODELS[deckModelId] || DECK_MODELS.dragon;
+        tapePos = Math.max(0, Math.min(TAPE_LEN, tapePos + windDir * deckSpec.windRate * dt));
         if (tapePos <= 0 || tapePos >= TAPE_LEN) { deckMode = "stop"; windDir = 0; }
     }
     const deckRolling = (deckMode === "play") || (deckMode === "rec" && recorder);
-    const spinRate = deckMode === "wind" ? 900 * windDir : (deckRolling ? 210 : 0);
+    const deckSpec = DECK_MODELS[deckModelId] || DECK_MODELS.dragon;
+    const spinRate = (deckMode === "wind" ? 900 * windDir : (deckRolling ? 210 : 0)) * deckSpec.reelRate;
     if (spinRate) deckReelAngle = (deckReelAngle + dt * spinRate + 360) % 360;
     const rl = document.getElementById("deckReelL");
     if (rl) {
@@ -1538,6 +1570,31 @@ function ttFrame(now) {
         el.style.fill = on ? color : "#1e1610";
         el.style.filter = on ? "drop-shadow(0 0 5px " + color + ") drop-shadow(0 0 12px " + color + "66)" : "none";
     }
+
+    // 밴드별 실시간 스펙트럼 — 분석기 FFT bin을 현재 EQ 중심 주파수에 대응시킨다.
+    if (analyser && eqState.on && isPlaying) {
+        if (!ttFrame.eqSpectrum || ttFrame.eqSpectrum.length !== analyser.frequencyBinCount) {
+            ttFrame.eqSpectrum = new Uint8Array(analyser.frequencyBinCount);
+        }
+        analyser.getByteFrequencyData(ttFrame.eqSpectrum);
+    }
+    EQ_FREQS.forEach((freq, i) => {
+        let level = 0;
+        if (analyser && ttFrame.eqSpectrum && eqState.on && isPlaying) {
+            const nyquist = (audioCtx ? audioCtx.sampleRate : 48000) / 2;
+            const center = Math.max(0, Math.min(ttFrame.eqSpectrum.length - 1, Math.round(freq / nyquist * ttFrame.eqSpectrum.length)));
+            const raw = Math.max(ttFrame.eqSpectrum[Math.max(0, center - 1)] || 0, ttFrame.eqSpectrum[center] || 0, ttFrame.eqSpectrum[Math.min(ttFrame.eqSpectrum.length - 1, center + 1)] || 0);
+            level = Math.pow(raw / 255, .72);
+        }
+        for (let j = 0; j < 8; j++) {
+            const el = document.getElementById("eqBandLvl" + i + "_" + j);
+            if (!el) continue;
+            const on = eqState.on && isPlaying && (j + 1) / 8 <= level;
+            const color = on ? el.dataset.on : el.dataset.off;
+            el.style.fill = color;
+            el.style.filter = on ? "drop-shadow(0 0 4px " + color + ")" : "none";
+        }
+    });
 
     // 튜너 조명값: 수신 램프 + 다이얼 조작 중 웨이크
     const previewOn = now < tsPreviewUntil;

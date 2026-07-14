@@ -13,7 +13,9 @@ let eqNodes = null;
 let ampDrive = null;
 let ampShaper = null;
 let ampBass = null;
+let ampLowMid = null;
 let ampMid = null;
+let ampPresence = null;
 let ampTreble = null;
 let ampOut = null;
 let crackleGain = null;
@@ -91,9 +93,17 @@ function applyAmp() {
     ampShaper.curve = m.k > 0 ? tubeCurve(m.k, m.asym) : null;
     ampBass.frequency.value = m.bass[0];
     ampBass.gain.value = m.bass[1];
+    const lowMid = m.lowMid || [280, 0, .8];
+    ampLowMid.frequency.value = lowMid[0];
+    ampLowMid.gain.value = lowMid[1];
+    ampLowMid.Q.value = lowMid[2];
     ampMid.frequency.value = m.mid[0];
     ampMid.gain.value = m.mid[1];
     ampMid.Q.value = m.mid[2];
+    const presence = m.presence || [3400, 0, .9];
+    ampPresence.frequency.value = presence[0];
+    ampPresence.gain.value = presence[1];
+    ampPresence.Q.value = presence[2];
     ampTreble.frequency.value = m.treble[0];
     ampTreble.gain.value = m.treble[1];
     ampOut.gain.value = m.out;
@@ -198,25 +208,30 @@ function ensureAudioGraph() {
         gainNode = audioCtx.createGain();
         recDest = audioCtx.createMediaStreamDestination();
         analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 128;
-        analyser.smoothingTimeConstant = 0.8;
+        // 31Hz부터 밴드별 스펙트럼을 분리할 수 있도록 충분한 FFT 해상도를 확보한다.
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.76;
         // BLEND(고음 감쇠)·MODE(모노 다운믹스) 스위치용 노드를 청취 경로에 삽입
         blendFilter = audioCtx.createBiquadFilter();
         blendFilter.type = "lowpass";
         monoGain = audioCtx.createGain();
-        // 앰프 스테이지: drive → 진공관 쉐이퍼 → 톤(저/중/고) → 출력
+        // 앰프 스테이지: drive → 쉐이퍼 → 5단 보이싱(저/저중/중/프레즌스/고) → 출력
         ampDrive = audioCtx.createGain();
         ampShaper = audioCtx.createWaveShaper();
         ampShaper.oversample = "4x";
         ampBass = audioCtx.createBiquadFilter();
         ampBass.type = "lowshelf";
+        ampLowMid = audioCtx.createBiquadFilter();
+        ampLowMid.type = "peaking";
         ampMid = audioCtx.createBiquadFilter();
         ampMid.type = "peaking";
+        ampPresence = audioCtx.createBiquadFilter();
+        ampPresence.type = "peaking";
         ampTreble = audioCtx.createBiquadFilter();
         ampTreble.type = "highshelf";
         ampOut = audioCtx.createGain();
         source.connect(gainNode).connect(blendFilter).connect(monoGain);
-        ampDrive.connect(ampShaper).connect(ampBass).connect(ampMid).connect(ampTreble).connect(ampOut).connect(audioCtx.destination);
+        ampDrive.connect(ampShaper).connect(ampBass).connect(ampLowMid).connect(ampMid).connect(ampPresence).connect(ampTreble).connect(ampOut).connect(audioCtx.destination);
         // 바이닐 크랙클 (포노 재생 시에만 게인이 올라간다) — EQ 앞에 섞어 앰프 음색까지 입힌다
         crackleGain = audioCtx.createGain();
         crackleGain.gain.value = 0;
@@ -248,7 +263,9 @@ function ensureAudioGraph() {
         ampDrive = null;
         ampShaper = null;
         ampBass = null;
+        ampLowMid = null;
         ampMid = null;
+        ampPresence = null;
         ampTreble = null;
         ampOut = null;
         crackleGain = null;

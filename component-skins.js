@@ -40,20 +40,30 @@ function mfaMeter(x, y, w, h, needleId, label, face, digital) {
             bars + '<text x="' + (x + w / 2) + '" y="' + (y + h * .84) + '" font-family="Arial" font-size="12" letter-spacing="2" fill="#87b6a0" text-anchor="middle">' + label + '</text></g>';
     }
     const cx = x + w / 2, cy = y + h * .88;
+    const radius = Math.min(w * .42, h * .68);
+    const polar = (deg, r) => {
+        const a = deg * Math.PI / 180;
+        return { x: cx + Math.sin(a) * r, y: cy - Math.cos(a) * r };
+    };
+    const arc = (from, to, r) => {
+        const p1 = polar(from, r), p2 = polar(to, r);
+        return 'M ' + p1.x.toFixed(1) + ' ' + p1.y.toFixed(1) + ' A ' + r.toFixed(1) + ' ' + r.toFixed(1) + ' 0 0 1 ' + p2.x.toFixed(1) + ' ' + p2.y.toFixed(1);
+    };
+    const ticks = Array.from({ length: 9 }, (_, i) => {
+        const deg = -42 + i * 10.5;
+        const p1 = polar(deg, radius), p2 = polar(deg, radius - (i % 2 ? 8 : 13));
+        return '<line x1="' + p1.x.toFixed(1) + '" y1="' + p1.y.toFixed(1) + '" x2="' + p2.x.toFixed(1) + '" y2="' + p2.y.toFixed(1) + '"/>';
+    }).join("");
+    const needleTip = polar(0, radius - 9);
     return '<g>' +
         '<rect x="' + (x - 5) + '" y="' + (y + 7) + '" width="' + (w + 10) + '" height="' + h + '" rx="7" fill="#000" opacity=".38" filter="url(#lzSoft)"/>' +
         '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="5" fill="' + face + '" stroke="#171719" stroke-width="2"/>' +
         '<rect class="ampLamp" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="5" fill="url(#lzWarmFace)" opacity=".02"/>' +
-        '<path d="M ' + (x + 24) + ' ' + (y + h * .63) + ' Q ' + cx + ' ' + (y + h * .12) + ' ' + (x + w - 24) + ' ' + (y + h * .63) + '" fill="none" stroke="#6a5a43" stroke-width="2"/>' +
-        '<path d="M ' + (x + w * .72) + ' ' + (y + h * .31) + ' Q ' + (x + w * .9) + ' ' + (y + h * .44) + ' ' + (x + w - 24) + ' ' + (y + h * .63) + '" fill="none" stroke="#bd392a" stroke-width="4"/>' +
-        '<g stroke="#665a48" stroke-width="1.5">' + Array.from({ length: 9 }, (_, i) => {
-            const a = (-58 + i * 14.5) * Math.PI / 180;
-            const x1 = cx + Math.sin(a) * w * .3, y1 = cy - Math.cos(a) * h * .57;
-            const x2 = cx + Math.sin(a) * w * .3, y2 = cy - Math.cos(a) * h * .5;
-            return '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"/>';
-        }).join("") + '</g>' +
+        '<path d="' + arc(-42, 42, radius) + '" fill="none" stroke="#6a5a43" stroke-width="2"/>' +
+        '<path d="' + arc(25, 42, radius) + '" fill="none" stroke="#bd392a" stroke-width="4.5" stroke-linecap="round"/>' +
+        '<g stroke="#665a48" stroke-width="1.5">' + ticks + '</g>' +
         '<text x="' + cx + '" y="' + (y + h * .31) + '" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2" fill="#5b4d3c" text-anchor="middle">' + label + '</text>' +
-        (needleId ? '<line id="' + needleId + '" data-cx="' + cx + '" data-cy="' + cy + '" x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="' + (y + h * .22) + '" stroke="#c63f27" stroke-width="3" transform="rotate(-42 ' + cx + ' ' + cy + ')"/><circle cx="' + cx + '" cy="' + cy + '" r="6" fill="#211a12"/>' : '') +
+        (needleId ? '<line id="' + needleId + '" data-cx="' + cx + '" data-cy="' + cy + '" x1="' + cx + '" y1="' + cy + '" x2="' + needleTip.x.toFixed(1) + '" y2="' + needleTip.y.toFixed(1) + '" stroke="#c63f27" stroke-width="3" transform="rotate(-42 ' + cx + ' ' + cy + ')"/><circle cx="' + cx + '" cy="' + cy + '" r="6" fill="#211a12"/>' : '') +
         '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + (h * .19) + '" fill="url(#lzInset)" opacity=".7"/>' +
         '<polygon points="' + x + ',' + y + ' ' + (x + w * .54) + ',' + y + ' ' + (x + w * .25) + ',' + (y + h) + ' ' + x + ',' + (y + h) + '" fill="url(#lzStreak)"/>' +
         '</g>';
@@ -79,7 +89,7 @@ function mfaTunerSvg(spec) {
     const switches = switchXs.map((x, i) => mfaSvgToggle(x, 306, switchIds[i], silver ? "#595b5e" : "#b8bbc2") + '<text x="' + x + '" y="358" font-family="Arial" font-size="11" letter-spacing="1.5" fill="' + subInk + '" text-anchor="middle">' + switchLabels[i] + '</text>').join("");
     const meters = spec.digitalMeters
         ? mfaMeter(1160, 240, 300, 112, null, "SIGNAL / CENTER", "#17120b", true)
-        : mfaMeter(1140, 238, 170, 116, null, "SIGNAL", spec.meterFace || "#eadfb9", false) + mfaMeter(1326, 238, 170, 116, null, "TUNING", spec.meterFace || "#eadfb9", false);
+        : mfaMeter(1140, 238, 170, 116, "tsSignalPtr", "SIGNAL", spec.meterFace || "#eadfb9", false) + mfaMeter(1326, 238, 170, 116, "tsTunePtr", "TUNING", spec.meterFace || "#eadfb9", false);
     const signature = spec.signature === "revox"
         ? '<g fill="#31343a" stroke="#747981"><rect x="72" y="240" width="58" height="96" rx="8"/><rect x="142" y="240" width="58" height="96" rx="8"/><rect x="212" y="240" width="58" height="96" rx="8"/></g><g fill="#93e0b0"><circle cx="101" cy="258" r="5"/><circle cx="171" cy="258" r="5"/><circle cx="241" cy="258" r="5"/></g>'
         : spec.signature === "luxman"
@@ -108,7 +118,7 @@ function mfaTunerSvg(spec) {
         '<rect id="tsLedStereo" x="1530" y="164" width="36" height="8" rx="2" fill="#34120e"/><rect id="tsLedLock" x="1594" y="164" width="36" height="8" rx="2" fill="#34120e"/><rect id="tsLedBlend" x="1662" y="164" width="36" height="8" rx="2" fill="#34120e"/>' +
         signature + switches + meters +
         '<g><rect x="286" y="270" width="42" height="68" rx="5" fill="#111318" stroke="#65686d"/><rect id="tsPwrTop" x="295" y="278" width="24" height="20" rx="3" fill="#25272b"/><rect id="tsPwrBot" x="295" y="304" width="24" height="24" rx="3" fill="#a4a5a5"/><text x="307" y="360" font-family="Arial" font-size="11" fill="' + subInk + '" text-anchor="middle">POWER</text></g>' +
-        '<g id="tsSignalPtr"><rect x="1248" y="263" width="3" height="63" fill="#d3472b"/></g><g id="tsTunePtr"><rect x="1400" y="263" width="3" height="63" fill="#d3472b"/></g>' +
+        (spec.digitalMeters ? '<g id="tsSignalPtr"><rect x="1248" y="263" width="3" height="63" fill="#d3472b"/></g><g id="tsTunePtr"><rect x="1400" y="263" width="3" height="63" fill="#d3472b"/></g>' : '') +
         mfaSvgKnob(1812, 218, 116, "tsKnob", 'url(#' + uid + 'Knob)', null) +
         '<text x="1812" y="370" font-family="Arial" font-size="12" letter-spacing="3" fill="' + subInk + '" text-anchor="middle">TUNING</text>' +
         '<circle cx="22" cy="52" r="8" fill="#303238" stroke="#85878b"/><circle cx="1978" cy="52" r="8" fill="#303238" stroke="#85878b"/><circle cx="22" cy="368" r="8" fill="#303238" stroke="#85878b"/><circle cx="1978" cy="368" r="8" fill="#303238" stroke="#85878b"/>' +
@@ -182,19 +192,19 @@ function mfaAmpSvg(spec) {
 }
 
 const MFA_AMPS = [
-    { id: "sa9900", brand: "PIONEER", model: "SA-9900", pill: "TR · SA-9900", face: "silver", wood: true, signature: "pioneer", tagline: "dual-mono direct coupled", drive: 1.08, k: .08, asym: .01, bass: [70, .4], mid: [1000, .1, 1], treble: [10000, .35], out: .96 },
-    { id: "au111", brand: "SANSUI", model: "AU-111", pill: "6L6GC · AU-111", face: "black", wood: true, signature: "sansui", tagline: "tube control amplifier", drive: 2.05, k: 1.45, asym: .16, bass: [90, 1.2], mid: [1400, 1.1, .9], treble: [7600, -.6], out: .75 },
-    { id: "l550", brand: "LUXMAN", model: "L-550", pill: "CLASS A · L-550", face: "champagne", wood: true, signature: "luxman", tagline: "pure class A integrated", drive: 1.22, k: .32, asym: .04, bass: [75, .9], mid: [900, .5, 1], treble: [9500, .2], out: .88 },
-    { id: "e303", brand: "ACCUPHASE", model: "E-303", pill: "TR · E-303", face: "champagne", wood: true, signature: "accuphase", tagline: "precision stereo control", drive: 1.03, k: .06, asym: 0, bass: [65, .55], mid: [1100, .15, 1], treble: [11000, .4], out: .98 }
+    { id: "sa9900", brand: "PIONEER", model: "SA-9900", pill: "TR · SA-9900", face: "silver", wood: true, signature: "pioneer", tagline: "dual-mono direct coupled", desc: "단단한 저역과 또렷한 프레즌스의 다이렉트 커플드 사운드", drive: 1.08, k: .08, asym: .01, bass: [70, .8], lowMid: [260, -.2, .8], mid: [1000, 0, 1], presence: [3300, .8, .9], treble: [10000, .7], out: .93 },
+    { id: "au111", brand: "SANSUI", model: "AU-111", pill: "6L6GC · AU-111", face: "black", wood: true, signature: "sansui", tagline: "tube control amplifier", desc: "저중역의 밀도와 둥근 고역을 앞세운 6L6GC 빈티지 톤", drive: 2.05, k: 1.45, asym: .16, bass: [90, 1.5], lowMid: [310, 1.2, .78], mid: [1400, .7, .9], presence: [3600, -.4, 1], treble: [7600, -.8], out: .73 },
+    { id: "l550", brand: "LUXMAN", model: "L-550", pill: "CLASS A · L-550", face: "champagne", wood: true, signature: "luxman", tagline: "pure class A integrated", desc: "매끈한 중역과 섬세한 윤기를 살린 클래스 A 보이싱", drive: 1.22, k: .32, asym: .04, bass: [75, 1.2], lowMid: [280, .5, .8], mid: [900, .3, 1], presence: [3200, .3, .9], treble: [9500, .4], out: .86 },
+    { id: "e303", brand: "ACCUPHASE", model: "E-303", pill: "TR · E-303", face: "champagne", wood: true, signature: "accuphase", tagline: "precision stereo control", desc: "빠른 과도응답과 개방적인 상단을 노린 정밀 제어형 사운드", drive: 1.03, k: .06, asym: 0, bass: [65, .2], lowMid: [250, 0, .82], mid: [1100, 0, 1], presence: [3400, .4, .9], treble: [11000, .6], out: .96 }
 ];
 
 MFA_AMPS.forEach((spec) => {
     AMP_MODELS[spec.id] = {
         pill: spec.pill,
-        desc: spec.brand + " " + spec.model + " 실물 전면 디자인 오마주",
+        desc: spec.desc,
         vol: { cx: 1595, cy: 244, r: 158 },
         drive: spec.drive, k: spec.k, asym: spec.asym,
-        bass: spec.bass, mid: spec.mid, treble: spec.treble, out: spec.out,
+        bass: spec.bass, lowMid: spec.lowMid, mid: spec.mid, presence: spec.presence, treble: spec.treble, out: spec.out,
         svg: mfaAmpSvg(spec)
     };
     AMP_ORDER.push(spec.id);
@@ -252,39 +262,58 @@ function mfaDeckSvg(spec) {
 }
 
 const DECK_MODELS = {
-    dragon: { label: "Nakamichi DRAGON" },
-    b215: { label: "REVOX B215", svg: mfaDeckSvg({ id: "b215", brand: "REVOX", model: "B215", face: "black", signature: "revox", openTransport: true, ledMeters: true, display: "#8ce9b6" }) },
-    tcd3014: { label: "TANDBERG TCD 3014A", svg: mfaDeckSvg({ id: "tcd3014", brand: "TANDBERG", model: "TCD 3014A", face: "black", wood: true, signature: "tandberg", openTransport: true, ledMeters: false, display: "#f0a348" }) },
-    tcka7es: { label: "SONY TC-KA7ES", svg: mfaDeckSvg({ id: "tcka7es", brand: "SONY", model: "TC-KA7ES", face: "champagne", signature: "sony", openTransport: false, ledMeters: true, display: "#84e4ae" }) },
-    ctf1250: { label: "PIONEER CT-F1250", svg: mfaDeckSvg({ id: "ctf1250", brand: "PIONEER", model: "CT-F1250", face: "silver", wood: true, signature: "pioneer", openTransport: true, ledMeters: false, display: "#58b8ff" }) }
+    dragon: { label: "Nakamichi DRAGON", windRate: 16, hissFloor: .004, blankHiss: .010, reelRate: 1 },
+    b215: { label: "REVOX B215", windRate: 18, hissFloor: .003, blankHiss: .008, reelRate: 1.08, svg: mfaDeckSvg({ id: "b215", brand: "REVOX", model: "B215", face: "black", signature: "revox", openTransport: true, ledMeters: true, display: "#8ce9b6" }) },
+    tcd3014: { label: "TANDBERG TCD 3014A", windRate: 14, hissFloor: .005, blankHiss: .012, reelRate: .92, svg: mfaDeckSvg({ id: "tcd3014", brand: "TANDBERG", model: "TCD 3014A", face: "black", wood: true, signature: "tandberg", openTransport: true, ledMeters: false, display: "#f0a348" }) },
+    tcka7es: { label: "SONY TC-KA7ES", windRate: 16, hissFloor: .0025, blankHiss: .007, reelRate: 1.02, svg: mfaDeckSvg({ id: "tcka7es", brand: "SONY", model: "TC-KA7ES", face: "champagne", signature: "sony", openTransport: false, ledMeters: true, display: "#84e4ae" }) },
+    ctf1250: { label: "PIONEER CT-F1250", windRate: 12, hissFloor: .006, blankHiss: .014, reelRate: .86, svg: mfaDeckSvg({ id: "ctf1250", brand: "PIONEER", model: "CT-F1250", face: "silver", wood: true, signature: "pioneer", openTransport: true, ledMeters: false, display: "#58b8ff" }) }
 };
 const DECK_ORDER = ["dragon", "b215", "tcd3014", "tcka7es", "ctf1250"];
 
 const TT_MODELS = {
     pl12: {
         label: "YAMAHA PL-12", brand: "YAMAHA PL-12", subtitle: "BELT-DRIVE TURNTABLE",
-        plinth: "url(#ttWood)", deck: "#17161a", metal: "url(#ttMetal)", accent: "#8a7d70", platter: "#26262b", detail: ""
+        plinth: "url(#ttWood)", deck: "#17161a", metal: "url(#ttMetal)", accent: "#8a7d70", platter: "#26262b", spinUp: 1.4, runDown: 2.6, noise: 1, detail: ""
     },
     sl1200: {
         label: "TECHNICS SL-1200MK2", brand: "TECHNICS SL-1200MK2", subtitle: "QUARTZ DIRECT DRIVE",
         plinth: "#989b9e", deck: "#c6c8c8", metal: "url(#ttMetal)", accent: "#3b3d40", platter: "#b8bab9",
-        ink: "#303235", muted: "#595b5e",
+        ink: "#303235", muted: "#595b5e", spinUp: .35, runDown: 1, noise: .65,
         detail: '<g pointer-events="none"><rect x="462" y="44" width="326" height="18" rx="5" fill="#111214"/><g fill="#eceeed">' + Array.from({length: 21}, (_, i) => '<circle cx="' + (474 + i * 15) + '" cy="53" r="2.8"/>').join("") + '</g><rect x="930" y="294" width="42" height="230" rx="6" fill="#282a2d" stroke="#787b80"/><rect x="942" y="326" width="18" height="62" rx="5" fill="#d3d4d3"/><text x="951" y="542" font-family="Arial" font-size="10" fill="#343638" text-anchor="middle">PITCH</text><circle cx="250" cy="568" r="32" fill="#202226" stroke="#6b6e72"/><circle cx="250" cy="568" r="9" fill="#e84935"/></g>'
     },
     td124: {
         label: "THORENS TD 124", brand: "THORENS TD 124", subtitle: "SWISS PRECISION · IDLER DRIVE",
-        plinth: "#6b3d20", deck: "#d4cfc2", metal: "url(#ttMetal)", accent: "#544c40", ink: "#37332d", muted: "#625c51", platter: "#b8b4aa",
+        plinth: "#6b3d20", deck: "#d4cfc2", metal: "url(#ttMetal)", accent: "#544c40", ink: "#37332d", muted: "#625c51", platter: "#b8b4aa", spinUp: .8, runDown: 1.8, noise: 1.15,
         detail: '<g pointer-events="none"><rect x="390" y="44" width="452" height="30" rx="6" fill="#aaa598" stroke="#534f47"/><text x="414" y="65" font-family="Arial" font-size="12" letter-spacing="2" fill="#413d36">SWISS MADE</text><path d="M300 540 A54 54 0 0 1 408 540" fill="none" stroke="#5e5549" stroke-width="3"/><circle cx="354" cy="540" r="34" fill="#d8d2c4" stroke="#49443c"/><rect x="349" y="510" width="10" height="38" rx="3" fill="#3d3a35"/><text x="354" y="594" font-family="Arial" font-size="10" fill="#4f4a42" text-anchor="middle">16 · 33 · 45 · 78</text></g>'
     },
     g301: {
         label: "GARRARD 301", brand: "GARRARD 301", subtitle: "TRANSCRIPTION MOTOR",
-        plinth: "#57321d", deck: "#d8d3c3", metal: "url(#ttMetal)", accent: "#514a3e", ink: "#37332d", muted: "#625c51", platter: "#aaa79e",
+        plinth: "#57321d", deck: "#d8d3c3", metal: "url(#ttMetal)", accent: "#514a3e", ink: "#37332d", muted: "#625c51", platter: "#aaa79e", spinUp: .7, runDown: 1.7, noise: 1.25,
         detail: '<g pointer-events="none"><path d="M280 54 H824 Q862 54 862 92 V118 H280 Z" fill="#c8c2b2" stroke="#5b554b"/><text x="342" y="98" font-family="Georgia" font-size="24" font-style="italic" fill="#413c35">Garrard</text><rect x="292" y="490" width="180" height="90" rx="14" fill="#bcb6a6" stroke="#504b43"/><circle cx="334" cy="535" r="25" fill="#313236"/><path d="M418 512 L438 558" stroke="#38393b" stroke-width="12" stroke-linecap="round"/><text x="382" y="576" font-family="Arial" font-size="9" fill="#4a463f" text-anchor="middle">SPEED · BRAKE</text></g>'
     },
     lp12: {
         label: "LINN SONDEK LP12", brand: "LINN SONDEK LP12", subtitle: "SUSPENDED BELT DRIVE",
-        plinth: "#61371e", deck: "#151619", metal: "url(#ttMetal)", accent: "#b9b3a7", platter: "#2a2b2d",
+        plinth: "#61371e", deck: "#151619", metal: "url(#ttMetal)", accent: "#b9b3a7", platter: "#2a2b2d", spinUp: 1.8, runDown: 3.2, noise: .55,
         detail: '<g pointer-events="none"><path d="M20 30 Q490 0 990 32" fill="none" stroke="#a66b40" stroke-width="6" opacity=".55"/><circle cx="260" cy="574" r="18" fill="#c7c9c8"/><circle cx="260" cy="574" r="6" fill="#111214"/><text x="305" y="580" font-family="Arial" font-size="12" letter-spacing="3" fill="#d0cbc0">33 / 45</text></g>'
     }
 };
 const TT_ORDER = ["pl12", "sl1200", "td124", "g301", "lp12"];
+
+// 초기 세대 SVG에도 얇은 패널 라이너와 체결 나사 디테일을 더한다.
+// MC2105는 사용자가 다듬은 블랙글라스/백라이트 레이어를 그대로 보존한다.
+function mfaPolishLegacySvg(svg) {
+    const match = svg && svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+    if (!match) return svg;
+    const w = Number(match[1]), h = Number(match[2]);
+    const r = Math.max(7, Math.min(w, h) * .015);
+    const screw = (x, y) => '<g transform="translate(' + x + ' ' + y + ')" pointer-events="none"><circle r="' + r.toFixed(1) + '" fill="#22252a" stroke="#a8aaad" stroke-width="1.4"/><path d="M-' + (r * .55).toFixed(1) + ' -' + (r * .18).toFixed(1) + ' L' + (r * .55).toFixed(1) + ' ' + (r * .18).toFixed(1) + '" stroke="#d8d9da" stroke-width="1.3"/></g>';
+    const overlay = '<g class="mfaLegacyPolish" pointer-events="none"><rect x="12" y="12" width="' + (w - 24) + '" height="' + (h - 24) + '" rx="8" fill="none" stroke="#fff" stroke-width="2" opacity=".12"/><path d="M42 25 H' + (w - 42) + '" stroke="#fff" stroke-width="2" opacity=".16"/>' + screw(28, 34) + screw(w - 28, 34) + screw(28, h - 34) + screw(w - 28, h - 34) + '</g>';
+    return svg.replace('</svg>', overlay + '</svg>');
+}
+
+["t2", "mr78", "m10b", "tu9900"].forEach((id) => {
+    if (TUNER_SKINS[id]) TUNER_SKINS[id].svg = mfaPolishLegacySvg(TUNER_SKINS[id].svg);
+});
+["tr", "el34", "300b", "kt88"].forEach((id) => {
+    if (AMP_MODELS[id]) AMP_MODELS[id].svg = mfaPolishLegacySvg(AMP_MODELS[id].svg);
+});

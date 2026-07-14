@@ -620,31 +620,31 @@ const AMP_MODELS = {
         pill: "TR · CA-100",
         desc: "솔리드스테이트 인티앰프 — 무색·투명, 높은 댐핑 (Yamaha CA-1000 오마주)",
         vol: { cx: 1770, cy: 326, r: 160 },
-        drive: 1, k: 0, asym: 0, bass: [80, 0], mid: [1000, 0, 1], treble: [8000, 0], out: 1
+        drive: 1, k: 0, asym: 0, bass: [80, 0], lowMid: [250, -0.15, 0.8], mid: [1000, 0, 1], presence: [3000, 0.15, 0.9], treble: [8000, 0], out: 1
     },
     mc2105: {
         pill: "TR · MC2105",
         desc: "매킨토시 솔리드스테이트 — 블루 와트미터, 오토포머의 여유 (MC2105 오마주)",
         vol: { cx: 1000, cy: 442, r: 72 },
-        drive: 1, k: 0, asym: 0, bass: [60, 0.5], mid: [1000, 0, 1], treble: [12000, 0.3], out: 1
+        drive: 1.05, k: 0.18, asym: 0.02, bass: [65, 1.2], lowMid: [220, 0.6, 0.75], mid: [900, 0.1, 1], presence: [3200, -0.3, 0.9], treble: [11000, 0.2], out: 0.94
     },
     el34: {
         pill: "EL34 · 8B",
         desc: "EL34 푸시풀 — 미드 포워드, 브리티시 웜 (Marantz 8B 오마주)",
         vol: { cx: 690, cy: 406, r: 34 },
-        drive: 2.2, k: 1.7, asym: 0.12, bass: [120, 0.8], mid: [1800, 1.6, 0.9], treble: [8000, -0.9], out: 0.74
+        drive: 2.2, k: 1.7, asym: 0.12, bass: [100, 1], lowMid: [320, 1.2, 0.8], mid: [1600, 1.5, 0.9], presence: [4000, -0.4, 1], treble: [8500, -1], out: 0.73
     },
     "300b": {
         pill: "300B · 91E",
         desc: "300B 싱글엔디드 — 달콤한 짝수 배음, 부드러운 고역 (WE 91E 오마주)",
         vol: { cx: 880, cy: 420, r: 112 },
-        drive: 2.8, k: 1.15, asym: 0.38, bass: [100, 1.4], mid: [800, 0.8, 0.8], treble: [7000, -2.2], out: 0.7
+        drive: 2.8, k: 1.15, asym: 0.38, bass: [100, 1.6], lowMid: [300, 1.4, 0.72], mid: [800, 0.9, 0.8], presence: [3200, -0.8, 0.9], treble: [7000, -2.3], out: 0.68
     },
     kt88: {
         pill: "KT88 · 275",
         desc: "KT88 크롬 스테레오 파워 — 광대역, 깊고 단단한 저역 (McIntosh MC275 오마주)",
         vol: { cx: 600, cy: 422, r: 32 },
-        drive: 1.9, k: 1.45, asym: 0.08, bass: [80, 1.8], mid: [1200, -0.5, 1], treble: [10000, 0.9], out: 0.78
+        drive: 1.9, k: 1.45, asym: 0.08, bass: [80, 2], lowMid: [260, 0.4, 0.8], mid: [1200, -0.4, 1], presence: [3800, 0.5, 0.9], treble: [10000, 1.1], out: 0.76
     }
 };
 

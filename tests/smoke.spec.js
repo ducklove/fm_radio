@@ -103,6 +103,7 @@ test.describe("데스크톱", () => {
         await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(10);
         await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(6);
+        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(5);
 
         await page.locator('#skinPicker .skin-btn', { hasText: "REVOX B760" }).click();
         await expect(page.locator('#tunerStage svg[aria-label*="REVOX B760"]')).toHaveCount(1);
@@ -112,6 +113,9 @@ test.describe("데스크톱", () => {
         await expect(page.locator('#deckStage svg[aria-label*="REVOX B215"]')).toHaveCount(1);
         await page.locator('#ttPicker .skin-btn', { hasText: "TECHNICS SL-1200MK2" }).click();
         await expect(page.locator('#ttStage svg[aria-label*="TECHNICS SL-1200MK2"]')).toHaveCount(1);
+        await page.locator('#eqPicker .skin-btn', { hasText: "CHROME · 10밴드" }).click();
+        await expect(page.locator('#eqStage svg[aria-label*="GE-10C"]')).toHaveCount(1);
+        await expect(page.locator('[id^="eqBandLvl"]')).toHaveCount(80);
 
         const saved = await page.evaluate(() => ({
             tuner: JSON.parse(localStorage.getItem("fmRadio.skin")),
@@ -120,6 +124,14 @@ test.describe("데스크톱", () => {
             turntable: JSON.parse(localStorage.getItem("fmRadio.turntable")),
         }));
         expect(saved).toEqual({ tuner: "b760", amp: "l550", deck: "b215", turntable: "sl1200" });
+        expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).model)).toBe("ge10chrome");
+    });
+
+    test("설명서에 신규 기기별 소개와 음색·동작 차이가 기록됨", async ({ page }) => {
+        await page.goto("/manual.html");
+        for (const name of ["TX-9500 II", "T-110", "T-100", "B760", "SA-9900", "AU-111", "L-550", "E-303", "B215", "TCD 3014A", "TC-KA7ES", "CT-F1250", "SL-1200MK2", "TD 124", "GARRARD", "Sondek LP12", "GE-10S / GE-10C"]) {
+            await expect(page.locator("body")).toContainText(name);
+        }
     });
 });
 
