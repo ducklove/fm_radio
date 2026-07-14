@@ -1580,3 +1580,26 @@ body.mode-bar .btn-play-main {
     z-index: 30;
     box-shadow: 0 26px 52px rgba(0, 0, 0, 0.66);
 }
+
+/* ----- 수납장 = 한 줄 크레이트 -----
+   슬리브 스트립(46px)이 쌓이고, 호버/포커스한 판은 높이를 벌려 아래 판들을
+   실제로 밀어낸다 — 확대 팝업이 다음 판을 가리지 않아 차례로 훑을 수 있다. */
+.crate-grid {
+    display: block;
+}
+
+.crate-jacket {
+    width: 100%;
+    height: 46px;
+    aspect-ratio: auto;
+    margin-bottom: 6px;
+    transition: height 0.22s ease, box-shadow 0.22s ease;
+}
+
+.crate-jacket:hover,
+.crate-jacket:focus-visible {
+    height: min(320px, 80vw);
+    transform: none;
+    z-index: auto;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);
+}
