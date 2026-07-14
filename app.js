@@ -3578,3 +3578,63 @@ renderDeckPicker();
 renderTtPicker();
 tunerLoop();
 mountCoach();
+
+// ----- 트레이 앱 연동 (chrome=tray) -----
+// 윈도우 트레이 앱의 셸 iframe 안에서 돌 때: 재생 상태를 부모(셸)에 브로드캐스트하고
+// 위젯과 같은 원격 제어 API(fmRadio:*)를 받는다. 셸은 이 상태로 슬림 바·트레이 메뉴를 그린다.
+(function () {
+    if (new URLSearchParams(location.search).get("chrome") !== "tray") return;
+    if (window.parent === window) return;
+
+    function trayBroadcast(type) {
+        try {
+            window.parent.postMessage({
+                type: type || "fmRadio:state",
+                mode: "radio",
+                station: currentStation ? currentStation.id : null,
+                stationName: (nowStation.textContent || "").trim() || (currentStation ? currentStation.name : ""),
+                playing: isPlaying,
+                loading: false,
+                volume: Math.round(volumeLevel * 100)
+            }, "*");
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    // isPlaying을 바꾸는 경로(선국·토글·포노·데크·오류)는 전부 audio 엘리먼트를 거친다
+    ["playing", "pause", "ended", "emptied"].forEach((name) =>
+        audio.addEventListener(name, () => trayBroadcast()));
+
+    window.addEventListener("message", (event) => {
+        const data = event.data;
+        if (!data || typeof data.type !== "string" || !data.type.startsWith("fmRadio:")) return;
+        switch (data.type) {
+            case "fmRadio:play":
+                if (data.station) selectStation(data.station);
+                else if (!isPlaying) togglePlay();
+                break;
+            case "fmRadio:pause":
+                if (isPlaying) togglePlay();
+                break;
+            case "fmRadio:toggle":
+                togglePlay();
+                break;
+            case "fmRadio:setStation":
+                if (data.station) selectStation(data.station);
+                break;
+            case "fmRadio:setVolume":
+                if (typeof data.value === "number") {
+                    setVolumeLevel(data.value / 100);
+                    saveJson("fmRadio.volume", volumeLevel);
+                    trayBroadcast();
+                }
+                break;
+            case "fmRadio:getState":
+                trayBroadcast();
+                break;
+        }
+    });
+
+    trayBroadcast("fmRadio:ready");
+})();

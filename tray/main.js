@@ -11,6 +11,8 @@ const vm = require("vm");
 const { pathToFileURL } = require("url");
 
 const HOME_URL = "https://ducklove.github.io/mad-for-audio/";
+// 오디오 시스템 보기의 로드 대상 — 개발 중 로컬 index.html 검증용 오버라이드 (예: file:///.../index.html)
+const SYSTEM_BASE = process.env.MFA_TRAY_HOME || HOME_URL;
 const VOLUME_PRESETS = [100, 80, 60, 40, 20, 0];
 const DEBUG = !!process.env.MFA_TRAY_DEBUG;
 
@@ -108,7 +110,7 @@ function createWindow() {
     if (settings.autoplayOnStart) tunerUrl.searchParams.set("autoplay", "1");
 
     // 오디오 시스템: 배포판 전체 랙(온라인) — macOS 앱과 동일하게 배포판을 로드
-    const systemUrl = `${HOME_URL}?view=rack&chrome=tray`;
+    const systemUrl = `${SYSTEM_BASE}?view=rack&chrome=tray`;
 
     win.loadFile(path.join(__dirname, "shell.html"), {
         query: { tuner: tunerUrl.href, system: systemUrl }
@@ -122,8 +124,8 @@ function createWindow() {
 
     win.on("blur", () => {
         if (barMode || !win.isVisible()) return;
-        // 튜너형 재생 중이면 바로 숨기지 않고 슬림 바로 축소한다
-        if (state.playing && currentView === "tuner") enterBarMode();
+        // 재생 중이면(어느 보기든) 바로 숨기지 않고 슬림 바로 축소한다
+        if (state.playing) enterBarMode();
         else win.hide();
     });
 
@@ -131,7 +133,7 @@ function createWindow() {
         if (input.type !== "keyDown" || input.key !== "Escape") return;
         event.preventDefault();
         if (barMode) win.hide();
-        else if (state.playing && currentView === "tuner") enterBarMode();
+        else if (state.playing) enterBarMode();
         else win.hide();
     });
 
@@ -158,9 +160,27 @@ function placement(size) {
     return { x, y, width: size.w, height };
 }
 
+// 슬림 바 자리: 하단 작업표시줄 스트립 안(트레이 아이콘 왼쪽)에 도킹한다.
+// 상단/세로 작업표시줄·자동 숨김 등 도킹할 자리가 없으면 트레이 근처 플로팅으로 폴백.
+function barPlacement() {
+    const trayBounds = tray.getBounds();
+    const display = screen.getDisplayNearestPoint({ x: trayBounds.x, y: trayBounds.y });
+    const full = display.bounds;
+    const work = display.workArea;
+    const taskbarH = (full.y + full.height) - (work.y + work.height);
+
+    if (taskbarH >= 32 && work.width === full.width) {
+        const h = Math.min(SIZE.bar.h, taskbarH - 8);
+        let x = trayBounds.x - SIZE.bar.w - 8;   // 알림 영역 바로 왼쪽
+        x = Math.max(work.x + 8, Math.min(x, full.x + full.width - SIZE.bar.w - 8));
+        const y = work.y + work.height + Math.round((taskbarH - h) / 2);
+        return { x, y, width: SIZE.bar.w, height: h };
+    }
+    return placement(SIZE.bar);
+}
+
 // resizable:false 창도 프로그램에서는 크기를 바꿀 수 있도록 잠깐 풀었다 되돌린다
-function setBoundsSized(size) {
-    const bounds = placement(size);
+function applyBounds(bounds) {
     win.setResizable(true);
     win.setBounds(bounds);
     win.setResizable(false);
@@ -169,7 +189,8 @@ function setBoundsSized(size) {
 function showFull() {
     barMode = false;
     sendCommand({ trayMode: "full" });
-    setBoundsSized(SIZE[currentView]);
+    win.setAlwaysOnTop(true);   // 일반 최상위 레벨로 복귀
+    applyBounds(placement(SIZE[currentView]));
     win.show();
     win.focus();
     refreshTray();
@@ -178,14 +199,16 @@ function showFull() {
 function enterBarMode() {
     barMode = true;
     sendCommand({ trayMode: "bar" });
-    setBoundsSized(SIZE.bar);   // 창은 계속 떠 있고(오디오 유지) 슬림 바 크기로 줄어든다
+    // 작업표시줄은 자체가 최상위 창이라, 그 위에 그리려면 레벨을 한 단계 올린다
+    win.setAlwaysOnTop(true, "screen-saver");
+    applyBounds(barPlacement());   // 창은 계속 떠 있고(오디오 유지) 슬림 바로 줄어든다
     refreshTray();
 }
 
 function toggleWindow() {
     if (!win.isVisible()) return showFull();
     if (barMode) return showFull();
-    if (state.playing && currentView === "tuner") enterBarMode();
+    if (state.playing) enterBarMode();
     else win.hide();
 }
 
@@ -203,13 +226,17 @@ function stationMenuItems() {
         for (const station of groupStations) {
             items.push({
                 label: `${station.name}  ${station.freq.toFixed(1)}`,
-                type: "radio",
+                // radio 타입은 separator마다 그룹이 갈려 그룹별로 체크가 하나씩 남는다 —
+                // checkbox로 두고 체크 상태는 우리가 관리하며 클릭 즉시 메뉴를 다시 그린다
+                type: "checkbox",
                 checked: station.id === (state.station || settings.stationId),
                 click: () => {
                     settings.stationId = station.id;
+                    state.station = station.id;
+                    state.stationName = station.name;
                     saveSettings();
-                    if (currentView !== "tuner") sendCommand({ setView: "tuner" });
                     sendCommand({ type: "fmRadio:setStation", station: station.id, autoplay: true });
+                    refreshTray();
                 }
             });
         }
@@ -241,7 +268,13 @@ function buildMenu() {
                 label: value === 0 ? "음소거" : `${value}%`,
                 type: "radio",
                 checked: state.volume === value,
-                click: () => sendCommand({ type: "fmRadio:setVolume", value })
+                click: () => {
+                    state.volume = value;
+                    settings.volume = value;
+                    saveSettings();
+                    sendCommand({ type: "fmRadio:setVolume", value });
+                    refreshTray();
+                }
             }))
         },
         { type: "separator" },
@@ -288,7 +321,7 @@ function createTray() {
 // 셸이 보기를 바꾸면(사용자가 '오디오 시스템'/'미니 플레이어'를 누름) 창 크기를 맞춘다
 ipcMain.on("widget-view", (_event, view) => {
     currentView = view === "system" ? "system" : "tuner";
-    if (win.isVisible() && !barMode) setBoundsSized(SIZE[currentView]);
+    if (win.isVisible() && !barMode) applyBounds(placement(SIZE[currentView]));
     refreshTray();
 });
 

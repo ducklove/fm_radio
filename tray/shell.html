@@ -107,6 +107,36 @@
         #miniExpand:hover {
             color: #f2e3c8;
         }
+
+        /* 작업표시줄 스트립(≈48px)에 도킹될 때: 곡명(채널명)과 재생/정지만 남긴 컴팩트 배치 */
+        @media (max-height: 52px) {
+            #miniBar {
+                gap: 8px;
+                padding: 0 10px;
+            }
+
+            #miniPlay {
+                width: 28px;
+                height: 28px;
+            }
+
+            #miniPlay svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            #miniStation {
+                font-size: 0.78rem;
+            }
+
+            #miniStatus {
+                display: none;
+            }
+
+            #miniExpand {
+                font-size: 0.66rem;
+            }
+        }
     </style>
 </head>
 <body>

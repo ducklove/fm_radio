@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=41">
+    <link rel="stylesheet" href="styles.css?v=42">
 </head>
 <body>
     <div class="page-shell">
@@ -45,6 +45,8 @@
                 </div>
             </div>
             <div class="header-actions">
+                <!-- 트레이 앱(chrome=tray)에서만 표시 — 하단 스크립트가 hidden을 푼다 -->
+                <a class="mini-open" id="miniPlayerLink" href="widget.html?skin=tuner" title="튜너 미니 플레이어로 전환" hidden>미니 플레이어</a>
                 <a class="mini-open" href="manual.html" title="기기별 리뷰와 조작 안내">소개</a>
                 <button class="mini-open" type="button" onclick="toggleSettings(true)" title="컴포넌트 표시와 모델을 고릅니다">⚙ 오디오 구성</button>
                 <div class="live-clock" id="liveClock" aria-label="현재 시각">--:--:--</div>
@@ -184,13 +186,13 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=41"></script>
-    <script src="player-core.js?v=41"></script>
-    <script src="store.js?v=41"></script>
-    <script src="skins.js?v=41"></script>
-    <script src="engine.js?v=41"></script>
-    <script src="deck.js?v=41"></script>
-    <script src="app.js?v=41"></script>
+    <script src="stations.js?v=42"></script>
+    <script src="player-core.js?v=42"></script>
+    <script src="store.js?v=42"></script>
+    <script src="skins.js?v=42"></script>
+    <script src="engine.js?v=42"></script>
+    <script src="deck.js?v=42"></script>
+    <script src="app.js?v=42"></script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {
@@ -201,10 +203,12 @@
             });
         }
 
-        // 트레이 셸(chrome=tray) 안에서는 '미니 플레이어' 전환을 부모(셸)가 창 안에서 처리한다
+        // 트레이 셸(chrome=tray) 안에서만 '미니 플레이어' 링크를 보여 주고,
+        // 클릭 시 페이지 이동 대신 부모(셸)가 창 안에서 튜너형으로 전환한다
         if (new URLSearchParams(location.search).get("chrome") === "tray") {
             const miniLink = document.getElementById("miniPlayerLink");
             if (miniLink) {
+                miniLink.hidden = false;
                 miniLink.addEventListener("click", (event) => {
                     event.preventDefault();
                     if (window.parent && window.parent !== window) {
