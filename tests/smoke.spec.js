@@ -107,6 +107,9 @@ test.describe("데스크톱", () => {
 
         await page.locator('#skinPicker .skin-btn', { hasText: "REVOX B760" }).click();
         await expect(page.locator('#tunerStage svg[aria-label*="REVOX B760"]')).toHaveCount(1);
+        await page.locator('#ampPicker .skin-btn', { hasText: "TR · CA-100" }).click();
+        await expect(page.locator("#ca100RedL")).toHaveAttribute("d", "M 329 306 A 122 122 0 0 1 368 342");
+        await expect(page.locator("#ca100RedR")).toHaveAttribute("d", "M 701 306 A 122 122 0 0 1 740 342");
         await page.locator('#ampPicker .skin-btn', { hasText: "CLASS A · L-550" }).click();
         await expect(page.locator('#ampStage svg[aria-label*="LUXMAN L-550"]')).toHaveCount(1);
         await page.locator('#ampPicker .skin-btn', { hasText: "KT88 · MA2375" }).click();

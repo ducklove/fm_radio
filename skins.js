@@ -727,7 +727,7 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <ellipse class="ampLamp" cx="268" cy="175" rx="135" ry="50" fill="url(#lzLampPool)" opacity="0.02"/>
         <rect x="114" y="154" width="308" height="26" fill="url(#lzInset)" opacity="0.55"/>
         <path d="M 168 342 A 122 122 0 0 1 368 342" fill="none" stroke="#4a3a28" stroke-width="1.6"/>
-        <path d="M 330 262 A 122 122 0 0 1 368 342" fill="none" stroke="#c0392b" stroke-width="4.5"/>
+        <path id="ca100RedL" d="M 329 306 A 122 122 0 0 1 368 342" fill="none" stroke="#c0392b" stroke-width="4.5" stroke-linecap="round"/>
         <g stroke="#4a3a28" stroke-width="1.5">
             <line x1="172" y1="336" x2="182" y2="345"/><line x1="204" y1="300" x2="212" y2="311"/><line x1="268" y1="282" x2="268" y2="295"/><line x1="332" y1="300" x2="324" y2="311"/><line x1="364" y1="336" x2="354" y2="345"/>
         </g>
@@ -755,7 +755,7 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <ellipse class="ampLamp" cx="640" cy="175" rx="135" ry="50" fill="url(#lzLampPool)" opacity="0.02"/>
         <rect x="486" y="154" width="308" height="26" fill="url(#lzInset)" opacity="0.55"/>
         <path d="M 540 342 A 122 122 0 0 1 740 342" fill="none" stroke="#4a3a28" stroke-width="1.6"/>
-        <path d="M 702 262 A 122 122 0 0 1 740 342" fill="none" stroke="#c0392b" stroke-width="4.5"/>
+        <path id="ca100RedR" d="M 701 306 A 122 122 0 0 1 740 342" fill="none" stroke="#c0392b" stroke-width="4.5" stroke-linecap="round"/>
         <g stroke="#4a3a28" stroke-width="1.5">
             <line x1="544" y1="336" x2="554" y2="345"/><line x1="576" y1="300" x2="584" y2="311"/><line x1="640" y1="282" x2="640" y2="295"/><line x1="704" y1="300" x2="696" y2="311"/><line x1="736" y1="336" x2="726" y2="345"/>
         </g>
