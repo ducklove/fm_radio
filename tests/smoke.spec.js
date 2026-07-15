@@ -117,6 +117,18 @@ test.describe("데스크톱", () => {
         await expect(page.locator("#ampStage")).not.toHaveClass(/amp-stage-tall/);
         expect(await page.locator("#ampStage svg").getAttribute("viewBox")).toBe("0 0 2000 1080");
         await expect(page.locator("#ampStage .ma2375-cylinder-knob")).toHaveCount(7);
+        await expect(page.locator("#ampStage .ma2375-lower-chassis")).toHaveAttribute("x", "80");
+        await expect(page.locator("#ampStage .ma2375-lower-chassis")).toHaveAttribute("width", "1840");
+        await expect(page.locator("#ampStage .ma2375-meter-arc")).toHaveCount(2);
+        await expect(page.locator("#ampStage .ma2375-meter-arc").first()).toHaveAttribute("d", "M301 318 A150 50 0 0 1 583 318");
+        await expect(page.locator("#ampStage .ma2375-meter-light")).toHaveCount(2);
+        await expect(page.locator("#ampStage .meterDark")).toHaveCount(2);
+        await expect(page.locator("#ampStage .ma2375-lettering")).toHaveCount(1);
+        const knobDimensions = await page.locator("#ampStage .ma2375-cylinder-knob").first().evaluate((el) => ({
+            body: Number(el.dataset.bodyRx),
+            face: Number(el.dataset.faceRx),
+        }));
+        expect(knobDimensions.body).toBeGreaterThan(knobDimensions.face);
         await expect(page.locator("#ma2375Volume #ampVolMark")).toHaveCount(1);
         const maVolume = page.locator('#ampStage [role="slider"][aria-label="볼륨"]');
         await expect(maVolume).toHaveAttribute("cx", "1753.2");
@@ -144,6 +156,41 @@ test.describe("데스크톱", () => {
         }));
         expect(saved).toEqual({ tuner: "b760", amp: "ma2375", deck: "b215", turntable: "sl1200" });
         expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).model)).toBe("ge10chrome");
+    });
+
+    test("MA2375 미터·레터 백라이트: 전원 OFF는 흐리고 ON은 선명함", async ({ page }) => {
+        await page.click('button:has-text("오디오 구성")');
+        await page.locator('#ampPicker .skin-btn', { hasText: "KT88 · MA2375" }).click();
+        await page.locator('.settings-close').click();
+
+        const lighting = () => page.evaluate(() => ({
+            meter: Number(document.querySelector("#ampStage .ma2375-meter-light").style.opacity),
+            lettering: Number(document.querySelector("#ampStage .ma2375-lettering").style.opacity),
+            dark: Number(document.querySelector("#ampStage .meterDark").style.opacity),
+        }));
+        await page.waitForFunction(() => Number(document.querySelector("#ampStage .meterDark").style.opacity) > .5);
+        const off = await lighting();
+        expect(off.meter).toBeLessThan(.1);
+        expect(off.lettering).toBeLessThan(.3);
+        expect(off.dark).toBeGreaterThan(.5);
+
+        await page.click("#tsRfHit");
+        await page.locator("#kbsList .station").first().click();
+        await page.waitForFunction(() => {
+            const audio = document.getElementById("audioPlayer");
+            return !audio.paused && Number(document.querySelector("#ampStage .ma2375-meter-light").style.opacity) > .9;
+        }, null, { timeout: 15000 });
+        const on = await lighting();
+        expect(on.meter).toBeGreaterThan(.9);
+        expect(on.lettering).toBeGreaterThan(.9);
+        expect(on.dark).toBeLessThan(.1);
+
+        await page.click("#tsPowerHit");
+        await page.waitForFunction(() => Number(document.querySelector("#ampStage .meterDark").style.opacity) > .45, null, { timeout: 7000 });
+        const cooled = await lighting();
+        expect(cooled.meter).toBeLessThan(.22);
+        expect(cooled.lettering).toBeLessThan(.36);
+        expect(cooled.dark).toBeGreaterThan(.45);
     });
 
     test("설명서에 신규 기기별 소개와 음색·동작 차이가 기록됨", async ({ page }) => {

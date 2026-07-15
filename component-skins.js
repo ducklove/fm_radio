@@ -218,25 +218,26 @@ MFA_AMPS.forEach((spec) => {
 });
 
 function mfaMa2375Meter(x, needleId) {
-    const cx = x + 192, cy = 354;
+    const cx = x + 192, cy = 354, arcCy = 335;
     const ticks = Array.from({ length: 13 }, (_, i) => {
-        const deg = -48 + i * 8;
+        const deg = -70 + i * (140 / 12);
         const a = deg * Math.PI / 180;
         const major = i % 3 === 0;
-        const x1 = (cx + Math.sin(a) * (major ? 116 : 121)).toFixed(1);
-        const y1 = (cy - Math.cos(a) * (major ? 116 : 121)).toFixed(1);
-        const x2 = (cx + Math.sin(a) * 133).toFixed(1);
-        const y2 = (cy - Math.cos(a) * 133).toFixed(1);
+        const x1 = (cx + Math.sin(a) * (major ? 134 : 140)).toFixed(1);
+        const y1 = (arcCy - Math.cos(a) * (major ? 41 : 44)).toFixed(1);
+        const x2 = (cx + Math.sin(a) * 150).toFixed(1);
+        const y2 = (arcCy - Math.cos(a) * 50).toFixed(1);
         return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#123b5b" stroke-width="' + (major ? 2.5 : 1.3) + '"/>';
     }).join("");
     return '<g>' +
         '<rect x="' + x + '" y="174" width="384" height="202" rx="4" fill="#05080b" stroke="#161a1f" stroke-width="14"/>' +
-        '<rect class="lampGlow" x="' + (x + 15) + '" y="189" width="354" height="172" rx="2" fill="url(#ma2375MeterBlue)" opacity=".48" filter="url(#ma2375BlueGlow)"/>' +
-        '<rect x="' + (x + 15) + '" y="189" width="354" height="172" rx="2" fill="url(#ma2375MeterBlue)" opacity=".74"/>' +
-        '<path d="M' + (x + 35) + ' 344 Q' + cx + ' 126 ' + (x + 349) + ' 344" fill="none" stroke="#153e5b" stroke-width="2"/>' + ticks +
-        '<g font-family="Arial" fill="#11334d" text-anchor="middle"><text x="' + (x + 54) + '" y="292" font-size="14">.075</text><text x="' + (x + 127) + '" y="245" font-size="14">.75</text><text x="' + (x + 257) + '" y="245" font-size="14">7.5</text><text x="' + (x + 330) + '" y="292" font-size="14">75</text><text x="' + cx + '" y="211" font-size="11" letter-spacing="3">WATTS</text><text x="' + cx + '" y="321" font-size="12" letter-spacing="3">DECIBELS</text><text x="' + cx + '" y="344" font-size="14" letter-spacing="2">POWER OUTPUT</text></g>' +
-        '<line id="' + needleId + '" data-cx="' + cx + '" data-cy="' + cy + '" x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="224" stroke="#071019" stroke-width="4" transform="rotate(-42 ' + cx + ' ' + cy + ')"/>' +
+        '<rect x="' + (x + 15) + '" y="189" width="354" height="172" rx="2" fill="url(#ma2375MeterBlue)" opacity=".34"/>' +
+        '<rect class="ampLamp ma2375-meter-light" x="' + (x + 15) + '" y="189" width="354" height="172" rx="2" fill="url(#ma2375MeterBlue)" opacity=".03" filter="url(#ma2375BlueGlow)"/>' +
+        '<path class="ma2375-meter-arc" d="M' + (x + 51) + ' 318 A150 50 0 0 1 ' + (x + 333) + ' 318" fill="none" stroke="#153e5b" stroke-width="2"/>' + ticks +
+        '<g font-family="Arial" fill="#11334d" text-anchor="middle"><text x="' + (x + 57) + '" y="312" font-size="13">.075</text><text x="' + (x + 126) + '" y="282" font-size="13">.75</text><text x="' + (x + 258) + '" y="282" font-size="13">7.5</text><text x="' + (x + 327) + '" y="312" font-size="13">75</text><text x="' + cx + '" y="211" font-size="11" letter-spacing="3">WATTS</text><text x="' + cx + '" y="326" font-size="11" letter-spacing="3">DECIBELS</text><text x="' + cx + '" y="346" font-size="14" letter-spacing="2">POWER OUTPUT</text></g>' +
+        '<line id="' + needleId + '" data-cx="' + cx + '" data-cy="' + cy + '" x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="282" stroke="#071019" stroke-width="4" transform="rotate(-42 ' + cx + ' ' + cy + ')"/>' +
         '<circle cx="' + cx + '" cy="' + cy + '" r="10" fill="#101820" stroke="#5c829c" stroke-width="2"/>' +
+        '<rect class="meterDark" x="' + (x + 15) + '" y="189" width="354" height="172" rx="2" fill="#02070c" opacity=".55" pointer-events="none"/>' +
         '<path d="M' + (x + 24) + ' 199 H' + (x + 360) + '" stroke="#fff" stroke-width="3" opacity=".23"/>' +
         '</g>';
 }
@@ -262,7 +263,8 @@ function mfaMa2375Knob(cx, faceY, r, options) {
     const opt = options || {};
     const depth = opt.depth || r * 1.05;
     const faceRy = r * .7;
-    const bodyRx = r * .88;
+    const bodyRx = r;
+    const faceRx = r * .96;
     const ridgeCount = Math.max(9, Math.round(r / 4));
     const ridges = Array.from({ length: ridgeCount }, (_, i) => {
         const x = cx - bodyRx * .78 + i * (bodyRx * 1.56 / (ridgeCount - 1));
@@ -272,14 +274,16 @@ function mfaMa2375Knob(cx, faceY, r, options) {
     const mark = opt.mark
         ? '<path id="' + opt.mark + '" d="M' + cx + ' ' + (faceY - faceRy * .83).toFixed(1) + ' L' + cx + ' ' + (faceY - faceRy * .54).toFixed(1) + '" fill="none" stroke="#f3f0db" stroke-width="' + Math.max(3, r * .07).toFixed(1) + '" stroke-linecap="round"/>'
         : '';
-    return '<g' + id + ' class="ma2375-cylinder-knob">' +
+    return '<g' + id + ' class="ma2375-cylinder-knob" data-body-rx="' + bodyRx.toFixed(1) + '" data-face-rx="' + faceRx.toFixed(1) + '">' +
         '<ellipse cx="' + (cx + r * .08).toFixed(1) + '" cy="' + (faceY + depth + r * .18).toFixed(1) + '" rx="' + (bodyRx * 1.02).toFixed(1) + '" ry="' + (r * .26).toFixed(1) + '" fill="#000" opacity=".62" filter="url(#ma2375KnobShadow)"/>' +
-        '<ellipse cx="' + cx + '" cy="' + (faceY + depth).toFixed(1) + '" rx="' + bodyRx.toFixed(1) + '" ry="' + (r * .22).toFixed(1) + '" fill="#33373a" stroke="#17191b" stroke-width="2"/>' +
+        '<ellipse class="ma2375-knob-body" cx="' + cx + '" cy="' + (faceY + depth).toFixed(1) + '" rx="' + bodyRx.toFixed(1) + '" ry="' + (r * .22).toFixed(1) + '" fill="#33373a" stroke="#17191b" stroke-width="2"/>' +
         '<path d="M' + (cx - bodyRx).toFixed(1) + ' ' + faceY + ' L' + (cx - bodyRx).toFixed(1) + ' ' + (faceY + depth).toFixed(1) + ' Q' + cx + ' ' + (faceY + depth + r * .23).toFixed(1) + ' ' + (cx + bodyRx).toFixed(1) + ' ' + (faceY + depth).toFixed(1) + ' L' + (cx + bodyRx).toFixed(1) + ' ' + faceY + ' Z" fill="url(#ma2375KnobSide)" stroke="#4a4e51" stroke-width="2"/>' +
         '<g stroke="#45494c" stroke-width="' + Math.max(1.2, r * .025).toFixed(1) + '" opacity=".72">' + ridges + '</g>' +
         '<path d="M' + (cx - bodyRx * .9).toFixed(1) + ' ' + (faceY + depth * .68).toFixed(1) + ' Q' + cx + ' ' + (faceY + depth * .79).toFixed(1) + ' ' + (cx + bodyRx * .9).toFixed(1) + ' ' + (faceY + depth * .68).toFixed(1) + '" fill="none" stroke="#f5f5f1" stroke-width="2" opacity=".38"/>' +
-        '<ellipse cx="' + cx + '" cy="' + faceY + '" rx="' + r + '" ry="' + faceRy.toFixed(1) + '" fill="url(#ma2375KnobBezel)" stroke="#272a2d" stroke-width="3"/>' +
-        '<ellipse cx="' + cx + '" cy="' + (faceY - r * .02).toFixed(1) + '" rx="' + (r * .75).toFixed(1) + '" ry="' + (faceRy * .7).toFixed(1) + '" fill="url(#ma2375KnobCap)" stroke="#9ca0a2" stroke-width="2"/>' +
+        '<path d="M' + (cx - bodyRx * .92).toFixed(1) + ' ' + (faceY + r * .2).toFixed(1) + ' V' + (faceY + depth * .82).toFixed(1) + '" stroke="#fff" stroke-width="2" opacity=".2"/>' +
+        '<path d="M' + (cx + bodyRx * .92).toFixed(1) + ' ' + (faceY + r * .2).toFixed(1) + ' V' + (faceY + depth * .82).toFixed(1) + '" stroke="#050607" stroke-width="3" opacity=".42"/>' +
+        '<ellipse class="ma2375-knob-bezel" cx="' + cx + '" cy="' + faceY + '" rx="' + faceRx.toFixed(1) + '" ry="' + faceRy.toFixed(1) + '" fill="url(#ma2375KnobBezel)" stroke="#272a2d" stroke-width="3"/>' +
+        '<ellipse cx="' + cx + '" cy="' + (faceY - r * .02).toFixed(1) + '" rx="' + (r * .72).toFixed(1) + '" ry="' + (faceRy * .7).toFixed(1) + '" fill="url(#ma2375KnobCap)" stroke="#9ca0a2" stroke-width="2"/>' +
         '<path d="M' + (cx - r * .57).toFixed(1) + ' ' + (faceY - faceRy * .18).toFixed(1) + ' Q' + (cx - r * .12).toFixed(1) + ' ' + (faceY - faceRy * .76).toFixed(1) + ' ' + (cx + r * .42).toFixed(1) + ' ' + (faceY - faceRy * .48).toFixed(1) + '" fill="none" stroke="#fff" stroke-width="' + Math.max(1.5, r * .035).toFixed(1) + '" opacity=".25" stroke-linecap="round"/>' + mark +
         '</g>';
 }
@@ -298,6 +302,7 @@ function mfaMa2375Svg() {
         <linearGradient id="ma2375Glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#03070b"/><stop offset=".35" stop-color="#111820"/><stop offset=".55" stop-color="#020406"/><stop offset="1" stop-color="#0b0e12"/></linearGradient>
         <linearGradient id="ma2375Steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f6f3"/><stop offset=".08" stop-color="#d7d7d4"/><stop offset=".36" stop-color="#a7a8a8"/><stop offset=".58" stop-color="#ecece8"/><stop offset=".82" stop-color="#babbb9"/><stop offset="1" stop-color="#777a7c"/></linearGradient>
         <linearGradient id="ma2375SteelBand" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#66696c"/><stop offset=".12" stop-color="#ecece9"/><stop offset=".5" stop-color="#a9aaa9"/><stop offset=".82" stop-color="#f5f5f1"/><stop offset="1" stop-color="#5e6265"/></linearGradient>
+        <linearGradient id="ma2375LowerFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dad7"/><stop offset=".12" stop-color="#b8bab9"/><stop offset=".58" stop-color="#aaabaa"/><stop offset=".9" stop-color="#858789"/><stop offset="1" stop-color="#5b5e61"/></linearGradient>
         <linearGradient id="ma2375Edge" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#63666a"/><stop offset=".35" stop-color="#f0f0ed"/><stop offset=".62" stop-color="#96999c"/><stop offset="1" stop-color="#3d4044"/></linearGradient>
         <linearGradient id="ma2375Cage" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#34383b"/><stop offset=".2" stop-color="#f1f2ef"/><stop offset=".45" stop-color="#85898b"/><stop offset=".72" stop-color="#f7f7f3"/><stop offset="1" stop-color="#4b4f52"/></linearGradient>
         <radialGradient id="ma2375Chrome"><stop offset="0" stop-color="#f5f5f1"/><stop offset=".42" stop-color="#a4a7aa"/><stop offset=".75" stop-color="#3b3f43"/><stop offset="1" stop-color="#e1e2df"/></radialGradient>
@@ -309,35 +314,39 @@ function mfaMa2375Svg() {
         <filter id="ma2375Shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="24"/></filter>
         <filter id="ma2375BlueGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="11"/></filter>
         <filter id="ma2375TubeGlow" x="-80%" y="-60%" width="260%" height="240%"><feGaussianBlur stdDeviation="24"/></filter>
+        <filter id="ma2375LetterGlow" x="-80%" y="-120%" width="260%" height="340%"><feGaussianBlur stdDeviation="10"/></filter>
         <filter id="ma2375KnobShadow" x="-50%" y="-50%" width="200%" height="220%"><feGaussianBlur stdDeviation="8"/></filter>
         <filter id="lzSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="12"/></filter>
     </defs>
     <rect width="2000" height="1080" rx="18" fill="url(#ma2375Backdrop)"/>
     <ellipse cx="1000" cy="1040" rx="920" ry="42" fill="#000" opacity=".82" filter="url(#ma2375Shadow)"/>
     <g transform="translate(${offsetX} 0) scale(${scale})">
-    <rect x="180" y="92" width="1640" height="873" rx="7" fill="#090b0e" stroke="#34383c" stroke-width="7"/>
-    <rect x="200" y="112" width="1600" height="536" rx="4" fill="#05070a" stroke="url(#ma2375Edge)" stroke-width="12"/>
-    <rect x="225" y="126" width="1550" height="508" rx="2" fill="url(#ma2375Glass)" stroke="#1c242b" stroke-width="4"/>
-    <rect x="200" y="112" width="36" height="536" fill="url(#ma2375SteelBand)" opacity=".92"/>
-    <rect x="1764" y="112" width="36" height="536" fill="url(#ma2375SteelBand)" opacity=".92"/>
-    <path d="M238 139 H1762" stroke="#fff" stroke-width="4" opacity=".11"/>
+    <rect x="160" y="92" width="1680" height="873" rx="7" fill="#090b0e" stroke="#34383c" stroke-width="7"/>
+    <rect x="180" y="112" width="1640" height="536" rx="4" fill="#05070a" stroke="url(#ma2375Edge)" stroke-width="12"/>
+    <rect x="205" y="126" width="1590" height="508" rx="2" fill="url(#ma2375Glass)" stroke="#1c242b" stroke-width="4"/>
+    <rect x="180" y="112" width="36" height="536" fill="url(#ma2375SteelBand)" opacity=".92"/>
+    <rect x="1784" y="112" width="36" height="536" fill="url(#ma2375SteelBand)" opacity=".92"/>
+    <path d="M218 139 H1782" stroke="#fff" stroke-width="4" opacity=".11"/>
     ${mfaMa2375Meter(250, "ampVuL")}${mfaMa2375Meter(1366, "ampVuR")}
-    <g text-anchor="middle"><text x="1000" y="252" font-family="Georgia" font-size="58" font-style="italic" fill="#62ef86" opacity=".55" filter="url(#ma2375TubeGlow)">McIntosh</text><text x="1000" y="252" font-family="Georgia" font-size="58" font-style="italic" fill="#62ef86" stroke="#235e38" stroke-width="1">McIntosh</text><text x="1000" y="291" font-family="Arial" font-size="18" font-weight="700" letter-spacing="8" fill="#54d477">MA2375</text><text x="1000" y="319" font-family="Arial" font-size="12" letter-spacing="4" fill="#50c771">TUBE INTEGRATED AMPLIFIER</text><circle cx="1000" cy="344" r="4" fill="#b52c27"/></g>
+    <g class="ampLegend ma2375-lettering" text-anchor="middle">
+        <g fill="#63f48b" opacity=".72" filter="url(#ma2375LetterGlow)"><text x="1000" y="252" font-family="Georgia" font-size="58" font-style="italic">McIntosh</text><text x="1000" y="291" font-family="Arial" font-size="18" font-weight="700" letter-spacing="8">MA2375</text><text x="1000" y="319" font-family="Arial" font-size="12" letter-spacing="4">TUBE INTEGRATED AMPLIFIER</text></g>
+        <text x="1000" y="252" font-family="Georgia" font-size="58" font-style="italic" fill="#62ef86" stroke="#235e38" stroke-width="1">McIntosh</text><text x="1000" y="291" font-family="Arial" font-size="18" font-weight="700" letter-spacing="8" fill="#54d477">MA2375</text><text x="1000" y="319" font-family="Arial" font-size="12" letter-spacing="4" fill="#50c771">TUBE INTEGRATED AMPLIFIER</text>
+    </g><circle cx="1000" cy="344" r="4" fill="#b52c27"/>
     <rect x="700" y="405" width="600" height="125" rx="5" fill="#020607" stroke="#0c2026" stroke-width="4"/>
     <g fill="#08262d" opacity=".7">${Array.from({length:22},(_,i)=>'<rect x="'+(720+i*25)+'" y="458" width="13" height="47" rx="2"/>').join("")}</g>
     <g font-family="monospace" fill="#63e2e8" filter="url(#lzSoft)"><text x="732" y="450" font-size="27">BAL 2</text><text x="1218" y="450" font-size="27" text-anchor="end">40%</text></g>
     <g font-family="monospace" fill="#76f1f3"><text x="732" y="450" font-size="27">BAL 2</text><text x="1218" y="450" font-size="27" text-anchor="end">40%</text></g>
     ${powerTubes}
-    <path d="M130 632 H1870 L1892 812 H108 Z" fill="url(#ma2375Steel)" stroke="#202326" stroke-width="8"/>
-    <path d="M140 650 H1860" stroke="#fff" stroke-width="5" opacity=".66"/>
-    <path d="M108 812 H1892 L1900 965 H100 Z" fill="url(#ma2375SteelBand)" stroke="#24272a" stroke-width="7"/>
-    <path d="M108 808 H1892" stroke="#655c49" stroke-width="5" opacity=".96"/><path d="M112 816 H1888" stroke="#fbfbf7" stroke-width="3" opacity=".52"/>
+    <path d="M103 632 H1897 L1920 812 H80 Z" fill="url(#ma2375Steel)" stroke="#202326" stroke-width="8"/>
+    <path d="M113 650 H1887" stroke="#fff" stroke-width="5" opacity=".66"/>
+    <rect class="ma2375-lower-chassis" x="80" y="812" width="1840" height="153" fill="url(#ma2375LowerFace)" stroke="#24272a" stroke-width="7"/>
+    <path d="M80 808 H1920" stroke="#655c49" stroke-width="5" opacity=".96"/><path d="M84 816 H1916" stroke="#fbfbf7" stroke-width="3" opacity=".52"/><path d="M84 958 H1916" stroke="#24272a" stroke-width="7" opacity=".72"/>
     ${mfaMa2375Knob(300, 690, 70, { depth: 78 })}
     <circle cx="540" cy="707" r="24" fill="#090b0d" stroke="#777b7e" stroke-width="7"/><circle cx="540" cy="707" r="11" fill="#010203"/><ellipse cx="533" cy="699" rx="7" ry="5" fill="#fff" opacity=".14"/>
     ${eqKnobs}
     <g font-family="Arial" text-anchor="middle" fill="#3c3f41"><text x="300" y="792" font-size="13" letter-spacing="4">PUSH · TRIM</text><text x="540" y="674" font-size="10" letter-spacing="2">HEADPHONES</text><text x="720" y="790" font-size="11">30Hz</text><text x="860" y="790" font-size="11">250Hz</text><text x="1000" y="790" font-size="11">1kHz</text><text x="1140" y="790" font-size="11">4kHz</text><text x="1280" y="790" font-size="11">10kHz</text><text x="1700" y="792" font-size="13" letter-spacing="4">PUSH · POWER</text></g>
     <circle cx="1490" cy="711" r="12" fill="#372410" stroke="#8a754c" stroke-width="3"/><circle id="ampPwrLed" cx="1490" cy="711" r="7" fill="#3a2012"/>
-    <g pointer-events="none"><circle cx="132" cy="670" r="9" fill="#292c2f" stroke="#ecece8"/><circle cx="1868" cy="670" r="9" fill="#292c2f" stroke="#ecece8"/><circle cx="122" cy="930" r="8" fill="#232629" stroke="#dadbd8"/><circle cx="1878" cy="930" r="8" fill="#232629" stroke="#dadbd8"/></g>
+    <g pointer-events="none"><circle cx="125" cy="670" r="9" fill="#292c2f" stroke="#ecece8"/><circle cx="1875" cy="670" r="9" fill="#292c2f" stroke="#ecece8"/><circle cx="105" cy="930" r="8" fill="#232629" stroke="#dadbd8"/><circle cx="1895" cy="930" r="8" fill="#232629" stroke="#dadbd8"/></g>
     </g>
     ${mfaMa2375Knob(volumeX, volumeY, volumeR, { id: "ma2375Volume", mark: "ampVolMark", depth: volumeDepth })}
 </svg>`;
