@@ -2272,18 +2272,25 @@ async function selectStation(id) {
 }
 
 function togglePlay() {
-    if (!currentStation && !phonoActive) return;
-    const sourceName = currentStation ? currentStation.name : "레코드";
+    // 최초 방문 — 아직 선국된 채널이 없다. 죽은 버튼 대신 기본 채널(첫 방송국)부터 건다
+    if (!currentStation && !phonoActive && deckMode !== "play") {
+        if (stations.length) selectStation(stations[0].id);
+        return;
+    }
+    const sourceName = currentStation ? currentStation.name : phonoActive ? "레코드" : "테이프";
 
     if (isPlaying) {
         audio.pause();
         isPlaying = false;
         playerSubtext.textContent = `${sourceName} 재생을 일시정지했습니다.`;
     } else {
-        if (!streamLoaded) {
+        // 라이브 라디오의 '재개'는 이어듣기가 아니라 재선국이다 — 멈춘 사이 라이브 엣지가
+        // 지나가 버려, 낡은 버퍼를 resume하면 무반응·긴 지연이 잦다. 전원을 다시 올리듯 새로 붙는다.
+        if (currentStation) {
             selectStation(currentStation.id);
             return;
         }
+        // 포노·테이프는 멈춘 자리에서 그대로 이어 재생
         audio.play().then(() => {
             isPlaying = true;
             playerSubtext.textContent = `${sourceName} 재생 중입니다.`;
@@ -2849,7 +2856,9 @@ document.addEventListener("keydown", (event) => {
 });
 
 audio.addEventListener("pause", () => {
-    stopRecording();
+    // 수동 녹음(본체 소스 탭)만 소스 정지에 따라 멈춘다 —
+    // 백그라운드 예약 녹음은 본체 재생과 무관하므로 계속 굴러가야 한다
+    if (!(recorder && activeResRec)) stopRecording();
     stopVu();
     isPlaying = false;
     // 재생 중이었다면 대기로 — 버퍼링/오류 등 전환 중 상태는 건드리지 않는다

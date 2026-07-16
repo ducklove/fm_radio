@@ -70,6 +70,22 @@ test.describe("데스크톱", () => {
         expect(count).toBe(expected);
     });
 
+    test("최초 방문: 재생 버튼 한 번으로 기본 채널 연결", async ({ page }) => {
+        // beforeEach가 새 컨텍스트(빈 저장소)로 로드 — 선국 이력이 없는 첫 방문 상태
+        expect(await page.evaluate(() => currentStation), "선국 전").toBe(null);
+        // 데스크톱 랙 모드는 플레이어바를 숨긴다(기기로 조작) — 바가 보이는
+        // 간편 플레이어/트레이 화면 기준으로 첫 재생을 검증한다
+        await page.evaluate(() => { viewMode = "simple"; applyViewMode(); applyUnitVisibility(); });
+        await page.click("#btnPlay");
+        await page.waitForFunction(() => {
+            const a = document.getElementById("audioPlayer");
+            return currentStation && !a.paused && a.currentTime > 0.5;
+        }, null, { timeout: 15000 });
+        // 재생/정지 상태 표기가 실제와 일치해야 한다
+        expect(await page.evaluate(() => isPlaying)).toBe(true);
+        expect(await page.evaluate(() => document.getElementById("playIcon").getAttribute("d"))).toContain("M6 19h4V5H6v14z");
+    });
+
     test("선국 → 모의 스트림 실제 재생", async ({ page }) => {
         await page.click("#tsRfHit");
         await page.locator("#kbsList .station").first().click();

@@ -1039,16 +1039,18 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <g stroke="#0b365e" stroke-width="2">
             <line x1="348" y1="256" x2="360" y2="266"/><line x1="398" y1="212" x2="408" y2="224"/><line x1="470" y1="184" x2="476" y2="198"/><line x1="530" y1="176" x2="530" y2="190"/><line x1="590" y1="184" x2="584" y2="198"/><line x1="662" y1="212" x2="652" y2="224"/><line x1="712" y1="256" x2="700" y2="266"/>
         </g>
-        <text x="530" y="130" font-family="Arial" font-size="19" font-weight="700" letter-spacing="4" fill="#082d52" text-anchor="middle">WATTS</text>
+        <line id="ampVuL" data-cx="530" data-cy="286" x1="530" y1="286" x2="530" y2="120" stroke="#0d1119" stroke-width="3.5" transform="rotate(-42 530 286)"/>
+        <text x="530" y="112" font-family="Arial" font-size="19" font-weight="700" letter-spacing="4" fill="#082d52" text-anchor="middle">WATTS</text>
         <g font-family="Arial" font-size="14.5" font-weight="700" fill="#082d52">
             <text x="354" y="244">.2</text><text x="406" y="204">2.0</text><text x="522" y="170">20</text><text x="642" y="204">100</text><text x="686" y="244">200</text>
         </g>
         <g font-family="Arial" font-size="12.5" font-weight="650" fill="#0a3157">
             <text x="380" y="272">-50</text><text x="434" y="234">-30</text><text x="526" y="214">-10</text><text x="622" y="234">0</text>
         </g>
-        <text x="530" y="248" font-family="Arial" font-size="12" font-weight="700" letter-spacing="2" fill="#092f55" text-anchor="middle">DECIBELS</text>
-        <text x="530" y="290" font-family="Arial" font-size="15.5" font-weight="650" letter-spacing="4" fill="#082b4c" text-anchor="middle">POWER OUTPUT</text>
-        <line id="ampVuL" data-cx="530" data-cy="286" x1="530" y1="286" x2="530" y2="120" stroke="#0d1119" stroke-width="3.5" transform="rotate(-42 530 286)"/>
+        <text x="530" y="250" font-family="Arial" font-size="12" font-weight="700" letter-spacing="2" fill="#092f55" stroke="#52c1ed" stroke-width="3" paint-order="stroke fill" text-anchor="middle">DECIBELS</text>
+        <g font-family="Arial" font-size="15.5" font-weight="650" letter-spacing="3.4" fill="#082b4c" stroke="#43b6e8" stroke-width="3.5" paint-order="stroke fill">
+            <text x="510" y="289" text-anchor="end">POWER</text><text x="550" y="289">OUTPUT</text>
+        </g>
         <polygon points="262,66 560,66 380,298 262,298" fill="url(#lzStreak)" opacity="0.7"/>
         <rect x="262" y="66" width="536" height="34" fill="url(#lzInset)" opacity="0.62"/>
         <rect x="262" y="66" width="14" height="232" fill="url(#lzInL)" opacity="0.5"/>
@@ -1072,16 +1074,18 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
         <g stroke="#0b365e" stroke-width="2">
             <line x1="1288" y1="256" x2="1300" y2="266"/><line x1="1338" y1="212" x2="1348" y2="224"/><line x1="1410" y1="184" x2="1416" y2="198"/><line x1="1470" y1="176" x2="1470" y2="190"/><line x1="1530" y1="184" x2="1524" y2="198"/><line x1="1602" y1="212" x2="1592" y2="224"/><line x1="1652" y1="256" x2="1640" y2="266"/>
         </g>
-        <text x="1470" y="130" font-family="Arial" font-size="19" font-weight="700" letter-spacing="4" fill="#082d52" text-anchor="middle">WATTS</text>
+        <line id="ampVuR" data-cx="1470" data-cy="286" x1="1470" y1="286" x2="1470" y2="120" stroke="#0d1119" stroke-width="3.5" transform="rotate(-42 1470 286)"/>
+        <text x="1470" y="112" font-family="Arial" font-size="19" font-weight="700" letter-spacing="4" fill="#082d52" text-anchor="middle">WATTS</text>
         <g font-family="Arial" font-size="14.5" font-weight="700" fill="#082d52">
             <text x="1294" y="244">.2</text><text x="1346" y="204">2.0</text><text x="1462" y="170">20</text><text x="1582" y="204">100</text><text x="1626" y="244">200</text>
         </g>
         <g font-family="Arial" font-size="12.5" font-weight="650" fill="#0a3157">
             <text x="1320" y="272">-50</text><text x="1374" y="234">-30</text><text x="1466" y="214">-10</text><text x="1562" y="234">0</text>
         </g>
-        <text x="1470" y="248" font-family="Arial" font-size="12" font-weight="700" letter-spacing="2" fill="#092f55" text-anchor="middle">DECIBELS</text>
-        <text x="1470" y="290" font-family="Arial" font-size="15.5" font-weight="650" letter-spacing="4" fill="#082b4c" text-anchor="middle">POWER OUTPUT</text>
-        <line id="ampVuR" data-cx="1470" data-cy="286" x1="1470" y1="286" x2="1470" y2="120" stroke="#0d1119" stroke-width="3.5" transform="rotate(-42 1470 286)"/>
+        <text x="1470" y="250" font-family="Arial" font-size="12" font-weight="700" letter-spacing="2" fill="#092f55" stroke="#52c1ed" stroke-width="3" paint-order="stroke fill" text-anchor="middle">DECIBELS</text>
+        <g font-family="Arial" font-size="15.5" font-weight="650" letter-spacing="3.4" fill="#082b4c" stroke="#43b6e8" stroke-width="3.5" paint-order="stroke fill">
+            <text x="1450" y="289" text-anchor="end">POWER</text><text x="1490" y="289">OUTPUT</text>
+        </g>
         <polygon points="1202,66 1500,66 1320,298 1202,298" fill="url(#lzStreak)" opacity="0.7"/>
         <rect x="1202" y="66" width="536" height="34" fill="url(#lzInset)" opacity="0.62"/>
         <rect x="1202" y="66" width="14" height="232" fill="url(#lzInL)" opacity="0.5"/>
@@ -1096,10 +1100,10 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
     <rect x="842" y="82" width="316" height="158" rx="9" fill="url(#m5Crest)" stroke="#3b444b" stroke-width="1.6"/>
     <rect x="848" y="88" width="304" height="146" rx="6" fill="none" stroke="#3fe373" stroke-width="1" opacity=".22"/>
     <ellipse cx="1000" cy="164" rx="120" ry="58" fill="#35d96b" opacity=".055" filter="url(#m5GreenBloom)" pointer-events="none"/>
-    <path d="M884 110H1116 M884 222H1116" stroke="#3fe373" stroke-width="1.2" opacity=".28"/>
+    <path d="M884 110H1116 M884 226H1116" stroke="#3fe373" stroke-width="1.2" opacity=".28"/>
     <text class="ampLegend" x="1000" y="146" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="47" font-weight="700" fill="#4aee80" text-anchor="middle">McIntoch</text>
     <text class="ampLegend" x="1000" y="188" font-family="Arial" font-size="20.5" font-weight="700" letter-spacing="7" fill="#43e979" text-anchor="middle">MC 2105</text>
-    <text class="ampLegend" x="1000" y="216" font-family="Arial" font-size="14.5" font-weight="650" letter-spacing="2.6" fill="#35c865" text-anchor="middle">SOLID STATE STEREO POWER AMPLIFIER</text>
+    <text class="ampLegend" x="1000" y="215" font-family="Arial" font-size="12.5" font-weight="650" letter-spacing="2" fill="#35c865" text-anchor="middle">SOLID STATE POWER AMPLIFIER</text>
     <!-- 하단 컨트롤 행 -->
     <g class="ampLegend" font-family="Arial" font-size="15.5" font-weight="700" letter-spacing="1.6" fill="#49e77e" text-anchor="middle">
         <text x="290" y="382">POWER</text><text x="560" y="382">L GAIN</text><text x="1000" y="382">GAIN</text><text x="1440" y="382">R GAIN</text><text x="1710" y="382">SPEAKERS</text>
