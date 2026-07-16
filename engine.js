@@ -10,10 +10,14 @@ let gainNode = null;
 // 따라서 현재 재생(라디오·음반·테이프)과 무관하게 무음으로 녹음된다.
 let bgRecAudio = null;
 let bgRecPlayer = null;
-let bgRecCtx = null;      // 전용 AudioContext — 본체 그래프(SAFARI_LIKE 차단)와 무관하게 동작
+let bgRecCtx = null;      // 전용 AudioContext — VU 레벨 표시용 (WebKit에선 무음 탭이라 참고용)
 let bgRecSource = null;
 let bgRecDest = null;
 let bgRecAnalyser = null;
+// 스트림 원본 바이트 캡처 — WebKit은 MediaElementSource가 MSE/HLS 요소에서 무음이라
+// 오디오 스택을 태핑하는 녹음이 불가능하다. 대신 hls.js가 버퍼에 붙이는 fMP4/MP3
+// 바이트를 그대로 이어붙여 원본 음질의 재생 가능한 파일을 만든다 (모든 엔진 공통 경로).
+let bgRecCap = { active: false, mime: "", init: null, chunks: [], bytes: 0, rolling: [] };
 let ampInputTrim = null;
 let recDest = null;
 let analyser = null;

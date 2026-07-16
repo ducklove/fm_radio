@@ -269,6 +269,12 @@ test.describe("데스크톱", () => {
         expect(stored.pos, "되감김").toBe(0);
         expect(stored.segs, "녹음 세그먼트 존재").toBeGreaterThan(0);
         expect(stored.inserted, "랙에 보관(데크에서 배출)").toBe(false);
+        // 빈 껍데기·무음 파일 회귀 방지 — 녹음 파일에 실제 스트림 데이터가 담겨야 한다
+        const blobSize = await page.evaluate(async () => {
+            const t = tapes.find((x) => x.label.includes("타이머 테스트"));
+            return fetch(t.segments[0].url).then((r) => r.blob()).then((b) => b.size);
+        });
+        expect(blobSize, "녹음 파일 실데이터(>20KB)").toBeGreaterThan(20000);
         expect(await page.evaluate(() => playerSubtext.textContent), "카세트 보관 안내").toContain("테이프 랙에 보관");
     });
 

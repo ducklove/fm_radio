@@ -2302,3 +2302,14 @@ body.mode-focus .focus-exit {
     font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
 }
+
+/* 예약 엔진 진단 라인 — 버전·상태·캡처량. "왜 안 되지"를 화면에서 바로 읽는다 */
+.res-diag {
+    margin: 0 0 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+}

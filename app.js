@@ -2275,7 +2275,7 @@ function toggleRecording(opts) {
     }
 
     // 예약 녹음은 백그라운드 수신기에서 녹음한다 — 본체가 꺼져 있어도 무방
-    const bgRec = !!(opts && opts.source === "bg" && bgRecDest);
+    const bgRec = !!(opts && opts.source === "bg");
     if (!bgRec && !isPlaying) {
         // 예약 시각인데 아직 시작 전이면 REC 누름(제스처)이 곧 시동이다
         if (activeResRec && !activeResRec.started) {
@@ -2296,26 +2296,44 @@ function toggleRecording(opts) {
     }
     if (!deckTape) deckTape = newBlankTape();
 
-    // 백그라운드 녹음은 전용 체인(bgRecCtx)만 있으면 된다 — 본체 그래프는
-    // Safari 계열에서 의도적으로 꺼져 있으므로 여기서 요구하면 안 된다.
+    // 백그라운드 녹음은 스트림 바이트 캡처라 WebAudio·MediaRecorder가 필요 없다.
+    // 본체 그래프는 Safari 계열에서 의도적으로 꺼져 있으므로 bg 경로에서 요구하면 안 된다.
+    let rec;
     if (bgRec) {
-        if (bgRecCtx && bgRecCtx.state === "suspended") bgRecCtx.resume();
+        if (!bgRecPlayer || !bgRecPlayer.hls) {
+            playerSubtext.textContent = "이 브라우저에서는 백그라운드 녹음을 지원하지 않습니다.";
+            return;
+        }
+        bgCapStart();
+        // MediaRecorder와 같은 사용법의 캡처 심 — stop() 시 모아 둔 바이트를 내보낸다
+        rec = {
+            state: "recording",
+            mimeType: bgRecCap.mime || "audio/mp4",
+            ondataavailable: null,
+            onstop: null,
+            start() {},
+            stop() {
+                this.state = "inactive";
+                const blob = bgCapStop();
+                this.mimeType = blob.type;
+                if (this.ondataavailable && blob.size) this.ondataavailable({ data: blob });
+                if (this.onstop) this.onstop();
+            }
+        };
     } else {
         if (!ensureAudioGraph()) {
             playerSubtext.textContent = "이 브라우저에서는 녹음을 지원하지 않습니다.";
             return;
         }
         if (audioCtx.state === "suspended") audioCtx.resume();
-    }
-
-    const mime = pickRecMime();
-    let rec;
-    try {
-        rec = new MediaRecorder((bgRec ? bgRecDest : recDest).stream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : undefined);
-    } catch (error) {
-        console.error(error);
-        playerSubtext.textContent = "녹음을 시작할 수 없습니다.";
-        return;
+        const mime = pickRecMime();
+        try {
+            rec = new MediaRecorder(recDest.stream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : undefined);
+        } catch (error) {
+            console.error(error);
+            playerSubtext.textContent = "녹음을 시작할 수 없습니다.";
+            return;
+        }
     }
 
     const chunks = [];
@@ -2339,7 +2357,7 @@ function toggleRecording(opts) {
     rec.onstop = async () => {
         if (!chunks.length) return;
         const durationMs = Date.now() - startMs;
-        const type = rec.mimeType || chunks[0].type || "audio/webm";
+        const type = rec.mimeType || chunks[0].type || "audio/mp4";
         const record = {
             stationId: station.id,
             stationName: station.name,
@@ -2430,6 +2448,7 @@ function formatSize(bytes) {
 
 function updateRecTime() {
     recTimeEl.textContent = formatDuration(Date.now() - recStartMs);
+    updateResDiag();
     // 예약 녹음: 프로그램 종료 시각에 자동 정지
     if (activeResRec && recorder && Date.now() >= activeResRec.endTs) {
         finishReservedRecording();
@@ -3281,7 +3300,27 @@ function cycleReservationRepeat(id) {
     renderResList();
 }
 
+function updateResDiag() {
+    const el = document.getElementById("resDiag");
+    if (!el) return;
+    const ver = (document.getElementById("appVersion") || {}).textContent || "?";
+    const parts = [ver];
+    if (activeResRec) {
+        parts.push(activeResRec.started ? "녹음 중" : (activeResRec.tuning ? "선국 중" : "시작 대기"));
+        parts.push("「" + activeResRec.res.title + "」");
+    } else {
+        parts.push("진행 중 회차 없음");
+    }
+    if (bgRecPlayer) {
+        parts.push("수신 " + (bgRecPlayer.hls ? "hls" : "native") + (bgRecAudio && !bgRecAudio.paused ? "·재생" : "·정지"));
+    }
+    if (recorder && bgRecCap.bytes) parts.push((bgRecCap.bytes / 1024).toFixed(0) + "KB 캡처");
+    if (recorder && recorder.mimeType) parts.push(recorder.mimeType.split(";")[0]);
+    el.textContent = parts.join(" · ");
+}
+
 function renderResList() {
+    updateResDiag();
     resListEl.innerHTML = "";
     if (!reservations.length) {
         const empty = document.createElement("div");
@@ -3459,7 +3498,8 @@ function bgRecStop() {
 }
 
 function bgRecReady() {
-    return !!(bgRecAudio && !bgRecAudio.paused && bgRecAudio.readyState >= 2);
+    return !!(bgRecAudio && !bgRecAudio.paused && bgRecAudio.readyState >= 2
+        && bgRecPlayer && bgRecPlayer.hls);
 }
 
 // 자동재생 차단 대응 — 페이지를 새로 연 뒤 조작이 없으면 백그라운드 수신기의
@@ -3482,52 +3522,112 @@ function bgRecArmGestureRetry() {
     }, { once: true, capture: true });
 }
 
-// 전용 녹음 체인 — 본체 그래프(ensureAudioGraph)는 Safari 계열에서 의도적으로 꺼져 있다
-// (본체 <audio>의 네이티브 HLS를 WebAudio에 묶으면 깨지는 WebKit 제약).
-// 백그라운드 수신기는 우리가 만든 엘리먼트를 hls.js(MSE/MMS)로 구동하므로 그 제약과
-// 무관하다 — 별도 AudioContext로 태핑해 Safari에서도 녹음이 동작하게 한다.
-function ensureBgRecChain() {
-    if (bgRecDest) return true;
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx || !window.MediaRecorder) return false;
+// 백그라운드 수신 엘리먼트 — 녹음은 오디오 스택이 아니라 스트림 바이트 캡처로 하므로
+// WebAudio 없이도 성립한다. Safari 계열은 탭이 어차피 무음(WebKit 제약)이니
+// 뮤트로 돌린다 — 뮤트 재생은 자동재생 정책도 통과해 제스처 없이 시작된다.
+function ensureBgRecElement() {
+    if (bgRecAudio) return true;
+    bgRecAudio = document.createElement("audio");
+    bgRecAudio.crossOrigin = "anonymous";
+    bgRecAudio.preload = "auto";
+    if (SAFARI_LIKE) bgRecAudio.muted = true;
+    // VU 레벨용 탭 — 실패해도(또는 WebKit처럼 무음이어도) 녹음에는 지장 없다
     try {
-        bgRecCtx = new Ctx();
-        bgRecAudio = document.createElement("audio");
-        bgRecAudio.crossOrigin = "anonymous";
-        bgRecAudio.preload = "auto";
-        bgRecSource = bgRecCtx.createMediaElementSource(bgRecAudio);
-        bgRecDest = bgRecCtx.createMediaStreamDestination();
-        bgRecAnalyser = bgRecCtx.createAnalyser();
-        bgRecAnalyser.fftSize = 512;
-        bgRecSource.connect(bgRecDest);
-        bgRecSource.connect(bgRecAnalyser);
-        return true;
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx && !SAFARI_LIKE) {
+            bgRecCtx = new Ctx();
+            bgRecSource = bgRecCtx.createMediaElementSource(bgRecAudio);
+            bgRecDest = bgRecCtx.createMediaStreamDestination();
+            bgRecAnalyser = bgRecCtx.createAnalyser();
+            bgRecAnalyser.fftSize = 512;
+            bgRecSource.connect(bgRecDest);
+            bgRecSource.connect(bgRecAnalyser);
+        }
     } catch (error) {
-        console.error(error);
+        console.warn("VU 탭 생성 실패 (녹음은 계속):", error);
         bgRecCtx = null;
-        bgRecAudio = null;
         bgRecSource = null;
         bgRecDest = null;
         bgRecAnalyser = null;
-        return false;
+    }
+    return true;
+}
+
+// hls.js가 미디어 버퍼에 붙이는 오디오 바이트를 그대로 캡처한다.
+// fMP4(init: 'ftyp' 박스)면 audio/mp4, 아니면 MP3 패스스루(audio/mpeg).
+function bgRecOnChunk(event, data) {
+    if (!data || data.type !== "audio" || !data.data) return;
+    const src = data.data instanceof Uint8Array ? data.data : new Uint8Array(data.data);
+    const bytes = src.slice();   // hls.js가 버퍼를 재사용하므로 복사 필수
+    const isInit = bytes.length > 8 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70;
+    if (isInit) {
+        bgRecCap.init = bytes;
+        bgRecCap.mime = "audio/mp4";
+        if (bgRecCap.active) { bgRecCap.chunks.push(bytes); bgRecCap.bytes += bytes.length; }
+        return;
+    }
+    if (!bgRecCap.mime) bgRecCap.mime = "audio/mpeg";
+    if (bgRecCap.active) {
+        bgRecCap.chunks.push(bytes);
+        bgRecCap.bytes += bytes.length;
+    }
+    // 롤링 프리버퍼 — hls는 재생보다 앞서 버퍼를 붙여 두므로, 녹음 시작 시점에는
+    // 새 청크가 한동안 안 올 수 있다. 최근 청크를 보관했다가 시작 시 시드한다.
+    bgRecCap.rolling.push({ t: Date.now(), bytes });
+    let rollBytes = 0;
+    for (const c of bgRecCap.rolling) rollBytes += c.bytes.length;
+    while (bgRecCap.rolling.length > 1 && rollBytes > 4 * 1024 * 1024) {
+        rollBytes -= bgRecCap.rolling.shift().bytes.length;
     }
 }
 
+function bgCapStart() {
+    bgRecCap.chunks = [];
+    bgRecCap.bytes = 0;
+    if (bgRecCap.init) {
+        bgRecCap.chunks.push(bgRecCap.init);
+        bgRecCap.bytes += bgRecCap.init.length;
+    }
+    // 이미 버퍼에 붙어 있던 직전 구간(≤8초 전 수신분)을 시드 — 첫 초 누락 방지
+    const cutoff = Date.now() - 8000;
+    bgRecCap.rolling.forEach((c) => {
+        if (c.t >= cutoff) {
+            bgRecCap.chunks.push(c.bytes);
+            bgRecCap.bytes += c.bytes.length;
+        }
+    });
+    bgRecCap.active = true;
+}
+
+function bgCapStop() {
+    bgRecCap.active = false;
+    const blob = new Blob(bgRecCap.chunks, { type: bgRecCap.mime || "audio/mp4" });
+    bgRecCap.chunks = [];
+    bgRecCap.bytes = 0;
+    return blob;
+}
+
 async function bgRecTune(station) {
-    if (!ensureBgRecChain()) throw new Error("이 브라우저에서는 녹음을 지원하지 않습니다.");
-    if (bgRecCtx.state === "suspended") bgRecCtx.resume();
+    ensureBgRecElement();
+    if (bgRecCtx && bgRecCtx.state === "suspended") bgRecCtx.resume();
     const url = await getStreamUrl(station);
     bgRecStop();
+    bgRecCap.init = null;
+    bgRecCap.mime = "";
     bgRecPlayer = PlayerCore.attach(bgRecAudio, url, {
         onBlocked: bgRecArmGestureRetry,   // 자동재생 차단 — 다음 제스처에서 재시동
         onFatal: () => bgRecStop()         // 다음 재시도 주기가 다시 튠한다
     });
+    if (bgRecPlayer && bgRecPlayer.hls) {
+        bgRecPlayer.hls.on(Hls.Events.BUFFER_APPENDING, bgRecOnChunk);
+    }
     try { await bgRecAudio.play(); } catch (e) { bgRecArmGestureRetry(); }
 }
 
 // 매 틱: 예약 녹음을 굴린다. 백그라운드 수신기를 튠하고, 스트림이 열리면 REC.
 // 데크가 재생·감기 중이면 점유하지 않고 기다린다 (정지하면 다음 재시도에 시작).
 function serviceReservationRecording(nowTs) {
+    updateResDiag();
     if (!activeResRec) return;
     if (nowTs >= activeResRec.endTs) {
         finishReservedRecording();
@@ -3541,6 +3641,11 @@ function serviceReservationRecording(nowTs) {
             playerSubtext.textContent = "예약 녹음 대기 — 데크가 사용 중입니다. 정지(\u25a0)하면 시작됩니다: " + res.title;
         }
         return;
+    }
+    if (bgRecPlayer && !bgRecPlayer.hls && !activeResRec.noCapWarned) {
+        // 구형 iOS 등 MSE가 없어 네이티브 HLS로 떨어진 경우 — 바이트 캡처가 불가능하다
+        activeResRec.noCapWarned = true;
+        playerSubtext.textContent = "이 브라우저에서는 백그라운드 녹음을 지원하지 않습니다 (스트림 캡처 불가).";
     }
     if (bgRecReady()) {
         prepareReservedTape(activeResRec);
