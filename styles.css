@@ -984,8 +984,8 @@ body.mode-simple #stationMain.collapsed {
     .page-shell {
         width: min(100% - 18px, 100%);
         padding-top: 10px;
-        /* 하단 고정 플레이어 바에 내용이 가리지 않도록 여백 확보 */
-        padding-bottom: calc(84px + env(safe-area-inset-bottom));
+        /* 하단 고정 플레이어 바(두 줄이 될 수 있다)에 내용이 가리지 않도록 여백 확보 */
+        padding-bottom: calc(136px + env(safe-area-inset-bottom));
     }
 
     /* 컨트롤을 엄지 영역에 상시 노출 — 랙을 스크롤해도 재생/녹음/타이머가 손에 닿는다 */
@@ -1018,9 +1018,11 @@ body.mode-simple #stationMain.collapsed {
         border-radius: 5px;
     }
 
-    /* 슬림 플레이어 바 — 한 줄로 눕혀서 랙(특히 턴테이블)을 가리지 않는다 */
+    /* 슬림 플레이어 바 — 공간이 되면 한 줄, 버튼이 안 맞으면(예약 칩 등장 등)
+       버튼 묶음이 아랫줄로 내려간다. 제목이 한 글자로 짜부라지는 것 방지. */
     .player-bar {
-        grid-template-columns: minmax(0, 1fr) auto;
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 8px;
         padding: 8px 10px;
@@ -1052,7 +1054,14 @@ body.mode-simple #stationMain.collapsed {
         height: 19px;
     }
 
+    .player-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     .player-side {
+        flex: 0 0 auto;
+        margin-left: auto;
         flex-wrap: nowrap;
         justify-content: flex-end;
         gap: 6px;
@@ -1213,6 +1222,10 @@ body.mode-simple #stationMain.collapsed {
     color: #b8bcc4;
     width: max-content;
     max-width: 100%;
+    /* 칸이 좁아져도 세로로 꺾이지 않고 말줄임 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .audio-state-chip::before {
     content: "";
