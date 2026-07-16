@@ -2313,3 +2313,14 @@ body.mode-focus .focus-exit {
     font-size: 0.74rem;
     font-variant-numeric: tabular-nums;
 }
+
+/* 편성표 리스트 뷰의 라이브 상태 — 녹음 중이면 붉게 맥동 */
+.sched-diag {
+    margin: 0 0 10px;
+}
+
+.sched-diag.live {
+    border-color: rgba(229, 72, 77, 0.6);
+    color: #ffd9da;
+    animation: recPulse 2.4s ease-out infinite;
+}

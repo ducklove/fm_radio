@@ -3222,7 +3222,9 @@ async function renderSched() {
 
 function addReservation(data) {
     const res = {
-        id: reservations.reduce((a, r) => Math.max(a, r.id || 0), 0) + 1,
+        // 시간 기반 고유 ID — max+1 방식은 삭제 후 재생성 시 ID가 재사용되어,
+        // localStorage의 발화 기록(취소=2)이 새 예약을 영원히 침묵시키는 버그가 있었다
+        id: Math.max(Date.now(), reservations.reduce((a, r) => Math.max(a, r.id || 0), 0) + 1),
         stationId: data.stationId,
         title: data.title,
         startMin: data.startMin,
@@ -3241,6 +3243,11 @@ function addReservation(data) {
     updateSchedTabs();
     const nowTs = Date.now();
     const occ = resOccurrence(res, nowTs);
+    // 새 예약은 백지에서 시작한다 — 과거 ID 재사용으로 남았을 수 있는 발화 기록 제거
+    if (occ && resFiredOcc[res.id + ":" + occ.ymd]) {
+        delete resFiredOcc[res.id + ":" + occ.ymd];
+        saveJson("fmRadio.resFired", resFiredOcc);
+    }
     // '지금부터 녹음'인데 시작도 못 한 채 자리만 차지한 이전 회차(pending)가 있으면
     // 비켜 준다 — 사용자가 방금 명시적으로 누른 쪽이 우선이다
     if (occ && nowTs >= occ.startTs && activeResRec && !activeResRec.started && activeResRec.res.id !== res.id) {
@@ -3273,6 +3280,12 @@ function toggleReservationEnabled(id) {
     if (res.enabled) {
         res.missed = false;
         res.done = false;
+        // 다시 켠 예약은 이번 회차를 새로 시도한다 — 과거 취소/완료 기록 제거
+        const occNow = resOccurrence(res, Date.now());
+        if (occNow && resFiredOcc[res.id + ":" + occNow.ymd]) {
+            delete resFiredOcc[res.id + ":" + occNow.ymd];
+            saveJson("fmRadio.resFired", resFiredOcc);
+        }
         // 한 번 예약을 다시 켰는데 시각이 이미 지났다면 다음 날로 옮긴다
         if (res.repeat === "once") {
             const occ = resOccurrence(res, Date.now());
@@ -3301,22 +3314,27 @@ function cycleReservationRepeat(id) {
 }
 
 function updateResDiag() {
-    const el = document.getElementById("resDiag");
-    if (!el) return;
     const ver = (document.getElementById("appVersion") || {}).textContent || "?";
     const parts = [ver];
     if (activeResRec) {
-        parts.push(activeResRec.started ? "녹음 중" : (activeResRec.tuning ? "선국 중" : "시작 대기"));
+        parts.push(activeResRec.started ? "● 녹음 중" : (activeResRec.tuning ? "선국 중" : "시작 대기"));
         parts.push("「" + activeResRec.res.title + "」");
+        if (bgRecPlayer) parts.push("수신 " + (bgRecPlayer.hls ? "hls" : "native") + (bgRecAudio && !bgRecAudio.paused ? "·재생" : "·정지"));
+        if (recorder && bgRecCap.bytes) parts.push((bgRecCap.bytes / 1024).toFixed(0) + "KB 캡처");
+        if (recorder && recorder.mimeType) parts.push(recorder.mimeType.split(";")[0]);
     } else {
         parts.push("진행 중 회차 없음");
     }
-    if (bgRecPlayer) {
-        parts.push("수신 " + (bgRecPlayer.hls ? "hls" : "native") + (bgRecAudio && !bgRecAudio.paused ? "·재생" : "·정지"));
+    const text = parts.join(" · ");
+    const el = document.getElementById("resDiag");
+    if (el) el.textContent = text;
+    // 편성표 리스트 뷰 상단에도 — 회차가 살아 있을 때만 띄운다
+    const sd = document.getElementById("schedDiag");
+    if (sd) {
+        sd.textContent = text;
+        sd.hidden = !activeResRec;
+        sd.classList.toggle("live", !!(activeResRec && activeResRec.started && recorder));
     }
-    if (recorder && bgRecCap.bytes) parts.push((bgRecCap.bytes / 1024).toFixed(0) + "KB 캡처");
-    if (recorder && recorder.mimeType) parts.push(recorder.mimeType.split(";")[0]);
-    el.textContent = parts.join(" · ");
 }
 
 function renderResList() {

@@ -386,6 +386,26 @@ test.describe("데스크톱", () => {
         expect(downloads[0]).toMatch(/\.wav$/);
     });
 
+    test("취소 이력 뒤 같은 프로그램 재예약 → 즉시 재발화 (ID 무덤돌 회귀 방지)", async ({ page }) => {
+        const mkParams = () => ({ stationId: window.FMRadio.stations[0].id, title: "무덤돌 테스트",
+            startMin: new Date().getHours() * 60 + new Date().getMinutes() - 5,
+            endMin: new Date().getHours() * 60 + new Date().getMinutes() + 60,
+            repeat: "once", ymd: FMSchedule.ymdOf(new Date()) });
+        // 1차 발화 → 사용자가 중단(취소 기록 2) → 예약 삭제
+        const firstId = await page.evaluate((fn) => addReservation(eval(fn)()).id, "(" + mkParams.toString() + ")");
+        await page.waitForFunction(() => activeResRec && activeResRec.res.title === "무덤돌 테스트", null, { timeout: 15000 });
+        await page.evaluate((id) => { cancelReservedRecording("테스트 중단"); removeReservation(id); }, firstId);
+        expect(await page.evaluate(() => !!activeResRec)).toBe(false);
+        // 2차: 같은 프로그램을 다시 예약 — 과거 기록에 막히지 않고 다시 발화해야 한다
+        const secondId = await page.evaluate((fn) => addReservation(eval(fn)()).id, "(" + mkParams.toString() + ")");
+        expect(secondId, "ID 재사용 금지").not.toBe(firstId);
+        await page.waitForFunction(() => activeResRec && activeResRec.res.title === "무덤돌 테스트", null, { timeout: 15000 });
+        await page.waitForFunction(() => !!recorder && activeResRec.started, null, { timeout: 20000 });
+        // 정리
+        await page.evaluate(() => { deckStopTransport(); deckStopTransport(); });
+        await page.waitForFunction(() => !recorder && !activeResRec, null, { timeout: 10000 });
+    });
+
     test("설명서에 신규 기기별 소개와 음색·동작 차이가 기록됨", async ({ page }) => {
         await page.goto("/manual.html");
         for (const name of ["TX-9500 II", "T-110", "T-100", "B760", "SA-9900", "AU-111", "L-550", "E-303", "MA2375", "B215", "TCD 3014A", "TC-KA7ES", "CT-F1250", "SL-1200MK2", "TD 124", "GARRARD", "Sondek LP12", "GE-10S / GE-10C"]) {

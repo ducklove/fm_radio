@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=80">
+    <link rel="stylesheet" href="styles.css?v=81">
 </head>
 <body>
     <div class="page-shell">
@@ -47,7 +47,7 @@
             <div class="header-actions">
                 <!-- 트레이 앱(chrome=tray)에서만 표시 — 하단 스크립트가 hidden을 푼다 -->
                 <a class="mini-open" id="miniPlayerLink" href="widget.html?skin=tuner" title="튜너 미니 플레이어로 전환" hidden>미니 플레이어</a>
-                <a class="mini-open" href="manual.html" title="기기별 리뷰와 조작 안내">소개</a>
+                <a class="mini-open" href="manual.html" target="_blank" rel="noopener" title="기기별 리뷰와 조작 안내 (새 탭 — 재생 유지)">소개</a>
                 <button class="mini-open sched-open" type="button" onclick="openSchedule()" title="채널 편성표 보기와 예약 녹음">▤ 편성표</button>
                 <button class="mini-open" type="button" onclick="toggleSettings(true)" title="컴포넌트 표시와 모델을 고릅니다">⚙ 오디오 구성</button>
                 <button class="mini-open" type="button" onclick="toggleFocusMode()" title="컴포넌트만 남기는 몰입 모드 (ESC로 복귀)">⛶ 전체 화면</button>
@@ -136,7 +136,7 @@
 
         <footer class="site-footer">
             방송 스트림의 저작권은 각 방송사에 있습니다. 녹음 파일은 개인 감상 용도로만 이용해 주세요.
-            <a class="footer-link" href="embed.html">위젯·임베드 안내</a>
+            <a class="footer-link" href="embed.html" target="_blank" rel="noopener">위젯·임베드 안내</a>
             <span class="app-version" id="appVersion" title="실행 중인 앱 버전">v?</span>
         </footer>
     </div>
@@ -193,6 +193,7 @@
                 <button class="crate-close" type="button" aria-label="편성표 닫기" onclick="closeSchedule()">✕</button>
             </div>
             <div class="sched-chips" id="schedChips" role="group" aria-label="채널 선택"></div>
+            <div class="res-diag sched-diag" id="schedDiag" hidden></div>
             <div class="sched-list" id="schedList"></div>
             <div class="sched-res" id="schedResPane" hidden>
                 <div class="res-diag" id="resDiag" title="예약 녹음 엔진 상태"></div>
@@ -247,15 +248,15 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=80"></script>
-    <script src="player-core.js?v=80"></script>
-    <script src="store.js?v=80"></script>
-    <script src="schedule.js?v=80"></script>
-    <script src="skins.js?v=80"></script>
-    <script src="component-skins.js?v=80"></script>
-    <script src="engine.js?v=80"></script>
-    <script src="deck.js?v=80"></script>
-    <script src="bootstrap.js?v=80"></script>
+    <script src="stations.js?v=81"></script>
+    <script src="player-core.js?v=81"></script>
+    <script src="store.js?v=81"></script>
+    <script src="schedule.js?v=81"></script>
+    <script src="skins.js?v=81"></script>
+    <script src="component-skins.js?v=81"></script>
+    <script src="engine.js?v=81"></script>
+    <script src="deck.js?v=81"></script>
+    <script src="bootstrap.js?v=81"></script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {
