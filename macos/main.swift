@@ -1,7 +1,7 @@
 // Mad for Audio — macOS 메뉴바 상주 앱
 // 메뉴바 아이콘 클릭 → 드래그로 옮길 수 있는 플로팅 패널로 하이파이 랙이 열린다.
 // 패널을 닫아도 웹뷰는 살아 있으므로 라디오는 계속 재생된다.
-// 재생 중에 닫으면 슬림 '간편 플레이어 바'로 자동 축소된다 (리로드 없이 — 소리 유지).
+// 메뉴바에 [재생/정지 · 채널/곡명] 스트립이 상주한다 — 창을 닫아도 제어·표시가 가능하다.
 // 빌드: ./build.sh  (Xcode 프로젝트 불필요 — swiftc 단일 파일)
 
 import Cocoa
@@ -11,14 +11,13 @@ import ServiceManagement
 // 랙 뷰 고정 (?view=rack — 저장된 보기 모드보다 우선)
 let APP_URL = URL(string: "https://ducklove.github.io/mad-for-audio/?view=rack")!
 let FULL_SIZE = NSSize(width: 440, height: 780)
-let BAR_SIZE = NSSize(width: 440, height: 104)   // 상단 드래그 스트립 + 슬림 플레이 바
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate {
     var statusItem: NSStatusItem!
+    var titleItem: NSStatusItem!    // 메뉴바 스트립: [▶/⏸ 채널·곡명]
     var panel: NSPanel!
     var webView: WKWebView!
-    var barMode = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 웹뷰 — 앱이 사는 동안 유지된다 (오디오의 심장)
@@ -55,6 +54,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
+
+        // 메뉴바 스트립 — 나중에 만들수록 왼쪽에 붙는다: [▶ 채널명][📻]
+        titleItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = titleItem.button {
+            button.image = NSImage(systemSymbolName: "play.fill", accessibilityDescription: "재생/정지")
+            button.imagePosition = .imageLeft
+            button.font = NSFont.systemFont(ofSize: 12)
+            button.title = ""
+            button.action = #selector(titleClicked(_:))
+            button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        }
+
+        // 페이지 상태 → 메뉴바 스트립 동기화 (2초 폴링)
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            Task { @MainActor in self.refreshStrip() }
+        }
+    }
+
+    // ----- 메뉴바 스트립: 클릭 = 재생/정지, 표시 = 채널/곡명 -----
+    @objc func titleClicked(_ sender: NSStatusBarButton) {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showMenu()
+            return
+        }
+        webView.evaluateJavaScript("if (typeof togglePlay === 'function') togglePlay();", completionHandler: nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { self.refreshStrip() }
+    }
+
+    func refreshStrip() {
+        let js = "JSON.stringify({p: (typeof isPlaying !== 'undefined' && isPlaying) ? 1 : 0, n: (typeof nowStation !== 'undefined' ? nowStation.textContent : '')})"
+        webView.evaluateJavaScript(js) { [weak self] result, _ in
+            Task { @MainActor in
+                guard let self, let raw = result as? String,
+                      let data = raw.data(using: .utf8),
+                      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+                let playing = (obj["p"] as? Int ?? 0) == 1
+                var name = (obj["n"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if name == "방송을 선택하세요" || name == "· · ·" { name = "" }
+                if name.count > 22 { name = String(name.prefix(21)) + "…" }
+                if let button = self.titleItem.button {
+                    button.image = NSImage(systemSymbolName: playing ? "pause.fill" : "play.fill",
+                                           accessibilityDescription: "재생/정지")
+                    button.title = name.isEmpty ? "" : " " + name
+                }
+            }
+        }
     }
 
     // ----- 메뉴바 버튼: 좌클릭 = 열기/축소/닫기, 우클릭 = 메뉴 -----
@@ -63,48 +109,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             showMenu()
             return
         }
-        if !panel.isVisible {
-            showFull(anchorToStatusItem: true)
-        } else if barMode {
-            showFull(anchorToStatusItem: false)     // 바 → 랙 복귀 (지금 자리 유지)
+        if panel.isVisible {
+            panel.orderOut(nil)     // 재생 표시·제어는 메뉴바 스트립이 이어받는다
         } else {
-            // 랙이 열려 있음: 재생 중이면 바로 숨기지 않고 간편 바로 축소한다
-            webView.evaluateJavaScript("(typeof isPlaying !== 'undefined' && isPlaying) ? 1 : 0") { [weak self] result, _ in
-                Task { @MainActor in
-                    guard let self else { return }
-                    if let n = result as? Int, n == 1 {
-                        self.enterBarMode()
-                    } else {
-                        self.panel.orderOut(nil)
-                    }
-                }
-            }
+            showFull(anchorToStatusItem: true)
         }
     }
 
     func showFull(anchorToStatusItem: Bool) {
-        barMode = false
         webView.evaluateJavaScript("if (typeof setPopupBarMode === 'function') setPopupBarMode(false);", completionHandler: nil)
-        var frame: NSRect
-        if anchorToStatusItem || !panel.isVisible {
-            frame = anchoredFrame(size: FULL_SIZE)
-        } else {
-            // 바 → 랙: 상단 모서리를 고정한 채 아래로 펼친다
-            let f = panel.frame
-            frame = NSRect(x: f.minX, y: f.maxY - FULL_SIZE.height, width: FULL_SIZE.width, height: FULL_SIZE.height)
-            frame = clampToScreen(frame)
-        }
+        let frame = anchorToStatusItem || !panel.isVisible ? anchoredFrame(size: FULL_SIZE) : panel.frame
         panel.setFrame(frame, display: true, animate: panel.isVisible)
         panel.makeKeyAndOrderFront(nil)
-    }
-
-    func enterBarMode() {
-        barMode = true
-        webView.evaluateJavaScript("if (typeof setPopupBarMode === 'function') setPopupBarMode(true);", completionHandler: nil)
-        let f = panel.frame
-        var frame = NSRect(x: f.minX, y: f.maxY - BAR_SIZE.height, width: BAR_SIZE.width, height: BAR_SIZE.height)
-        frame = clampToScreen(frame)
-        panel.setFrame(frame, display: true, animate: true)
     }
 
     // 상태바 아이콘 아래에 배치
@@ -135,13 +151,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     func showMenu() {
         let menu = NSMenu()
-        menu.addItem(withTitle: panel.isVisible && !barMode ? "랙 닫기" : "랙 열기",
+        menu.addItem(withTitle: panel.isVisible ? "랙 닫기" : "랙 열기",
                      action: #selector(menuToggleRack), keyEquivalent: "").target = self
-        let bar = NSMenuItem(title: "간편 플레이어 바", action: #selector(menuToggleBar), keyEquivalent: "")
-        bar.target = self
-        bar.state = (panel.isVisible && barMode) ? .on : .off
-        menu.addItem(bar)
-        menu.addItem(withTitle: "창 숨기기", action: #selector(menuHide), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "새로고침", action: #selector(menuReload), keyEquivalent: "r").target = self
         menu.addItem(withTitle: "브라우저에서 열기", action: #selector(menuOpenBrowser), keyEquivalent: "").target = self
@@ -159,26 +170,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     @objc func menuToggleRack() {
-        if panel.isVisible && !barMode {
+        if panel.isVisible {
             panel.orderOut(nil)
         } else {
-            showFull(anchorToStatusItem: !panel.isVisible)
+            showFull(anchorToStatusItem: true)
         }
     }
 
-    @objc func menuToggleBar() {
-        if panel.isVisible && barMode {
-            showFull(anchorToStatusItem: false)
-        } else {
-            if !panel.isVisible {
-                panel.setFrame(anchoredFrame(size: BAR_SIZE), display: false)
-                panel.makeKeyAndOrderFront(nil)
-            }
-            enterBarMode()
-        }
-    }
 
-    @objc func menuHide() { panel.orderOut(nil) }
     @objc func menuReload() { webView.reloadFromOrigin() }   // 캐시 무시 — 배포 직후에도 새 코드를 받는다
     @objc func menuOpenBrowser() { NSWorkspace.shared.open(APP_URL) }
 
@@ -194,10 +193,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         }
     }
 
-    // 로드(새로고침 포함)가 끝나면 현재 모드를 페이지에 다시 주입한다
+    // 로드(새로고침 포함)가 끝나면 랙 모드로 정돈하고 메뉴바 스트립을 갱신한다
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        let on = barMode ? "true" : "false"
-        webView.evaluateJavaScript("if (typeof setPopupBarMode === 'function') setPopupBarMode(\(on));", completionHandler: nil)
+        webView.evaluateJavaScript("if (typeof setPopupBarMode === 'function') setPopupBarMode(false);", completionHandler: nil)
+        refreshStrip()
     }
 
     // ----- 내비게이션 정책: 플레이어 페이지에 머문다 -----
