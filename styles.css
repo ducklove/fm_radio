@@ -1697,3 +1697,358 @@ body.mode-focus .page-shell {
 body.mode-focus .focus-exit {
     display: flex;
 }
+
+/* ===== 편성표 & 예약 녹음 ===== */
+/* 오버레이 골격은 crate-overlay를 그대로 쓰고, 패널 내부만 편성표용으로 구성한다 */
+.sched-panel {
+    width: min(720px, 100%);
+}
+
+.sched-tabs {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sched-tab {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: none;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.sched-tab:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sched-tab.active {
+    background: var(--panel-soft);
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.sched-tab-count {
+    margin-left: 6px;
+    color: var(--accent-strong);
+    font-variant-numeric: tabular-nums;
+}
+
+.sched-chips[hidden],
+.sched-list[hidden],
+.sched-res[hidden] {
+    display: none !important;
+}
+
+.sched-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.sched-chip {
+    flex: none;
+    padding: 7px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(20, 17, 15, 0.6);
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.sched-chip:hover {
+    color: var(--text);
+}
+
+.sched-chip.active {
+    color: var(--text);
+    border-color: var(--chip-accent, var(--accent));
+    box-shadow: inset 0 0 0 1px var(--chip-accent, var(--accent));
+}
+
+.sched-chip.nosched {
+    opacity: 0.55;
+}
+
+.sched-list {
+    overflow-y: auto;
+    min-height: 200px;
+    padding-right: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sched-msg {
+    color: var(--muted);
+    font-size: 0.88rem;
+    padding: 28px 8px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+.sp-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+}
+
+.sp-row + .sp-row {
+    margin-top: 2px;
+}
+
+.sp-row.past {
+    opacity: 0.45;
+}
+
+.sp-row.onair {
+    background: rgba(211, 106, 66, 0.1);
+    border-color: rgba(211, 106, 66, 0.35);
+}
+
+.sp-row.reserved {
+    border-color: rgba(229, 72, 77, 0.4);
+}
+
+.sp-time {
+    flex: none;
+    width: 46px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.sp-row.onair .sp-time {
+    color: var(--accent-strong);
+}
+
+.sp-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.sp-title {
+    font-size: 0.92rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sp-sub {
+    color: var(--muted);
+    font-size: 0.76rem;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sp-badge {
+    flex: none;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent-strong);
+    border: 1px solid rgba(211, 106, 66, 0.5);
+    border-radius: 7px;
+    padding: 2px 7px;
+}
+
+.sp-rec {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: none;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.sp-rec:hover {
+    color: #ffd9da;
+    border-color: rgba(229, 72, 77, 0.48);
+    background: rgba(229, 72, 77, 0.12);
+}
+
+.sp-rec.armed {
+    color: #ffd9da;
+    border-color: rgba(229, 72, 77, 0.55);
+    background: rgba(229, 72, 77, 0.14);
+}
+
+.sched-res {
+    overflow-y: auto;
+    min-height: 200px;
+}
+
+.res-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 12px;
+    border-left: 2px solid var(--rec);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.res-row + .res-row {
+    margin-top: 8px;
+}
+
+.res-row.off {
+    border-left-color: #55504a;
+    opacity: 0.6;
+}
+
+.res-row.missed {
+    border-left-color: #a8842e;
+}
+
+.res-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.res-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.res-meta {
+    color: var(--muted);
+    font-size: 0.76rem;
+    margin-top: 2px;
+}
+
+.res-btn {
+    flex: none;
+    padding: 6px 10px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: none;
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.res-btn:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.res-empty {
+    color: var(--muted);
+    font-size: 0.86rem;
+    text-align: center;
+    padding: 22px 8px;
+    line-height: 1.6;
+}
+
+.res-form {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px dashed var(--line);
+}
+
+.res-form-title {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+}
+
+.res-form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.res-form-row label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.res-form-row select,
+.res-form-row input {
+    padding: 7px 9px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--panel-soft);
+    color: var(--text);
+    font-size: 0.84rem;
+    color-scheme: dark;
+}
+
+.res-form-add {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(229, 72, 77, 0.5);
+    background: rgba(229, 72, 77, 0.12);
+    color: #ffd9da;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sched-note {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+/* 플레이어 바의 현재 프로그램 표시 — 누르면 편성표가 열린다 */
+.now-program {
+    display: block;
+    margin-top: 3px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent-strong);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.now-program:hover {
+    text-decoration: underline;
+}
+
+/* 예약 대기 칩 — 데크 TIMER 램프의 플레이어 바 버전 */
+#btnRes .rec-dot {
+    animation: recPulse 2.4s ease-out infinite;
+}

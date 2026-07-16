@@ -1566,8 +1566,8 @@ function ttFrame(now) {
 
     // 카세트 데크: 테이프 트랜스포트 (위치·릴·감김량·카운터·히스·REC 램프)
     if (deckMode === "rec" && recorder) {
-        tapePos = Math.min(TAPE_LEN, deckRecStartPos + (Date.now() - recStartMs) / 1000);
-        if (tapePos >= TAPE_LEN) {
+        tapePos = Math.min(tapeLenOf(deckTape), deckRecStartPos + (Date.now() - recStartMs) / 1000);
+        if (tapePos >= tapeLenOf(deckTape)) {
             stopRecording();
             playerSubtext.textContent = "테이프 끝 — 녹음이 정지되었습니다.";
         }
@@ -1579,8 +1579,8 @@ function ttFrame(now) {
             const nx = deckTape ? nextSegmentAfter(deckTape, tapePos) : null;
             if (nx && tapePos >= nx.start) deckStartSegment(nx, tapePos - nx.start);
         }
-        if (tapePos >= TAPE_LEN) {
-            tapePos = TAPE_LEN;
+        if (tapePos >= tapeLenOf(deckTape)) {
+            tapePos = tapeLenOf(deckTape);
             deckStopTransport();
             playerSubtext.textContent = "테이프가 끝났습니다 — 되감으세요.";
             if (radioStandby) {
@@ -1593,8 +1593,8 @@ function ttFrame(now) {
         if (hissGain) hissGain.gain.value += ((deckSegPlaying ? deckSpec.hissFloor : deckSpec.blankHiss) - hissGain.gain.value) * 0.1;
     } else if (deckMode === "wind") {
         const deckSpec = DECK_MODELS[deckModelId] || DECK_MODELS.dragon;
-        tapePos = Math.max(0, Math.min(TAPE_LEN, tapePos + windDir * deckSpec.windRate * dt));
-        if (tapePos <= 0 || tapePos >= TAPE_LEN) { deckMode = "stop"; windDir = 0; }
+        tapePos = Math.max(0, Math.min(tapeLenOf(deckTape), tapePos + windDir * deckSpec.windRate * dt));
+        if (tapePos <= 0 || tapePos >= tapeLenOf(deckTape)) { deckMode = "stop"; windDir = 0; }
     }
     const deckRolling = (deckMode === "play") || (deckMode === "rec" && recorder);
     const deckSpec = DECK_MODELS[deckModelId] || DECK_MODELS.dragon;
@@ -1605,7 +1605,7 @@ function ttFrame(now) {
         rl.setAttribute("transform", "rotate(" + deckReelAngle.toFixed(1) + " 610 260)");
         const rr = document.getElementById("deckReelR");
         if (rr) rr.setAttribute("transform", "rotate(" + (deckReelAngle * 0.82).toFixed(1) + " 850 260)");
-        const p = tapePos / TAPE_LEN;
+        const p = tapePos / tapeLenOf(deckTape);
         const pl = document.getElementById("deckPackL");
         const pr = document.getElementById("deckPackR");
         if (pl) pl.setAttribute("r", (24 + (1 - p) * 16).toFixed(1));
@@ -1617,6 +1617,13 @@ function ttFrame(now) {
         }
         const led = document.getElementById("deckRecLed");
         if (led) led.style.fill = recorder ? ((now % 1000) < 550 ? "#ff2a1a" : "#7a1a10") : "#3a1210";
+        // TIMER 램프: 예약 대기 중 은은히 점등, 예약 녹음 중 점멸 (실물 데크의 타이머 스탠바이)
+        const tled = document.getElementById("deckTimerLed");
+        if (tled) {
+            const recActive = activeResRec && activeResRec.started;
+            const armed = reservations.some((r) => r.enabled);
+            tled.style.fill = recActive ? ((now % 1000) < 550 ? "#ff2a1a" : "#7a1a10") : armed ? "#c24530" : "#3a1210";
+        }
     }
     const pled = document.getElementById("ampPwrLed");
     if (pled) pled.style.fill = isPlaying ? "#ff7a3a" : "#3a2012";
@@ -1840,6 +1847,18 @@ const SLEEP_STEPS = [0, 15, 30, 60, 90];
 let sleepIndex = 0;
 let sleepDeadline = 0;
 let sleepTicker = null;
+
+// 예약 녹음 상태 — ttFrame(데크 TIMER 램프)·updateRecTime이 초기화 직후부터 읽으므로
+// 파일 끝(편성표 섹션)이 아니라 여기서 선언한다. 로직은 '편성표 & 예약 녹음' 섹션에.
+const DOW_KO = ["일", "월", "화", "수", "목", "금", "토"];
+let schedState = { stationId: null, day: 0, view: "list", seq: 0 };
+let reservations = loadJson("fmRadio.reservations", []);
+let activeResRec = null;                                // 진행 중 예약 녹음 { res, occ, key, endTs, tapeId, started }
+let resFiredOcc = loadJson("fmRadio.resFired", {});     // 회차별 기록 (key: resId:ymd) — 1 발화, 2 사용자 취소, 3 완료.
+                                                        // 1인데 진행 중인 녹음이 없으면 앱이 죽었다 살아난 것 — 남은 시간을 이어 녹음한다.
+const resAlerted = {};                                  // 5분 전 알림 중복 방지 (세션 한정)
+let pendingRecName = null;                              // 다음 toggleRecording()이 쓸 녹음 이름 (프로그램명)
+let resFormReady = false;
 
 
 audio.volume = volumeLevel;
@@ -2065,6 +2084,7 @@ async function selectStation(id) {
         isPlaying = true;
         updatePlayButton();
         updateMediaSession();
+        updateNowProgram();
         saveJson("fmRadio.lastStation", station.id);
         gtag('event', 'play_station', {
             station_id: station.id,
@@ -2204,6 +2224,10 @@ function setVolume(value) {
 function toggleRecording() {
     if (recorder) {
         stopRecording();
+        // 손으로 정지한 것 — 진행 중이던 예약 회차는 되살리지 않는다
+        if (activeResRec && activeResRec.started) {
+            cancelReservedRecording("예약 녹음을 중단했습니다 — " + activeResRec.res.title);
+        }
         return;
     }
 
@@ -2214,7 +2238,7 @@ function toggleRecording() {
         playerSubtext.textContent = "테이프 재생 중에는 녹음할 수 없습니다 — 라디오나 턴테이블을 재생하세요.";
         return;
     }
-    if (tapePos >= TAPE_LEN - 1) {
+    if (tapePos >= tapeLenOf(deckTape) - 1) {
         playerSubtext.textContent = "테이프 끝입니다 — 되감거나 EJECT로 새 테이프를 넣으세요.";
         return;
     }
@@ -2240,10 +2264,13 @@ function toggleRecording() {
     }
 
     const chunks = [];
-    const station = currentStation || {
+    const base = currentStation || {
         id: "phono",
         name: (phonoActive && phonoTrack >= 0) ? RECORD.tracks[phonoTrack].t : "레코드"
     };
+    // 예약 녹음이면 파일·테이프 이름을 방송 프로그램명으로 (채널 id는 그대로)
+    const station = { id: base.id, name: pendingRecName || base.name };
+    pendingRecName = null;
     const startMs = Date.now();
     const startDate = new Date();
     const tapeStartPos = tapePos;
@@ -2264,6 +2291,7 @@ function toggleRecording() {
             type,
             tapeId,
             tapeStart: tapeStartPos,
+            tapeLen: deckTape ? tapeLenOf(deckTape) : TAPE_LEN,
             blob: new Blob(chunks, { type })
         };
         record.dbId = await persistRecording(record);
@@ -2301,7 +2329,7 @@ function stopRecording() {
     recorder = null;
     if (deckMode === "rec") {
         deckMode = "stop";
-        tapePos = Math.min(TAPE_LEN, deckRecStartPos + (Date.now() - recStartMs) / 1000);
+        tapePos = Math.min(tapeLenOf(deckTape), deckRecStartPos + (Date.now() - recStartMs) / 1000);
         if (deckTape) deckTape.pos = tapePos;
     }
 
@@ -2339,6 +2367,10 @@ function formatSize(bytes) {
 
 function updateRecTime() {
     recTimeEl.textContent = formatDuration(Date.now() - recStartMs);
+    // 예약 녹음: 프로그램 종료 시각에 자동 정지
+    if (activeResRec && recorder && Date.now() >= activeResRec.endTs) {
+        finishReservedRecording();
+    }
 }
 
 function updateRecButton() {
@@ -2359,7 +2391,8 @@ function addRecordingItem(record) {
     // 테이프에 세그먼트로 기록 (복원 시에는 tapeId 기준으로 테이프를 재구성한다)
     let tape = record.tapeId ? tapes.find((t) => t.id === record.tapeId) : null;
     if (!tape) {
-        tape = { id: record.tapeId || ("tape-legacy-" + (record.dbId || Math.random())), label: "C-30 · TAPE " + tapeSeq, segments: [], pos: 0 };
+        const len = record.tapeLen || TAPE_LEN;
+        tape = { id: record.tapeId || ("tape-legacy-" + (record.dbId || Math.random())), label: tapeSizeName(len) + " · TAPE " + tapeSeq, segments: [], pos: 0, len, blank: true };
         tapeSeq += 1;
         tapes.push(tape);
     }
@@ -2820,3 +2853,629 @@ mountCoach();
 
     trayBroadcast("fmRadio:ready");
 })();
+
+// ===== 편성표 & 예약 녹음 =====
+// 편성 데이터는 schedule.js(FMSchedule)가 가져오고, 여기서는 표시와 예약을 다룬다.
+// 예약 녹음은 실물 데크의 TIMER REC와 같은 규칙으로 동작한다 — 시각이 되면 자동 선국,
+// 프로그램 길이에 맞는 공테이프를 장착해 REC, 종료 시각에 자동 정지.
+// '전원(앱)이 켜져 있어야 작동한다'는 제약까지 실물 오디오 타이머 그대로다.
+
+const schedOverlayEl = document.getElementById("schedOverlay");
+const schedListEl = document.getElementById("schedList");
+const schedChipsEl = document.getElementById("schedChips");
+const schedResPane = document.getElementById("schedResPane");
+const resListEl = document.getElementById("resList");
+const btnResChip = document.getElementById("btnRes");
+const nowProgramEl = document.getElementById("nowProgram");
+
+function resSave() { saveJson("fmRadio.reservations", reservations); }
+
+function ymdToDate(ymd) {
+    return new Date(parseInt(ymd.slice(0, 4), 10), parseInt(ymd.slice(4, 6), 10) - 1, parseInt(ymd.slice(6, 8), 10));
+}
+
+function minutesNow() {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+}
+
+// 예약의 현재(진행 중 포함) 또는 다음 회차. once는 지정 날짜 고정,
+// 반복 예약은 어제(자정 넘김 진행분)부터 일주일 안에서 endTs가 남아 있는 첫 회차.
+function resOccurrence(res, nowTs) {
+    const mk = (base) => ({
+        startTs: base.getTime() + res.startMin * 60000,
+        endTs: base.getTime() + res.endMin * 60000,
+        ymd: FMSchedule.ymdOf(base)
+    });
+    if (res.repeat === "once") return mk(ymdToDate(res.ymd));
+    for (let i = -1; i <= 7; i++) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + i);
+        if (res.repeat === "weekly" && d.getDay() !== res.dow) continue;
+        const occ = mk(d);
+        if (occ.endTs > nowTs) return occ;
+    }
+    return null;
+}
+
+function resRepeatLabel(res) {
+    if (res.repeat === "daily") return "매일";
+    if (res.repeat === "weekly") return "매주 " + DOW_KO[res.dow];
+    const d = ymdToDate(res.ymd);
+    return (d.getMonth() + 1) + "/" + d.getDate() + " 한 번";
+}
+
+function ensureNotifyPermission() {
+    try {
+        if (window.Notification && Notification.permission === "default") Notification.requestPermission();
+    } catch (e) {}
+}
+
+function notifyRes(title, body) {
+    try {
+        if (window.Notification && Notification.permission === "granted" && document.visibilityState !== "visible") {
+            new Notification(title, { body, icon: "icons/icon-192.png" });
+        }
+    } catch (e) {}
+}
+
+// ----- 오버레이 -----
+
+function openSchedule(view) {
+    if (currentStation) schedState.stationId = currentStation.id;
+    else if (!schedState.stationId) schedState.stationId = "kbs1fm";
+    schedState.day = 0;
+    schedOverlayEl.hidden = false;
+    renderSchedChips();
+    populateResForm();
+    schedSetView(view === "res" ? "res" : "list");
+    gtag('event', 'open_schedule', { station_id: schedState.stationId });
+}
+
+function closeSchedule() {
+    schedOverlayEl.hidden = true;
+}
+
+function schedSetDay(day) {
+    schedState.day = day;
+    schedSetView("list");
+}
+
+function schedSetView(view) {
+    schedState.view = view;
+    schedListEl.hidden = view !== "list";
+    schedChipsEl.hidden = view !== "list";
+    schedResPane.hidden = view !== "res";
+    if (view === "list") renderSched();
+    else renderResList();
+    updateSchedTabs();
+}
+
+function updateSchedTabs() {
+    const d0 = document.getElementById("schedTabD0");
+    if (!d0) return;
+    d0.classList.toggle("active", schedState.view === "list" && schedState.day === 0);
+    document.getElementById("schedTabD1").classList.toggle("active", schedState.view === "list" && schedState.day === 1);
+    document.getElementById("schedTabRes").classList.toggle("active", schedState.view === "res");
+    const n = reservations.filter((r) => r.enabled).length;
+    const count = document.getElementById("schedResCount");
+    count.hidden = !n;
+    count.textContent = n ? String(n) : "";
+}
+
+function renderSchedChips() {
+    schedChipsEl.innerHTML = "";
+    stations.forEach((st) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "sched-chip" + (st.id === schedState.stationId ? " active" : "") + (FMSchedule.supports(st.id) ? "" : " nosched");
+        chip.style.setProperty("--chip-accent", st.color);
+        chip.textContent = st.name;
+        chip.title = FMSchedule.supports(st.id) ? st.name + " 편성표" : st.name + " — 편성 미지원 (직접 입력 예약)";
+        chip.addEventListener("click", () => {
+            schedState.stationId = st.id;
+            renderSchedChips();
+            renderSched();
+        });
+        schedChipsEl.appendChild(chip);
+    });
+}
+
+function schedMsg(text, withResLink) {
+    schedListEl.innerHTML = "";
+    const div = document.createElement("div");
+    div.className = "sched-msg";
+    div.textContent = text;
+    if (withResLink) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "sp-rec";
+        btn.style.marginLeft = "8px";
+        btn.textContent = "● 직접 입력 예약";
+        btn.addEventListener("click", () => schedSetView("res"));
+        div.appendChild(document.createElement("br"));
+        div.appendChild(btn);
+    }
+    schedListEl.appendChild(div);
+}
+
+// 이 프로그램에 걸린 예약을 찾는다 (once는 날짜까지, 반복은 요일 규칙으로 대조)
+function findReservationFor(stationId, ymd, item) {
+    const dow = ymdToDate(ymd).getDay();
+    return reservations.find((r) => r.enabled && r.stationId === stationId && r.startMin === item.startMin
+        && (r.repeat === "daily" || (r.repeat === "weekly" ? r.dow === dow : r.ymd === ymd)));
+}
+
+async function renderSched() {
+    updateSchedTabs();
+    const st = stations.find((s) => s.id === schedState.stationId);
+    if (!st) return;
+    if (!FMSchedule.supports(st.id)) {
+        schedMsg(st.name + "은(는) 편성 정보를 제공하는 공개 소스가 없습니다. 시간을 직접 지정해 예약할 수 있어요.", true);
+        return;
+    }
+    if (schedState.day === 1 && FMSchedule.todayOnly(st.id)) {
+        schedMsg(st.name + "은(는) 오늘 편성만 제공됩니다.");
+        return;
+    }
+    const mySeq = ++schedState.seq;
+    schedMsg("편성표를 불러오는 중…");
+    let data;
+    try {
+        data = await FMSchedule.getSchedule(st.id, schedState.day);
+    } catch (error) {
+        console.error(error);
+        if (mySeq === schedState.seq) schedMsg("편성표를 불러오지 못했습니다 — 잠시 후 다시 시도해 주세요.");
+        return;
+    }
+    if (mySeq !== schedState.seq) return;
+    if (!data.items.length) {
+        schedMsg("편성 정보가 없습니다.");
+        return;
+    }
+
+    schedListEl.innerHTML = "";
+    const isToday = schedState.day === 0;
+    const nmin = minutesNow();
+    let onairRow = null;
+
+    data.items.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "sp-row";
+        const past = isToday && item.endMin <= nmin;
+        const onair = isToday && nmin >= item.startMin && nmin < item.endMin;
+        if (past) row.classList.add("past");
+        if (onair) { row.classList.add("onair"); onairRow = row; }
+
+        const time = document.createElement("div");
+        time.className = "sp-time";
+        time.textContent = FMSchedule.fmtHM(item.startMin);
+
+        const main = document.createElement("div");
+        main.className = "sp-main";
+        const title = document.createElement("div");
+        title.className = "sp-title";
+        title.textContent = item.title;
+        main.appendChild(title);
+        const subText = [FMSchedule.fmtHM(item.startMin) + "–" + FMSchedule.fmtHM(item.endMin), item.sub].filter(Boolean).join(" · ");
+        const sub = document.createElement("div");
+        sub.className = "sp-sub";
+        sub.textContent = subText;
+        main.appendChild(sub);
+
+        row.append(time, main);
+
+        if (onair) {
+            const badge = document.createElement("span");
+            badge.className = "sp-badge";
+            badge.textContent = "ON AIR";
+            row.appendChild(badge);
+        }
+
+        if (!past) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "sp-rec";
+            const existing = findReservationFor(st.id, data.ymd, item);
+            if (existing) {
+                row.classList.add("reserved");
+                btn.classList.add("armed");
+                btn.textContent = "● 예약됨";
+                btn.title = "누르면 예약을 취소합니다";
+                btn.addEventListener("click", () => {
+                    removeReservation(existing.id);
+                    renderSched();
+                });
+            } else {
+                btn.textContent = onair ? "● 지금부터 녹음" : "● 예약";
+                btn.title = onair ? "지금부터 프로그램 종료까지 녹음합니다" : "이 프로그램을 예약 녹음합니다";
+                btn.addEventListener("click", () => {
+                    addReservation({
+                        stationId: st.id,
+                        title: item.title,
+                        startMin: item.startMin,
+                        endMin: item.endMin,
+                        repeat: "once",
+                        ymd: data.ymd
+                    });
+                    renderSched();
+                });
+            }
+            row.appendChild(btn);
+        }
+
+        schedListEl.appendChild(row);
+    });
+
+    if (onairRow) onairRow.scrollIntoView({ block: "center" });
+}
+
+// ----- 예약 관리 -----
+
+function addReservation(data) {
+    const res = {
+        id: reservations.reduce((a, r) => Math.max(a, r.id || 0), 0) + 1,
+        stationId: data.stationId,
+        title: data.title,
+        startMin: data.startMin,
+        endMin: data.endMin,
+        repeat: data.repeat || "once",
+        ymd: data.ymd,
+        dow: ymdToDate(data.ymd).getDay(),
+        enabled: true,
+        createdAt: Date.now()
+    };
+    reservations.push(res);
+    resSave();
+    ensureNotifyPermission();
+    renderResList();
+    updateResChip();
+    updateSchedTabs();
+    const nowTs = Date.now();
+    const occ = resOccurrence(res, nowTs);
+    playerSubtext.textContent = occ && nowTs >= occ.startTs
+        ? "지금부터 녹음합니다 — " + res.title
+        : "예약되었습니다 — " + res.title + " (" + resRepeatLabel(res) + " " + FMSchedule.fmtHM(res.startMin) + "). 이 창을 열어 두세요.";
+    gtag('event', 'reserve_add', { station_id: res.stationId, repeat: res.repeat });
+    reservationTick();
+    return res;
+}
+
+function removeReservation(id) {
+    if (activeResRec && activeResRec.res.id === id) {
+        finishReservedRecording();
+    }
+    reservations = reservations.filter((r) => r.id !== id);
+    resSave();
+    renderResList();
+    updateResChip();
+    updateSchedTabs();
+}
+
+function toggleReservationEnabled(id) {
+    const res = reservations.find((r) => r.id === id);
+    if (!res) return;
+    if (res.enabled && activeResRec && activeResRec.res.id === id) finishReservedRecording();
+    res.enabled = !res.enabled;
+    if (res.enabled) {
+        res.missed = false;
+        res.done = false;
+        // 한 번 예약을 다시 켰는데 시각이 이미 지났다면 다음 날로 옮긴다
+        if (res.repeat === "once") {
+            const occ = resOccurrence(res, Date.now());
+            if (occ && occ.endTs <= Date.now()) {
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                if (res.startMin <= minutesNow()) d.setDate(d.getDate() + 1);
+                res.ymd = FMSchedule.ymdOf(d);
+                res.dow = d.getDay();
+            }
+        }
+    }
+    resSave();
+    renderResList();
+    updateResChip();
+    updateSchedTabs();
+}
+
+function cycleReservationRepeat(id) {
+    const res = reservations.find((r) => r.id === id);
+    if (!res) return;
+    res.repeat = res.repeat === "once" ? "daily" : res.repeat === "daily" ? "weekly" : "once";
+    if (res.repeat === "weekly") res.dow = ymdToDate(res.ymd).getDay();
+    resSave();
+    renderResList();
+}
+
+function renderResList() {
+    resListEl.innerHTML = "";
+    if (!reservations.length) {
+        const empty = document.createElement("div");
+        empty.className = "res-empty";
+        empty.textContent = "예약이 없습니다 — 편성표에서 ● 예약을 누르거나 아래에서 직접 추가하세요.";
+        resListEl.appendChild(empty);
+        return;
+    }
+    const sorted = reservations.slice().sort((a, b) => {
+        const oa = resOccurrence(a, Date.now());
+        const ob = resOccurrence(b, Date.now());
+        return (oa ? oa.startTs : Infinity) - (ob ? ob.startTs : Infinity);
+    });
+    sorted.forEach((res) => {
+        const st = stations.find((s) => s.id === res.stationId);
+        const row = document.createElement("div");
+        row.className = "res-row" + (res.enabled ? "" : " off") + (res.missed ? " missed" : "");
+
+        const main = document.createElement("div");
+        main.className = "res-main";
+        const title = document.createElement("div");
+        title.className = "res-title";
+        title.textContent = res.title;
+        const meta = document.createElement("div");
+        meta.className = "res-meta";
+        const state = activeResRec && activeResRec.res.id === res.id && activeResRec.started ? "녹음 중"
+            : res.missed ? "놓침 — 앱이 꺼져 있었어요"
+            : res.done ? "완료"
+            : res.enabled ? "" : "꺼짐";
+        meta.textContent = [(st ? st.name : res.stationId),
+            FMSchedule.fmtHM(res.startMin) + "–" + FMSchedule.fmtHM(res.endMin),
+            resRepeatLabel(res), state].filter(Boolean).join(" · ");
+        main.append(title, meta);
+
+        const btnRepeat = document.createElement("button");
+        btnRepeat.type = "button";
+        btnRepeat.className = "res-btn";
+        btnRepeat.textContent = resRepeatLabel(res);
+        btnRepeat.title = "반복 방식 바꾸기 (한 번 → 매일 → 매주)";
+        btnRepeat.addEventListener("click", () => cycleReservationRepeat(res.id));
+
+        const btnToggle = document.createElement("button");
+        btnToggle.type = "button";
+        btnToggle.className = "res-btn";
+        btnToggle.textContent = res.enabled ? "끄기" : "켜기";
+        btnToggle.addEventListener("click", () => toggleReservationEnabled(res.id));
+
+        const btnDel = document.createElement("button");
+        btnDel.type = "button";
+        btnDel.className = "res-btn";
+        btnDel.textContent = "삭제";
+        btnDel.addEventListener("click", () => removeReservation(res.id));
+
+        row.append(main, btnRepeat, btnToggle, btnDel);
+        resListEl.appendChild(row);
+    });
+}
+
+function populateResForm() {
+    if (resFormReady) return;
+    resFormReady = true;
+    const select = document.getElementById("resFormStation");
+    stations.forEach((st) => {
+        const opt = document.createElement("option");
+        opt.value = st.id;
+        opt.textContent = st.name + (FMSchedule.supports(st.id) ? "" : " (편성 미지원)");
+        select.appendChild(opt);
+    });
+    document.getElementById("resForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const stId = select.value;
+        const st = stations.find((s) => s.id === stId);
+        const startMin = (document.getElementById("resFormStart").value || "20:00").split(":").reduce((h, m) => h * 60 + +m, 0) * 1;
+        let endMin = (document.getElementById("resFormEnd").value || "22:00").split(":").reduce((h, m) => h * 60 + +m, 0) * 1;
+        if (endMin <= startMin) endMin += 1440;   // 자정 넘김
+        const repeat = document.getElementById("resFormRepeat").value;
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        if (repeat === "once" && startMin <= minutesNow()) d.setDate(d.getDate() + 1);
+        addReservation({
+            stationId: stId,
+            title: st.name + " " + FMSchedule.fmtHM(startMin) + " 예약",
+            startMin, endMin, repeat,
+            ymd: FMSchedule.ymdOf(d)
+        });
+    });
+}
+
+function updateResChip() {
+    const n = reservations.filter((r) => r.enabled).length;
+    const recording = activeResRec && activeResRec.started && recorder;
+    btnResChip.hidden = !n && !recording;
+    document.getElementById("resChipLabel").textContent = recording ? "예약 녹음 중" : "예약 " + n;
+    btnResChip.classList.toggle("armed", n > 0 || !!recording);
+}
+
+// ----- 예약 실행 엔진 -----
+
+function pruneFired() {
+    const limit = FMSchedule.ymdOf(new Date(Date.now() - 3 * 86400000));
+    Object.keys(resFiredOcc).forEach((key) => {
+        const ymd = key.split(":")[1];
+        if (!ymd || ymd < limit) delete resFiredOcc[key];
+    });
+}
+
+function fireReservation(res, occ, key) {
+    resFiredOcc[key] = 1;
+    pruneFired();
+    saveJson("fmRadio.resFired", resFiredOcc);
+    activeResRec = { res, occ, key, endTs: occ.endTs, tapeId: null, started: false };
+    playerSubtext.textContent = "예약 녹음을 시작합니다 — " + res.title;
+    notifyRes("예약 녹음 시작", res.title);
+    gtag('event', 'reserve_fire', { station_id: res.stationId });
+    updateResChip();
+    serviceReservationRecording(Date.now());
+}
+
+// 예약 회차 전용 테이프 준비 — 프로그램 길이에 맞는 규격(C-30/60/90/120…)의 새 공테이프를 장착.
+// 스트림이 끊겨 녹음이 재시작되면 같은 테이프에 이어 붙인다.
+function prepareReservedTape(active) {
+    if (active.tapeId) {
+        if (deckTape && deckTape.id === active.tapeId) return;
+        const t = tapes.find((x) => x.id === active.tapeId);
+        if (t && tapeUsedSec(t) < tapeLenOf(t) - 5) {
+            if (deckTape) deckTape.pos = tapePos;
+            deckTape = t;
+            tapePos = Math.min(tapeUsedSec(t), tapeLenOf(t) - 1);
+            deckRefreshShelf();
+            return;
+        }
+    }
+    const remainSec = Math.ceil((active.endTs - Date.now()) / 1000) + 60;
+    const len = [1800, 3600, 5400, 7200].find((s) => s >= remainSec) || Math.ceil(remainSec / 1800) * 1800;
+    if (deckTape) deckTape.pos = tapePos;
+    deckTape = newBlankTape(len);
+    tapePos = 0;
+    active.tapeId = deckTape.id;
+    deckRefreshShelf();
+}
+
+// 매 틱: 예약 녹음을 굴린다. 아직 시작 전이면 선국→REC, 끊겼으면 재시작, 끝났으면 정지.
+function serviceReservationRecording(nowTs) {
+    if (!activeResRec) return;
+    if (nowTs >= activeResRec.endTs) {
+        finishReservedRecording();
+        return;
+    }
+    if (recorder) return;
+    const res = activeResRec.res;
+    // 녹음이 시작된 뒤 사용자가 다른 채널·소스로 옮겼다면 이 회차는 사용자의 뜻 — 중단한다
+    if (activeResRec.started && (!currentStation || currentStation.id !== res.stationId)) {
+        cancelReservedRecording("채널이 바뀌어 예약 녹음을 중단했습니다 — " + res.title);
+        return;
+    }
+    if (currentStation && currentStation.id === res.stationId && isPlaying) {
+        prepareReservedTape(activeResRec);
+        pendingRecName = res.title;
+        toggleRecording();
+        if (recorder) {
+            activeResRec.started = true;
+            updateResChip();
+        }
+    } else if (!activeResRec.tuning) {
+        activeResRec.tuning = true;
+        Promise.resolve(selectStation(res.stationId)).finally(() => {
+            if (activeResRec) {
+                activeResRec.tuning = false;
+                serviceReservationRecording(Date.now());
+            }
+        });
+    }
+}
+
+function finishReservedRecording() {
+    const done = activeResRec;
+    activeResRec = null;
+    if (recorder) stopRecording();
+    if (!done) return;
+    resFiredOcc[done.key] = 3;
+    saveJson("fmRadio.resFired", resFiredOcc);
+    const res = done.res;
+    if (res.repeat === "once") {
+        res.enabled = false;
+        res.done = true;
+        resSave();
+    }
+    if (done.started) {
+        playerSubtext.textContent = "예약 녹음 완료 — " + res.title + ". 녹음 파일 목록에 저장되었습니다.";
+        notifyRes("예약 녹음 완료", res.title);
+        gtag('event', 'reserve_done', { station_id: res.stationId });
+    }
+    renderResList();
+    updateResChip();
+    updateSchedTabs();
+}
+
+// 사용자가 손으로 REC/STOP을 눌러 멈춘 경우 — 이 회차는 다시 살리지 않는다
+function cancelReservedRecording(msg) {
+    if (!activeResRec) return;
+    const res = activeResRec.res;
+    resFiredOcc[activeResRec.key] = 2;
+    saveJson("fmRadio.resFired", resFiredOcc);
+    activeResRec = null;
+    if (res.repeat === "once") {
+        res.enabled = false;
+        res.done = true;
+        resSave();
+    }
+    if (msg) playerSubtext.textContent = msg;
+    renderResList();
+    updateResChip();
+    updateSchedTabs();
+}
+
+function reservationTick() {
+    const nowTs = Date.now();
+    serviceReservationRecording(nowTs);
+    let changed = false;
+    let missedFound = false;
+    reservations.forEach((res) => {
+        if (!res.enabled) return;
+        const occ = resOccurrence(res, nowTs);
+        if (!occ) return;
+        const key = res.id + ":" + occ.ymd;
+        // 한 번 예약의 시간이 통째로 지나갔다 — 앱이 꺼져 있었던 것
+        if (res.repeat === "once" && occ.endTs <= nowTs) {
+            res.enabled = false;
+            if (!res.done && !resFiredOcc[key]) {
+                res.missed = true;
+                missedFound = true;
+            }
+            changed = true;
+            return;
+        }
+        if (nowTs >= occ.startTs && nowTs < occ.endTs - 5000) {
+            const mark = resFiredOcc[key];
+            if (!activeResRec && (!mark || mark === 1 || mark === true)) fireReservation(res, occ, key);
+        } else if (occ.startTs > nowTs && occ.startTs - nowTs <= 300000 && !resAlerted[key]) {
+            resAlerted[key] = true;
+            playerSubtext.textContent = "5분 뒤 예약 녹음이 시작됩니다 — " + res.title;
+            notifyRes("예약 녹음 예정", res.title + " — 5분 뒤 시작됩니다. 창을 열어 두세요.");
+        }
+    });
+    if (changed) {
+        resSave();
+        renderResList();
+        updateResChip();
+        updateSchedTabs();
+    }
+    if (missedFound) {
+        playerSubtext.textContent = "놓친 예약 녹음이 있습니다 — 편성표의 예약 탭에서 확인하세요.";
+    }
+}
+
+// ----- 현재 프로그램 표시 (Now Playing 아래 한 줄) -----
+
+async function updateNowProgram() {
+    if (!currentStation || !FMSchedule.supports(currentStation.id)) {
+        nowProgramEl.hidden = true;
+        return;
+    }
+    const stId = currentStation.id;
+    try {
+        const data = await FMSchedule.getSchedule(stId, 0);
+        if (!currentStation || currentStation.id !== stId) return;
+        const prog = FMSchedule.programAt(data.items, minutesNow());
+        if (prog) {
+            nowProgramEl.textContent = "▤ " + prog.title + " · ~" + FMSchedule.fmtHM(prog.endMin);
+            nowProgramEl.hidden = false;
+        } else {
+            nowProgramEl.hidden = true;
+        }
+    } catch (error) {
+        nowProgramEl.hidden = true;
+    }
+}
+
+schedOverlayEl.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeSchedule();
+});
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !schedOverlayEl.hidden) closeSchedule();
+});
+
+setInterval(reservationTick, 10000);
+setInterval(updateNowProgram, 30000);
+updateResChip();
+reservationTick();
+updateNowProgram();

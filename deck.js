@@ -5,8 +5,8 @@
 // 테이프는 30분짜리 연속 매체다. 카운터 = 테이프 위치.
 // REC는 현재 위치에 덮어쓰고, PLAY는 빈 구간에서 히스만 내며 감기고,
 // REW/FF는 누르는 동안 고속으로 감긴다. 테이프마다 위치를 기억한다.
-const TAPE_LEN = 1800;          // C-30 한 면: 30분
-let tapes = [];                 // { id, label, segments:[{start,dur,url,name,offset?}], pos }
+const TAPE_LEN = 1800;          // C-30 한 면: 30분 (기본 테이프)
+let tapes = [];                 // { id, label, segments:[{start,dur,url,name,offset?}], pos, len?, blank? }
 let deckTape = null;            // 장착된 테이프
 let tapePos = 0;                // 현재 테이프 위치(초)
 let deckMode = "stop";          // stop | play | rec | wind
@@ -21,8 +21,22 @@ let hissSrc = null;
 let deckModelId = loadJson("fmRadio.deck", "dragon");
 if (!DECK_MODELS[deckModelId]) deckModelId = "dragon";
 
-function newBlankTape() {
-    const t = { id: "tape-" + Date.now() + "-" + tapeSeq, label: "C-30 · TAPE " + tapeSeq, segments: [], pos: 0 };
+// 테이프 길이는 규격별로 다르다 — 예약 녹음은 프로그램 길이에 맞는 규격을 자동으로 고른다
+function tapeLenOf(t) {
+    return (t && t.len) || TAPE_LEN;
+}
+
+function tapeSizeName(len) {
+    if (len <= 1800) return "C-30";
+    if (len <= 3600) return "C-60";
+    if (len <= 5400) return "C-90";
+    if (len <= 7200) return "C-120";
+    return "오픈릴";
+}
+
+function newBlankTape(lenSec) {
+    const len = lenSec || TAPE_LEN;
+    const t = { id: "tape-" + Date.now() + "-" + tapeSeq, label: tapeSizeName(len) + " · TAPE " + tapeSeq, segments: [], pos: 0, len, blank: true };
     tapeSeq += 1;
     tapes.unshift(t);
     return t;
@@ -59,9 +73,9 @@ function tapeAddSegment(tape, seg) {
     out.push(seg);
     out.sort((a, b) => a.start - b.start);
     tape.segments = out;
-    if (tape.segments.length && tape.label.indexOf("C-30") === 0) {
-        tape.label = seg.name + " 외";
-        if (tape.segments.length === 1) tape.label = seg.name;
+    if (tape.segments.length && tape.blank) {
+        tape.label = tape.segments.length === 1 ? seg.name : seg.name + " 외";
+        tape.blank = false;
     }
 }
 
@@ -212,9 +226,11 @@ function mountDeck() {
         <text x="1120" y="332" font-family="Arial" font-size="10" letter-spacing="2" fill="#8a8a94">TAPE COUNTER</text>
         <rect x="1120" y="340" width="200" height="58" rx="6" fill="#050505" stroke="#26262c" stroke-width="1.5"/>
         <text id="deckCounter" x="1245" y="381" font-family="'Courier New', monospace" font-size="30" font-weight="700" fill="#ff3a26" text-anchor="end">00:00</text>
-        <text x="1254" y="381" font-family="Arial" font-size="11" fill="#55555c">/ 30:00</text>
+        <text id="deckCounterMax" x="1254" y="381" font-family="Arial" font-size="11" fill="#55555c">/ 30:00</text>
         <circle id="deckRecLed" cx="1420" cy="369" r="9" fill="#3a1210"/>
         <text x="1420" y="404" font-family="Arial" font-size="10" letter-spacing="1.5" fill="#8a8a94" text-anchor="middle">REC</text>
+        <circle id="deckTimerLed" cx="1366" cy="369" r="6" fill="#3a1210"><title>TIMER — 예약 녹음 대기</title></circle>
+        <text x="1366" y="404" font-family="Arial" font-size="10" letter-spacing="1.5" fill="#8a8a94" text-anchor="middle">TIMER</text>
         <g font-family="Arial" font-size="10" letter-spacing="1" fill="#8a8a94">
             <text x="1490" y="332">DOLBY NR</text><text x="1620" y="332">TAPE</text>
         </g>
@@ -302,7 +318,7 @@ function deckRefreshShelf() {
                 '<circle cx="' + (x + 110) + '" cy="478" r="9" fill="#101014" stroke="#4a4a52"/>' +
                 '<rect x="' + (x + 10) + '" y="438" width="136" height="20" rx="3" fill="#e8e0c8"/>' +
                 '<text x="' + (x + 78) + '" y="452" font-family="Arial" font-size="11" font-weight="700" fill="#3a2b1e" text-anchor="middle">' + t.label.slice(0, 11) + '</text>' +
-                '<text x="' + (x + 78) + '" y="497" font-family="Arial" font-size="9" fill="#8a8a94" text-anchor="middle">' + formatDuration(tapeUsedSec(t) * 1000) + ' / 30:00</text>' +
+                '<text x="' + (x + 78) + '" y="497" font-family="Arial" font-size="9" fill="#8a8a94" text-anchor="middle">' + formatDuration(tapeUsedSec(t) * 1000) + ' / ' + formatDuration(tapeLenOf(t) * 1000) + '</text>' +
                 '</g>';
         });
     }
@@ -317,8 +333,11 @@ function updateDeckLabel() {
     const l = document.getElementById("deckLabel");
     const s = document.getElementById("deckLabelSub");
     if (!l || !deckTape) return;
+    const maxLabel = formatDuration(tapeLenOf(deckTape) * 1000);
     l.textContent = deckTape.label;
-    s.textContent = "사용 " + formatDuration(tapeUsedSec(deckTape) * 1000) + " / 30:00";
+    s.textContent = "사용 " + formatDuration(tapeUsedSec(deckTape) * 1000) + " / " + maxLabel;
+    const counterMax = document.getElementById("deckCounterMax");
+    if (counterMax) counterMax.textContent = "/ " + maxLabel;
 }
 
 function deckInsertTape(id) {
@@ -369,6 +388,9 @@ function deckStopTransport() {
     if (recorder) {
         stopRecording();
         playerSubtext.textContent = "녹음을 정지했습니다 — 테이프에 기록되었습니다.";
+        if (activeResRec && activeResRec.started) {
+            cancelReservedRecording("예약 녹음을 중단했습니다 — " + activeResRec.res.title);
+        }
         return;
     }
     if (deckMode === "play") {
@@ -383,10 +405,17 @@ function deckStopTransport() {
 }
 
 function deckRec() {
-    if (recorder) { stopRecording(); playerSubtext.textContent = "녹음을 정지했습니다 — 테이프에 기록되었습니다."; return; }
+    if (recorder) {
+        stopRecording();
+        playerSubtext.textContent = "녹음을 정지했습니다 — 테이프에 기록되었습니다.";
+        if (activeResRec && activeResRec.started) {
+            cancelReservedRecording("예약 녹음을 중단했습니다 — " + activeResRec.res.title);
+        }
+        return;
+    }
     if (deckMode === "play" || deckMode === "wind") { playerSubtext.textContent = "정지 상태에서 REC를 누르세요."; return; }
     if (!isPlaying) { playerSubtext.textContent = "녹음할 소스가 없습니다 — 방송이나 음반을 먼저 재생하세요."; return; }
-    if (tapePos >= TAPE_LEN - 1) { playerSubtext.textContent = "테이프 끝입니다 — 되감거나 EJECT로 새 테이프를 넣으세요."; return; }
+    if (tapePos >= tapeLenOf(deckTape) - 1) { playerSubtext.textContent = "테이프 끝입니다 — 되감거나 EJECT로 새 테이프를 넣으세요."; return; }
     toggleRecording();
 }
 

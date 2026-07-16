@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=63">
+    <link rel="stylesheet" href="styles.css?v=64">
 </head>
 <body>
     <div class="page-shell">
@@ -48,6 +48,7 @@
                 <!-- 트레이 앱(chrome=tray)에서만 표시 — 하단 스크립트가 hidden을 푼다 -->
                 <a class="mini-open" id="miniPlayerLink" href="widget.html?skin=tuner" title="튜너 미니 플레이어로 전환" hidden>미니 플레이어</a>
                 <a class="mini-open" href="manual.html" title="기기별 리뷰와 조작 안내">소개</a>
+                <button class="mini-open" type="button" onclick="openSchedule()" title="채널 편성표 보기와 예약 녹음">▤ 편성표</button>
                 <button class="mini-open" type="button" onclick="toggleSettings(true)" title="컴포넌트 표시와 모델을 고릅니다">⚙ 오디오 구성</button>
                 <button class="mini-open" type="button" onclick="toggleFocusMode()" title="컴포넌트만 남기는 몰입 모드 (ESC로 복귀)">⛶ 전체 화면</button>
                 <div class="live-clock" id="liveClock" aria-label="현재 시각">--:--:--</div>
@@ -73,6 +74,7 @@
                             <div class="now-label">Now Playing</div>
                             <div class="now-station" id="nowStation" aria-live="polite">방송을 선택하세요</div>
                             <span class="audio-state-chip" id="audioStateChip" hidden></span>
+                            <button class="now-program" id="nowProgram" type="button" hidden onclick="openSchedule()" title="편성표 열기"></button>
                             <div class="player-subtext" id="playerSubtext" aria-live="polite">원하는 채널을 누르면 바로 연결을 시도합니다.</div>
                         </div>
                     </div>
@@ -86,6 +88,10 @@
                         <button class="btn-rec" id="btnRec" type="button" aria-label="녹음 시작" onclick="toggleRecording()" disabled>
                             <span class="rec-dot" aria-hidden="true"></span>
                             <span class="rec-time" id="recTime">REC</span>
+                        </button>
+                        <button class="btn-timer" id="btnRes" type="button" hidden aria-label="예약 녹음 목록 열기" onclick="openSchedule('res')">
+                            <span class="rec-dot" aria-hidden="true"></span>
+                            <span id="resChipLabel">예약</span>
                         </button>
                         <button class="btn-timer" id="btnTimer" type="button" aria-label="취침 타이머 설정" onclick="cycleSleepTimer()">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
@@ -173,6 +179,40 @@
         </figure>
     </div>
 
+    <div class="crate-overlay" id="schedOverlay" hidden>
+        <div class="crate-panel sched-panel" role="dialog" aria-modal="true" aria-label="편성표와 예약 녹음">
+            <div class="crate-head">
+                <div class="crate-title">편성표</div>
+                <div class="sched-tabs" role="tablist" aria-label="날짜와 예약 전환">
+                    <button class="sched-tab" id="schedTabD0" type="button" onclick="schedSetDay(0)">오늘</button>
+                    <button class="sched-tab" id="schedTabD1" type="button" onclick="schedSetDay(1)">내일</button>
+                    <button class="sched-tab" id="schedTabRes" type="button" onclick="schedSetView('res')">예약 녹음<span class="sched-tab-count" id="schedResCount" hidden></span></button>
+                </div>
+                <button class="crate-close" type="button" aria-label="편성표 닫기" onclick="closeSchedule()">✕</button>
+            </div>
+            <div class="sched-chips" id="schedChips" role="group" aria-label="채널 선택"></div>
+            <div class="sched-list" id="schedList"></div>
+            <div class="sched-res" id="schedResPane" hidden>
+                <div class="res-list" id="resList"></div>
+                <form class="res-form" id="resForm">
+                    <div class="res-form-title">직접 입력 예약 — 편성표가 없는 채널도 시간을 지정하면 녹음됩니다.</div>
+                    <div class="res-form-row">
+                        <label>채널 <select id="resFormStation"></select></label>
+                        <label>시작 <input type="time" id="resFormStart" required value="20:00"></label>
+                        <label>종료 <input type="time" id="resFormEnd" required value="22:00"></label>
+                        <label>반복 <select id="resFormRepeat">
+                            <option value="once">한 번</option>
+                            <option value="daily">매일</option>
+                            <option value="weekly">매주</option>
+                        </select></label>
+                        <button type="submit" class="res-form-add">● 예약 추가</button>
+                    </div>
+                </form>
+            </div>
+            <div class="sched-note" id="schedNote">예약 녹음은 이 창이 열려 있어야 작동합니다 — 실제 오디오 타이머처럼, 전원이 켜져 있어야 하죠.</div>
+        </div>
+    </div>
+
     <div class="crate-overlay" id="crateOverlay" hidden>
         <div class="crate-panel" role="dialog" aria-modal="true" aria-label="음반 수납장">
             <div class="crate-head">
@@ -189,14 +229,15 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=63"></script>
-    <script src="player-core.js?v=63"></script>
-    <script src="store.js?v=63"></script>
-    <script src="skins.js?v=63"></script>
-    <script src="component-skins.js?v=63"></script>
-    <script src="engine.js?v=63"></script>
-    <script src="deck.js?v=63"></script>
-    <script src="bootstrap.js?v=63"></script>
+    <script src="stations.js?v=64"></script>
+    <script src="player-core.js?v=64"></script>
+    <script src="store.js?v=64"></script>
+    <script src="schedule.js?v=64"></script>
+    <script src="skins.js?v=64"></script>
+    <script src="component-skins.js?v=64"></script>
+    <script src="engine.js?v=64"></script>
+    <script src="deck.js?v=64"></script>
+    <script src="bootstrap.js?v=64"></script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {
