@@ -112,6 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             return
         }
         if panel.isVisible {
+            exitFocusState()
             panel.orderOut(nil)     // 재생 표시·제어는 메뉴바 스트립이 이어받는다
         } else {
             showFull(anchorToStatusItem: true)
@@ -119,10 +120,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
     }
 
     func showFull(anchorToStatusItem: Bool) {
+        exitFocusState()
         webView.evaluateJavaScript("if (typeof setPopupBarMode === 'function') setPopupBarMode(false);", completionHandler: nil)
         let frame = anchorToStatusItem || !panel.isVisible ? anchoredFrame(size: FULL_SIZE) : panel.frame
         panel.setFrame(frame, display: true, animate: panel.isVisible)
         panel.makeKeyAndOrderFront(nil)
+    }
+
+    // 몰입 모드 잔재 정리 — 닫기 전에 호출해 다음 열기가 원래 크기로 시작하게 한다
+    func exitFocusState() {
+        if frameBeforeFocus != nil || panel.level != .floating {
+            webView.evaluateJavaScript("if (typeof applyFocusMode === 'function') applyFocusMode(false);", completionHandler: nil)
+            panel.level = .floating
+            frameBeforeFocus = nil
+        }
     }
 
     // 상태바 아이콘 아래에 배치
@@ -147,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     // 닫기 버튼(신호등) → 완전히 숨긴다 (소리는 계속)
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        exitFocusState()
         panel.orderOut(nil)
         return false
     }
@@ -173,6 +185,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
 
     @objc func menuToggleRack() {
         if panel.isVisible {
+            exitFocusState()
             panel.orderOut(nil)
         } else {
             showFull(anchorToStatusItem: true)
@@ -205,13 +218,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
             if on {
                 if self.frameBeforeFocus == nil { self.frameBeforeFocus = self.panel.frame }
                 let screen = self.panel.screen ?? NSScreen.main
-                if let v = screen?.visibleFrame {
-                    try? "focus on: before=\(self.panel.frame) target=\(v)\n".write(toFile: "/tmp/mad-focus.log", atomically: true, encoding: .utf8)
-                    self.panel.setFrame(v, display: true)
-                    let after = "after=\(self.panel.frame) screen=\(String(describing: self.panel.screen?.visibleFrame))\n"
-                    if let h = FileHandle(forWritingAtPath: "/tmp/mad-focus.log") { h.seekToEndOfFile(); h.write(after.data(using: .utf8)!); h.closeFile() }
+                if let f = screen?.frame {
+                    // 진짜 전체 화면 — 독·메뉴바까지 덮는다 (레벨을 메뉴바 위로)
+                    self.panel.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 1)
+                    self.panel.setFrame(f, display: true)
                 }
             } else {
+                self.panel.level = .floating
                 let back = self.frameBeforeFocus ?? self.anchoredFrame(size: FULL_SIZE)
                 self.frameBeforeFocus = nil
                 self.panel.setFrame(back, display: true, animate: true)
