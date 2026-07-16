@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
         let cfg = WKWebViewConfiguration()
         cfg.mediaTypesRequiringUserActionForPlayback = []   // 대기 선국 자동 연결 등 프로그램적 재생 허용
         cfg.allowsAirPlayForMediaPlayback = true
+        cfg.preferences.isElementFullscreenEnabled = true   // 몰입(전체 화면) 모드 허용
         webView = WKWebView(frame: NSRect(origin: .zero, size: FULL_SIZE), configuration: cfg)
         webView.navigationDelegate = self
         webView.uiDelegate = self

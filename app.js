@@ -61,6 +61,34 @@ function setPopupBarMode(on) {
     try { sessionStorage.setItem("fmRadio.bar", barOverlay ? "1" : "0"); } catch (e) {}
 }
 
+// ----- 전체 화면(몰입) 모드 — 컴포넌트만 남긴다 -----
+// 브라우저 전체 화면 API를 쓰되, 미지원 환경(맥 앱 팝오버 등)에서는
+// 클래스만 적용해 창 안에서 크롬을 걷어낸다.
+function applyFocusMode(on) {
+    document.body.classList.toggle("mode-focus", on);
+}
+
+function toggleFocusMode() {
+    const on = !document.body.classList.contains("mode-focus");
+    applyFocusMode(on);
+    const el = document.documentElement;
+    try {
+        if (on && !document.fullscreenElement) {
+            (el.requestFullscreen || el.webkitRequestFullscreen || function () {}).call(el);
+        } else if (!on && document.fullscreenElement) {
+            (document.exitFullscreen || document.webkitExitFullscreen || function () {}).call(document);
+        }
+    } catch (e) {}
+    gtag('event', 'focus_mode', { on: on });
+}
+
+// ESC 등으로 네이티브 전체 화면이 풀리면 몰입 모드도 함께 해제
+["fullscreenchange", "webkitfullscreenchange"].forEach((ev) => {
+    document.addEventListener(ev, () => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) applyFocusMode(false);
+    });
+});
+
 function applyViewMode() {
     document.body.classList.toggle("mode-simple", viewMode === "simple");
     document.body.classList.toggle("mode-rack", viewMode === "rack");

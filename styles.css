@@ -1641,3 +1641,59 @@ body.mode-bar .btn-play-main {
     z-index: auto;
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);
 }
+
+/* ----- 전체 화면(몰입) 모드 — 컴포넌트만 ----- */
+body.mode-focus {
+    background: #0a0908;
+}
+
+body.mode-focus .site-header,
+body.mode-focus .list-toggle-wrap,
+body.mode-focus #stationMain,
+body.mode-focus .site-footer,
+body.mode-focus .vu-canvas,
+body.mode-focus .hero-player-wrap {
+    display: none !important;
+}
+
+body.mode-focus .hero-visual {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+}
+
+body.mode-focus .page-shell {
+    width: min(1280px, calc(100% - 40px));
+    padding: 26px 0 44px;
+}
+
+/* 은은한 종료 버튼 — 마우스를 올릴 때만 또렷해진다 */
+.focus-exit {
+    display: none;
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 80;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: rgba(20, 17, 15, 0.6);
+    color: #b9aea1;
+    font-size: 1rem;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.25s ease;
+}
+
+.focus-exit:hover {
+    opacity: 1;
+}
+
+body.mode-focus .focus-exit {
+    display: flex;
+}
