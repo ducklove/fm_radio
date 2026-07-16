@@ -3138,8 +3138,16 @@ async function renderSched() {
             if (existing) {
                 row.classList.add("reserved");
                 btn.classList.add("armed");
-                btn.textContent = "● 예약됨";
-                btn.title = "누르면 예약을 취소합니다";
+                // 이 회차를 지금 녹음 중이면 '예약됨' 대신 진행 상태를 보여준다
+                const recNow = activeResRec && activeResRec.res.id === existing.id && activeResRec.started && recorder;
+                if (recNow) {
+                    btn.classList.add("rec-live");
+                    btn.textContent = "● 녹음 중 — 중단";
+                    btn.title = "백그라운드에서 녹음하고 있습니다 — 누르면 중단하고 여기까지 저장합니다";
+                } else {
+                    btn.textContent = "● 예약됨";
+                    btn.title = "누르면 예약을 취소합니다";
+                }
                 btn.addEventListener("click", () => {
                     removeReservation(existing.id);
                     renderSched();
@@ -3474,6 +3482,8 @@ function serviceReservationRecording(nowTs) {
             const st = stations.find((s) => s.id === res.stationId);
             if (st && !isPlaying && !currentStation) tunerSetStation(st);
             updateResChip();
+            // 편성표가 열려 있으면 '녹음 중' 상태가 바로 보이게 갱신
+            if (!schedOverlayEl.hidden) schedSetView(schedState.view);
         }
         return;
     }
@@ -3533,6 +3543,7 @@ function finishReservedRecording() {
     renderResList();
     updateResChip();
     updateSchedTabs();
+    if (!schedOverlayEl.hidden && schedState.view === "list") renderSched();
 }
 
 // 사용자가 손으로 REC/STOP을 눌러 멈춘 경우 — 이 회차는 다시 살리지 않는다
@@ -3552,6 +3563,7 @@ function cancelReservedRecording(msg) {
     renderResList();
     updateResChip();
     updateSchedTabs();
+    if (!schedOverlayEl.hidden && schedState.view === "list") renderSched();
 }
 
 function reservationTick() {

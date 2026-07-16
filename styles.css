@@ -1952,6 +1952,14 @@ body.mode-focus .focus-exit {
     background: rgba(229, 72, 77, 0.14);
 }
 
+/* 지금 이 회차를 녹음 중 — 깜박이는 REC 표시 */
+.sp-rec.rec-live {
+    color: #ffe2e2;
+    border-color: rgba(229, 72, 77, 0.8);
+    background: rgba(229, 72, 77, 0.22);
+    animation: recPulse 2.4s ease-out infinite;
+}
+
 .sched-res {
     overflow-y: auto;
     min-height: 200px;

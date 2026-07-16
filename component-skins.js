@@ -424,16 +424,17 @@ AMP_ORDER.push("ma2375");
 function mfaTransportButtons(y, fill) {
     const defs = [
         [420, "deckBtnEject", "EJECT", "M456 462 H480 M456 470 H480 M468 446 V462"],
-        [524, "deckBtnRew", "REW", "M592 450 L560 466 L592 482 Z"],
-        [628, "deckBtnPlay", "PLAY", "M666 450 L704 466 L666 482 Z"],
-        [752, "deckBtnFf", "FF", "M780 450 L812 466 L780 482 Z"],
+        // REW/FF는 겹 삼각형(◀◀/▶▶)으로 PLAY(▶)와 확실히 구별한다
+        [524, "deckBtnRew", "REW", "M586 452 L566 466 L586 480 Z M608 452 L588 466 L608 480 Z"],
+        [628, "deckBtnPlay", "PLAY", "M672 450 L708 466 L672 482 Z"],
+        [752, "deckBtnFf", "FF", "M766 452 L786 466 L766 480 Z M788 452 L808 466 L788 480 Z"],
         [856, "deckBtnStop", "STOP", "M884 452 H916 V480 H884 Z"],
         [960, "deckBtnRec", "REC", ""]
     ];
     return '<g id="deckTransport">' + defs.map((d, i) => {
         const w = i === 2 ? 120 : 96;
         return '<rect id="' + d[1] + '" x="' + d[0] + '" y="' + y + '" width="' + w + '" height="72" rx="6" fill="' + fill + '" stroke="' + (i === 5 ? '#8d392f' : '#51545a') + '" style="cursor:pointer;touch-action:none"><title>' + d[2] + '</title></rect>' +
-            (i === 5 ? '<circle cx="1008" cy="' + (y + 36) + '" r="14" fill="#d13c2d" pointer-events="none"/>' : '<path d="' + d[3] + '" fill="#d6d7d8" stroke="#d6d7d8" stroke-width="5" pointer-events="none" transform="translate(0 ' + (y - 430) + ')"/>');
+            (i === 5 ? '<circle cx="1008" cy="' + (y + 36) + '" r="14" fill="#d13c2d" pointer-events="none"/>' : '<path d="' + d[3] + '" fill="#d6d7d8" stroke="#d6d7d8" stroke-width="4" stroke-linejoin="round" pointer-events="none" transform="translate(0 ' + (y - 430) + ')"/>');
     }).join("") + '</g>';
 }
 
