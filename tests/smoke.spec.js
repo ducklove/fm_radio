@@ -259,6 +259,25 @@ test.describe("데스크톱", () => {
         expect(await page.evaluate(() => playerSubtext.textContent), "카세트 보관 안내").toContain("테이프 랙에 보관");
     });
 
+    test("예약 발화가 턴테이블 재생을 인계받아 녹음 — 대기 선국 무한 루프(프리징) 회귀 방지", async ({ page }) => {
+        await page.evaluate(() => playPhonoTrack(0));
+        await page.waitForFunction(() => phonoActive && isPlaying, null, { timeout: 15000 });
+        await page.evaluate(() => {
+            window.__selCount = 0;
+            const orig = selectStation;
+            selectStation = function (...a) { window.__selCount++; return orig.apply(this, a); };
+            const st = window.FMRadio.stations[0];
+            fireReservation({ id: 991, stationId: st.id, title: "인계 테스트", repeat: "once", enabled: true },
+                { ymd: "tk", startTs: Date.now(), endTs: Date.now() + 8000 }, "991:tk");
+        });
+        // 프리징(마이크로태스크 루프)이 재발하면 여기서 타임아웃으로 실패한다
+        await page.waitForFunction(() => !!recorder && deckMode === "rec", null, { timeout: 15000 });
+        const s = await page.evaluate(() => ({ sel: window.__selCount, phono: phonoActive, cur: currentStation && currentStation.id }));
+        expect(s.sel, "선국 1회로 인계 — 재시도 폭주 없음").toBeLessThanOrEqual(2);
+        expect(s.phono, "턴테이블 정지").toBe(false);
+        await page.waitForFunction(() => !recorder && !activeResRec, null, { timeout: 15000 });
+    });
+
     test("설명서에 신규 기기별 소개와 음색·동작 차이가 기록됨", async ({ page }) => {
         await page.goto("/manual.html");
         for (const name of ["TX-9500 II", "T-110", "T-100", "B760", "SA-9900", "AU-111", "L-550", "E-303", "MA2375", "B215", "TCD 3014A", "TC-KA7ES", "CT-F1250", "SL-1200MK2", "TD 124", "GARRARD", "Sondek LP12", "GE-10S / GE-10C"]) {

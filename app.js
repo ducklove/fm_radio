@@ -2056,12 +2056,13 @@ function playStream(url) {
 
 let selectSeq = 0;
 
-async function selectStation(id) {
+async function selectStation(id, opts) {
     const station = stations.find((item) => item.id === id);
     if (!station) return;
 
-    // 미디어 우선: 음반/테이프가 도는 동안 튜너는 소스를 빼앗지 않고 대기 선국만 한다
-    if ((phonoActive && isPlaying) || deckMode === "play") {
+    // 미디어 우선: 음반/테이프가 도는 동안 튜너는 소스를 빼앗지 않고 대기 선국만 한다.
+    // 예약 녹음(force)은 예외 — 약속된 시각이므로 재생을 멈추고 소스를 가져온다.
+    if (!(opts && opts.force) && ((phonoActive && isPlaying) || deckMode === "play")) {
         radioStandby = station;
         tunerSetStation(station);
         playerSubtext.textContent = phonoActive
@@ -3423,11 +3424,17 @@ function serviceReservationRecording(nowTs) {
         }
     } else if (!activeResRec.tuning) {
         activeResRec.tuning = true;
-        Promise.resolve(selectStation(res.stationId)).finally(() => {
-            if (activeResRec) {
-                activeResRec.tuning = false;
-                serviceReservationRecording(Date.now());
-            }
+        // 음반·테이프가 재생 중이어도 예약은 약속대로 선국한다(force).
+        // 주의: 재시도는 반드시 매크로태스크(setTimeout)로 — 예전처럼 .finally에서
+        // 곧바로 재귀하면 selectStation이 동기 반환하는 상태(대기 선국 등)에서
+        // 마이크로태스크 무한 루프가 되어 UI 전체가 얼어붙는다.
+        const attempt = (activeResRec.attempts = (activeResRec.attempts || 0) + 1);
+        Promise.resolve(selectStation(res.stationId, { force: true })).finally(() => {
+            if (!activeResRec) return;
+            activeResRec.tuning = false;
+            // 선국 직후 녹음 시작을 한 박자 빠르게 — 몇 번만 짧게 재시도하고,
+            // 그 뒤로는 10초 주기 reservationTick이 이어받는다
+            if (attempt <= 5) setTimeout(() => serviceReservationRecording(Date.now()), 800);
         });
     }
 }
