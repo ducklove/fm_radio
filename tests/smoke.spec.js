@@ -137,7 +137,7 @@ test.describe("데스크톱", () => {
         await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(11);
         await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(7);
         await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(6);
-        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(5);
+        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(6);
 
         await page.locator('#skinPicker .skin-btn', { hasText: "REVOX B760" }).click();
         await expect(page.locator('#tunerStage svg[aria-label*="REVOX B760"]')).toHaveCount(1);
@@ -459,6 +459,82 @@ test.describe("데스크톱", () => {
         expect(end.bEmpty, "B웰 배출").toBe(true);
         expect(end.dubbed, "더빙 카세트가 랙에").toBe(true);
         expect(end.msg, "B웰 안내 문구").toContain("B웰");
+    });
+
+    test("SE-9 메모리 EQ: 프리셋 적용·모터 이동·A/B 비교·슬롯 저장·모델 간 리샘플", async ({ page }) => {
+        await page.evaluate(() => { setUnitShow("eq", true); setEqModel("se9"); });
+        await expect(page.locator("#eqKey_mem")).toHaveCount(1);
+        // 팩토리 프리셋 → 커브가 모터 이동으로 안착
+        await page.evaluate(() => {
+            const preset = EQ_PRESETS.find((x) => x.id === "y80");
+            eqApplyCurvePts(preset.pts, preset.label, preset.id);
+        });
+        // 모터 이동이 끝나면 목표값에 정확히 스냅된다
+        await page.waitForFunction(() => eqState.gains.se9[1] === 4 && eqState.gains.se9[9] === 3.5, null, { timeout: 3000 });
+        expect(await page.evaluate(() => eqState.gains.se9.join(","))).toBe("3,4,2,0,-1,-2,-1,1,2,3.5");
+        // 오토-B: A/B 한 번 = 직전(플랫) 커브, 다시 = 프리셋 복귀
+        await page.evaluate(() => eqToggleBank());
+        await page.waitForFunction(() => eqState.gains.se9.every((g) => g === 0), null, { timeout: 3000 });
+        await page.evaluate(() => eqToggleBank());
+        await page.waitForFunction(() => eqState.gains.se9[9] === 3.5, null, { timeout: 3000 });
+        // MEMORY → 슬롯 A 저장 → localStorage 영속
+        await page.evaluate(() => {
+            document.getElementById("eqKey_mem").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            document.getElementById("eqKey_slotA").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).slots.A.pts.length), "슬롯 영속").toBe(10);
+        // 슬롯은 모델을 넘나든다 — GE-5(5밴드)에서 호출하면 리샘플 적용
+        await page.evaluate(() => { setEqModel("ge5"); eqSlotPress("A"); });
+        await page.waitForFunction(() => eqState.gains.ge5.some((g) => g !== 0), null, { timeout: 3000 });
+    });
+
+    test("죽은 조작부 재생: SL-1200 피치·쿼츠 록, TD124 4속, GARRARD 브레이크", async ({ page }) => {
+        await page.evaluate(() => { ttModelId = "sl1200"; mountTurntable(); });
+        await page.evaluate(() => {
+            const hit = document.getElementById("ttPitchHit");
+            for (let i = 0; i < 4; i++) hit.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+        });
+        expect(await page.evaluate(() => ttSpeedTrim), "피치 +2%").toBeCloseTo(1.02, 5);
+        expect(await page.evaluate(() => !!document.getElementById("ttStrobeRing")), "스트로브 링").toBe(true);
+        await page.evaluate(() => document.getElementById("ttQuartzHit").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+        expect(await page.evaluate(() => ttSpeedTrim), "쿼츠 록 = 0").toBe(1);
+        // TD124: 노브 순환 33 → 45
+        await page.evaluate(() => { ttModelId = "td124"; mountTurntable(); });
+        await page.evaluate(() => document.getElementById("ttSpeedHit").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+        expect(await page.evaluate(() => ({ s: ttSpeed124, t: ttSpeedTrim }))).toEqual({ s: 45, t: 1.35 });
+        // GARRARD: 브레이크 레버 — 누르는 동안만
+        await page.evaluate(() => { ttModelId = "g301"; mountTurntable(); });
+        await page.evaluate(() => document.getElementById("ttBrakeHit").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+        expect(await page.evaluate(() => ttBraking)).toBe(true);
+        await page.evaluate(() => document.getElementById("ttBrakeHit").dispatchEvent(new PointerEvent("pointerup", { bubbles: true })));
+        expect(await page.evaluate(() => ttBraking)).toBe(false);
+    });
+
+    test("B215 컴퓨터 컨트롤: MEM/CUE 주소 복귀·ZERO LOC·AUTO CAL 히스 감소", async ({ page }) => {
+        await page.evaluate(() => { deckModelId = "b215"; mountDeck(); tapePos = 90; });
+        // MEM(90) → RST: 0으로 자동 와인딩 후 정지
+        await page.evaluate(() => {
+            document.getElementById("deckKeyR6").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            document.getElementById("deckKeyR11").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        });
+        await page.evaluate(() => {
+            const t0 = performance.now() - 20000;
+            ttLastTs = t0;
+            for (let i = 1; i <= 200 && deckMode === "wind"; i++) ttFrame(t0 + i * 100);
+        });
+        expect(await page.evaluate(() => ({ pos: tapePos, mode: deckMode })), "ZERO LOC").toEqual({ pos: 0, mode: "stop" });
+        // CUE: 기억한 90초 위치로 복귀
+        await page.evaluate(() => document.getElementById("deckKeyR7").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+        await page.evaluate(() => {
+            const t0 = performance.now() - 20000;
+            ttLastTs = t0;
+            for (let i = 1; i <= 200 && deckMode === "wind"; i++) ttFrame(t0 + i * 100);
+        });
+        expect(await page.evaluate(() => tapePos), "ADDR LOC 복귀").toBe(90);
+        // AUTO CAL → 테이프 캘리브레이션 플래그 + 메타 영속
+        await page.evaluate(() => document.getElementById("deckKeyR9").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+        await page.waitForFunction(() => deckTape && deckTape.cal === true, null, { timeout: 5000 });
+        expect(await page.evaluate(() => /"cal":true/.test(localStorage.getItem("fmRadio.tapeMeta") || "")), "cal 영속").toBe(true);
     });
 
     test("테이프 보관함: 라벨 개명 영속·트랙 점프 재생·삭제 연동", async ({ page }) => {

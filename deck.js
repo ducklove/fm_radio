@@ -24,6 +24,8 @@ if (!DECK_MODELS[deckModelId]) deckModelId = "dragon";
 // ----- 더블데크(B웰) -----
 // W-990RX 같은 더블 데크에서 녹음(예약·수동)은 B웰이 전담한다.
 // A웰(재생 트랜스포트)은 녹음과 완전히 독립 — 예약이 걸려 있어도 자유롭게 쓴다.
+let deckLocAddr = null;     // B215 ADDR LOC — MEM으로 기억한 카운터 위치 (세션)
+let deckWindTarget = null;  // 자동 와인딩 목표 (ZERO/ADDR LOC), 도달 시 정지
 let deckBTape = null;           // B웰에 걸린 테이프 (녹음 중에만 장착, 정지 시 랙으로 배출)
 let deckBPos = 0;
 let deckBRecStartPos = 0;
@@ -42,7 +44,7 @@ let tapeMeta = loadJson("fmRadio.tapeMeta", {});
 function tapeMetaSave() {
     const out = {};
     tapes.forEach((t) => {
-        if (t.segments.length || t.named) out[t.id] = { label: t.label, len: tapeLenOf(t), named: !!t.named, createdAt: tapeCreatedAt(t) || undefined };
+        if (t.segments.length || t.named || t.cal) out[t.id] = { label: t.label, len: tapeLenOf(t), named: !!t.named, createdAt: tapeCreatedAt(t) || undefined, cal: t.cal || undefined };
     });
     tapeMeta = out;
     saveJson("fmRadio.tapeMeta", out);
@@ -51,7 +53,7 @@ function tapeMetaSave() {
 // 시작 시 메타에 있는 테이프를 빈 껍데기로 복원 — 녹음이 복원되면 세그먼트가 채워진다
 Object.entries(tapeMeta).forEach(([id, m]) => {
     if (!m || !m.label) return;
-    tapes.push({ id, label: m.label, segments: [], pos: 0, len: m.len || TAPE_LEN, blank: !m.named, named: !!m.named, createdAt: m.createdAt });
+    tapes.push({ id, label: m.label, segments: [], pos: 0, len: m.len || TAPE_LEN, blank: !m.named, named: !!m.named, createdAt: m.createdAt, cal: !!m.cal });
 });
 
 // 테이프 생성 시각 — 명시 필드가 없으면 id에 새겨진 타임스탬프("tape-<ms>-")에서 복원
@@ -347,10 +349,11 @@ function mountDeck() {
             if (!deckGuardReservedRec()) return;
             if ((recorder && !recOnB) || deckMode === "rec") return;
             if (deckMode === "play") { audio.pause(); deckSegPlaying = null; deckPlaying = false; }
+            deckWindTarget = null;
             deckMode = "wind";
             windDir = dir;
         };
-        const stop = () => { if (deckMode === "wind") { deckMode = "stop"; windDir = 0; deckSyncTape(); } };
+        const stop = () => { if (deckMode === "wind") { deckMode = "stop"; windDir = 0; deckWindTarget = null; deckSyncTape(); } };
         b.addEventListener("pointerdown", (e) => {
             start();
             try { b.setPointerCapture(e.pointerId); } catch (err) {}
@@ -377,8 +380,64 @@ function mountDeck() {
     bindWind("deckBtnFf", 1);
     ["deckBtnPlay", "deckBtnStop", "deckBtnRec", "deckBtnEject"].forEach((id) => svgButtonize(id));
     deckMountMicPanel();
+    if (deckModelId === "b215") bindB215Keys();
     if (!deckTape) deckTape = newBlankTape();
     deckRefreshShelf();
+}
+
+// ----- B215 컴퓨터 컨트롤 — ZERO LOC · ADDR LOC · AUTO CAL (죽어 있던 12키 소생) -----
+// 키 배치: 6=MEM(주소 기억) 7=CUE(주소로 와인딩) 9=AUTO(캘리브레이션) 11=RST(0으로 와인딩)
+function deckAutoWind(target, label) {
+    if (!deckGuardReservedRec()) return;
+    if ((recorder && !recOnB) || deckMode === "rec") { playerSubtext.textContent = "녹음 중에는 감을 수 없습니다."; return; }
+    if (!deckTape) return;
+    target = Math.max(0, Math.min(tapeLenOf(deckTape), target));
+    if (deckMode === "play") { audio.pause(); deckSegPlaying = null; deckPlaying = false; }
+    if (Math.abs(target - tapePos) < 0.5) {
+        deckMode = "stop";
+        windDir = 0;
+        playerSubtext.textContent = label + " — 이미 그 위치입니다.";
+        return;
+    }
+    deckWindTarget = target;
+    deckMode = "wind";
+    windDir = target > tapePos ? 1 : -1;
+    playerSubtext.textContent = label + " — " + formatDuration(target * 1000) + " 위치로 감는 중...";
+}
+
+function bindB215Keys() {
+    const bind = (i, label, fn) => {
+        const el = document.getElementById("deckKeyR" + i);
+        if (!el) return;
+        el.setAttribute("tabindex", "0");
+        el.setAttribute("role", "button");
+        el.setAttribute("aria-label", label);
+        el.addEventListener("click", fn);
+        el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); }
+        });
+    };
+    bind(6, "MEM — 현재 카운터 위치 기억", () => {
+        deckLocAddr = tapePos;
+        playerSubtext.textContent = "MEM — " + formatDuration(tapePos * 1000) + " 위치를 기억했습니다. CUE로 되돌아옵니다.";
+    });
+    bind(7, "CUE — 기억한 위치로 자동 와인딩", () => {
+        if (deckLocAddr == null) { playerSubtext.textContent = "기억된 위치가 없습니다 — MEM을 먼저 누르세요."; return; }
+        deckAutoWind(deckLocAddr, "ADDR LOC");
+    });
+    bind(9, "AUTO — 테이프 캘리브레이션 (히스 감소)", () => {
+        if (!deckTape) return;
+        if (deckTape.cal) { playerSubtext.textContent = "이미 캘리브레이션된 테이프입니다."; return; }
+        if (deckMode !== "stop" || (recorder && !recOnB)) { playerSubtext.textContent = "정지 상태에서 AUTO CAL을 실행하세요."; return; }
+        const tape = deckTape;
+        playerSubtext.textContent = "AUTO CAL — 바이어스·감도 측정 중...";
+        setTimeout(() => {
+            tape.cal = true;
+            tapeMetaSave();
+            playerSubtext.textContent = "AUTO CAL 완료 — 「" + tape.label + "」의 히스 플로어가 내려갔습니다.";
+        }, 2000);
+    });
+    bind(11, "RST — 카운터 0으로 자동 와인딩 (ZERO LOC)", () => deckAutoWind(0, "ZERO LOC"));
 }
 
 // ----- REC INPUT (LINE/MIC) — 하단 좌측 입력 베이 -----

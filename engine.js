@@ -96,9 +96,15 @@ let recStartMs = 0;
 let recTimerId = null;
 let recordingCount = 0;
 
+// MR-78 가변 선택도 — 0=WIDE(개방) 1=NORMAL 2=NARROW(어둡고 정숙). DSP는 MSE 경로 한정.
+let tsSelectivity = 0;
+
 function applyBlend() {
     // 하이블렌드: 고음을 깎아 약전계 잡음을 줄이는 효과 (MSE 경로에서만 실제 적용)
-    if (blendFilter) blendFilter.frequency.value = blendOn ? 5000 : 20000;
+    // 선택도(MR-78)와 블렌드 중 더 좁은 쪽이 이긴다 — 같은 로우패스 필터를 공유한다
+    if (!blendFilter) return;
+    const selCap = tsSelectivity === 2 ? 10500 : tsSelectivity === 1 ? 15000 : 20000;
+    blendFilter.frequency.value = Math.min(blendOn ? 5000 : 20000, selCap);
 }
 
 function applyMono() {
@@ -112,7 +118,12 @@ function applyMono() {
 function applyEq() {
     if (!eqNodes) return;
     const g = eqState.gains[eqModelId];
-    eqNodes.forEach((b, i) => { b.gain.value = eqState.on ? (g[i] || 0) : 0; });
+    eqNodes.forEach((b, i) => {
+        const v = eqState.on ? (g[i] || 0) : 0;
+        // 짧은 타임 콘스턴트로 램프 — 프리셋 전환·A/B 비교 시 지퍼 노이즈 방지
+        if (audioCtx) b.gain.setTargetAtTime(v, audioCtx.currentTime, 0.03);
+        else b.gain.value = v;
+    });
 }
 
 // EQ 밴드를 현재 모델로 (재)구성해 monoGain→EQ→ampDrive로 연결한다.

@@ -1201,7 +1201,7 @@ AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http:/
         <g font-family="Arial" font-size="10.5" font-weight="700" fill="#5b4a32" text-anchor="middle"><text x="214" y="420">-10</text><text x="250" y="396">0</text><text x="286" y="420">+10</text></g>
         <line id="ampVuL" data-cx="250" data-cy="446" x1="250" y1="446" x2="250" y2="360" stroke="#d4501e" stroke-width="2.8" transform="rotate(-42 250 446)"/>
         <circle cx="250" cy="446" r="6" fill="#1a1610"/>
-        <text x="250" y="470" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2" fill="#655d4e" text-anchor="middle">BIAS</text>
+        <text id="ampBiasLbl" x="250" y="470" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2" fill="#655d4e" text-anchor="middle">BIAS</text>
         <polygon points="188,344 268,344 214,468 188,468" fill="url(#lzStreak)"/>
         <circle cx="250" cy="406" r="68" fill="url(#lzInCirc)"/>
         <circle cx="250" cy="406" r="69.5" fill="none" stroke="#04050a" stroke-width="3" opacity="0.45"/>

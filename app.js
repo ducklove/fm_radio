@@ -322,6 +322,41 @@ function tsSyncPanel() {
 }
 
 // ----- 조작 바인딩 (스킨 마운트마다 다시 연결) -----
+// MR-78 가변 선택도 — SELECTIVITY 노브 아래 3단 세그먼트 (WIDE/NORM/NARROW).
+// NARROW는 고역을 접는 대신 정숙해진다 (약전계·이스터에그에서 진가). DSP는 Chromium 한정.
+function mountMr78Selectivity() {
+    if (tunerSkinId !== "mr78" || !tunerSvgEl || tunerSvgEl.querySelector("#tsSelG")) return;
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("id", "tsSelG");
+    g.setAttribute("role", "button");
+    g.setAttribute("tabindex", "0");
+    g.setAttribute("aria-label", "가변 선택도 — WIDE / NORMAL / NARROW");
+    g.setAttribute("style", "cursor:pointer");
+    const SEL_LBL = ["WIDE", "NORM", "NARROW"];
+    g.innerHTML = '<title>SELECTIVITY — 누를 때마다 WIDE · NORMAL · NARROW</title>' +
+        '<rect x="312" y="556" width="136" height="26" rx="5" fill="#0d1210" stroke="#31473b" stroke-width="1.4"/>' +
+        SEL_LBL.map((t, i) =>
+            '<rect id="tsSelSeg' + i + '" x="' + (315 + i * 44.5) + '" y="559" width="41.5" height="20" rx="3" fill="#14201a"/>' +
+            '<text x="' + (336 + i * 44.5) + '" y="573" font-family="Arial" font-size="8.5" font-weight="700" letter-spacing=".5" fill="#7ca88e" text-anchor="middle" pointer-events="none">' + t + '</text>'
+        ).join("");
+    tunerSvgEl.appendChild(g);
+    const paint = () => {
+        for (let i = 0; i < 3; i++) {
+            const seg = document.getElementById("tsSelSeg" + i);
+            if (seg) seg.setAttribute("fill", i === tsSelectivity ? "#2c6a4a" : "#14201a");
+        }
+    };
+    const cycle = () => {
+        tsSelectivity = (tsSelectivity + 1) % 3;
+        applyBlend();
+        paint();
+        playerSubtext.textContent = "선택도: " + ["WIDE — 개방적, 히스도 그대로", "NORMAL — 균형", "NARROW — 어둡지만 정숙 (약전계 유리)"][tsSelectivity];
+    };
+    g.addEventListener("click", cycle);
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); cycle(); } });
+    paint();
+}
+
 function bindTunerControls() {
     const dial = document.getElementById("tsDialHit");
     let dialDrag = false;
@@ -475,6 +510,7 @@ function initTunerSkin(id) {
     kt.textContent = "노브를 좌우로 드래그해 튜닝하세요";
     kc.appendChild(kt);
     tunerSvgEl.appendChild(kc);
+    mountMr78Selectivity();
 
     // 방송국 마커 생성
     const m = tunerCfg.mark;
@@ -562,9 +598,50 @@ const EQ_MODELS = {
     ge10chrome: { pill: "CHAMPAGNE · 10밴드", name: "GE-10C", theme: "chrome", series: "SIGNATURE SERIES", architecture: "signature", q: 1.4, capW: 46,
         freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
         labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
+        xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] },
+    // 메모리 EQ — 팩토리 프리셋·유저 슬롯·A/B 비교가 존재 이유 (Sansui SE-9/Technics SH-8058 오마주)
+    se9: { pill: "SE-9 · 메모리", name: "SE-9", brand: "SANSUI", theme: "black", series: "COMPUTER MEMORY", architecture: "memory", q: 1.4, capW: 46,
+        freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+        labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
         xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] }
 };
-const EQ_ORDER = ["ge5", "ge10", "ge10silver", "ge10chrome"];
+const EQ_ORDER = ["ge5", "ge10", "ge10silver", "ge10chrome", "se9"];
+
+// ----- EQ 프리셋 — 커브는 (Hz, dB) 포인트로 선언하고 현재 모델 밴드로 리샘플한다 -----
+// 5밴드(GE-5)에서도 10밴드에서도 같은 프리셋이 동작하고, 슬롯도 모델을 넘나든다.
+const EQ_PRESETS = [
+    { id: "night", key: "NIGHT", label: "LATE NIGHT", pts: [[31, 3], [62, 2], [125, 1], [250, 0], [500, 0], [1000, 0], [2000, .5], [4000, 1], [8000, 1], [16000, 0]] },
+    { id: "vocal", key: "VOCAL", label: "VOCAL FOCUS", pts: [[31, -2], [62, -1.5], [125, -1], [250, -2], [500, 1], [1000, 2.5], [2000, 3], [4000, 2], [8000, -.5], [16000, -1]] },
+    { id: "fmnr", key: "FM NR", label: "FM NOISE CUT", pts: [[31, 0], [62, 0], [125, .5], [250, 0], [500, 0], [1000, 0], [2000, 0], [4000, -1], [8000, -2.5], [16000, -5]] },
+    { id: "vinyl", key: "VINYL", label: "VINYL RESTORE", pts: [[31, -4], [62, -1.5], [125, 0], [250, 0], [500, 0], [1000, 0], [2000, 0], [4000, 1], [8000, 1.5], [16000, 1]] },
+    { id: "tape", key: "TAPE", label: "CASSETTE BRIGHT", pts: [[31, 0], [62, -1], [125, 0], [250, 0], [500, 0], [1000, 0], [2000, 1], [4000, 2], [8000, 3.5], [16000, 4]] },
+    { id: "minisp", key: "MINI SP", label: "SMALL SPEAKER", pts: [[31, -5], [62, -3], [125, 1.5], [250, 2], [500, .5], [1000, 0], [2000, .5], [4000, 1], [8000, 0], [16000, -.5]] },
+    { id: "bass", key: "BASS+", label: "BASS EXTENSION", pts: [[31, 5], [62, 4], [125, 2], [250, -.5], [500, 0], [1000, 0], [2000, 0], [4000, 0], [8000, 0], [16000, 0]] },
+    { id: "y70", key: "'70s", label: "'70s HI-FI", pts: [[31, 1], [62, 2], [125, 1.5], [250, .5], [500, 0], [1000, -.5], [2000, -1], [4000, -.5], [8000, -1], [16000, -1.5]] },
+    { id: "y80", key: "'80s", label: "'80s HI-FI", pts: [[31, 3], [62, 4], [125, 2], [250, 0], [500, -1], [1000, -2], [2000, -1], [4000, 1], [8000, 2], [16000, 3.5]] },
+    { id: "modern", key: "MODERN", label: "MODERN HI-FI", pts: [[31, 1.5], [62, 1], [125, 0], [250, -.5], [500, 0], [1000, 0], [2000, 0], [4000, .5], [8000, .5], [16000, 1]] }
+];
+
+function eqCurveSample(pts, f) {
+    if (f <= pts[0][0]) return pts[0][1];
+    if (f >= pts[pts.length - 1][0]) return pts[pts.length - 1][1];
+    for (let i = 1; i < pts.length; i++) {
+        if (f <= pts[i][0]) {
+            const f0 = pts[i - 1][0], g0 = pts[i - 1][1], f1 = pts[i][0], g1 = pts[i][1];
+            const t = (Math.log(f) - Math.log(f0)) / (Math.log(f1) - Math.log(f0));
+            return g0 + (g1 - g0) * t;
+        }
+    }
+    return 0;
+}
+
+function eqResample(pts) {
+    return EQ_FREQS.map((f) => Math.max(-12, Math.min(12, Math.round(eqCurveSample(pts, f) * 2) / 2)));
+}
+
+function eqCurPts() {
+    return EQ_FREQS.map((f, i) => [f, eqState.gains[eqModelId][i] || 0]);
+}
 const EQ_TOP = 100;
 const EQ_BOT = 320;
 const EQ_VB_H = 400;
@@ -590,8 +667,81 @@ function eqApplyModelCfg() {
 }
 eqApplyModelCfg();
 
+// 유저 슬롯 A–D (영속) · B 뱅크(오토-B, 세션) · MEMORY 무장 · 점등용 활성 프리셋
+let eqSlots = (eqSaved && eqSaved.slots && typeof eqSaved.slots === "object") ? eqSaved.slots : {};
+let eqBankB = null;
+let eqBankOn = false;
+let eqMemArmed = false;
+let eqActivePreset = null;
+
 function saveEq() {
-    saveJson("fmRadio.eq", { on: eqState.on, model: eqModelId, gains: eqState.gains });
+    saveJson("fmRadio.eq", { on: eqState.on, model: eqModelId, gains: eqState.gains, slots: eqSlots });
+}
+
+// 모터라이즈드 전환 — 캡이 목표 커브로 미끄러져 이동 (SE-9 실물의 모터 슬라이더 오마주)
+let eqMotorRaf = 0;
+function eqMotorTo(target, done) {
+    const from = eqState.gains[eqModelId].slice();
+    const t0 = performance.now();
+    cancelAnimationFrame(eqMotorRaf);
+    const step = (now) => {
+        const t = Math.min(1, (now - t0) / 320);
+        const e = 1 - Math.pow(1 - t, 3);
+        eqState.gains[eqModelId] = from.map((g, i) => g + (target[i] - g) * e);
+        applyEq();
+        updateEqVisuals();
+        if (t < 1) {
+            eqMotorRaf = requestAnimationFrame(step);
+        } else {
+            eqState.gains[eqModelId] = target.slice();
+            applyEq();
+            updateEqVisuals();
+            saveEq();
+            if (done) done();
+        }
+    };
+    eqMotorRaf = requestAnimationFrame(step);
+}
+
+// 프리셋·슬롯 적용 — 직전 커브가 자동으로 B 뱅크에 담긴다 (오토-B)
+function eqApplyCurvePts(pts, name, presetId) {
+    eqBankB = { pts: eqCurPts() };
+    eqBankOn = false;
+    if (!eqState.on) eqState.on = true;
+    eqActivePreset = presetId || null;
+    eqMotorTo(eqResample(pts));
+    eqPaintKeys();
+    playerSubtext.textContent = "EQ 프리셋: " + name + " — A/B로 직전 커브와 비교할 수 있습니다.";
+}
+
+function eqToggleBank() {
+    if (!eqBankB) {
+        playerSubtext.textContent = "비교할 커브가 없습니다 — 프리셋을 적용하면 직전 커브가 B 뱅크에 담깁니다.";
+        return;
+    }
+    const cur = { pts: eqCurPts() };
+    eqMotorTo(eqResample(eqBankB.pts));
+    eqBankB = cur;
+    eqBankOn = !eqBankOn;
+    eqActivePreset = null;
+    eqPaintKeys();
+    playerSubtext.textContent = eqBankOn ? "B 뱅크 — 바꾸기 전 커브를 듣는 중" : "A 뱅크 — 현재 커브를 듣는 중";
+}
+
+function eqSlotPress(slot) {
+    if (eqMemArmed) {
+        eqSlots[slot] = { pts: eqCurPts() };
+        eqMemArmed = false;
+        saveEq();
+        eqPaintKeys();
+        playerSubtext.textContent = "현재 커브를 슬롯 " + slot + "에 저장했습니다.";
+        return;
+    }
+    if (!eqSlots[slot] || !Array.isArray(eqSlots[slot].pts)) {
+        playerSubtext.textContent = "빈 슬롯입니다 — MEMORY를 누른 뒤 " + slot + "를 누르면 현재 커브가 저장됩니다.";
+        return;
+    }
+    eqApplyCurvePts(eqSlots[slot].pts, "슬롯 " + slot, "slot" + slot);
 }
 
 
@@ -810,6 +960,31 @@ function mountEq() {
     for (let i = 0; i < 12; i++) {
         lvl += '<rect id="eqLvl' + i + '" x="518" y="' + (300 - i * 19) + '" width="54" height="12" rx="2.5" fill="#1e1610" stroke="#050607" stroke-width="1"/>';
     }
+    const isMemory = model.architecture === "memory";
+    // SE-9: 레벨 LED 컬럼 자리에 프리셋 키 뱅크 — 팩토리 10 + 슬롯 A–D + MEMORY + A/B
+    let keyBank = "";
+    if (isMemory) {
+        const keyDefs = EQ_PRESETS.map((preset) => ({ id: preset.id, key: preset.key, title: preset.label }))
+            .concat([
+                { id: "slotA", key: "A", title: "유저 슬롯 A" }, { id: "slotB", key: "B", title: "유저 슬롯 B" },
+                { id: "slotC", key: "C", title: "유저 슬롯 C" }, { id: "slotD", key: "D", title: "유저 슬롯 D" },
+                { id: "mem", key: "MEMORY", title: "MEMORY — 누른 뒤 A–D에 현재 커브 저장" },
+                { id: "ab", key: "A / B", title: "A/B — 직전 커브와 비교" }
+            ]);
+        keyBank = '<rect x="392" y="70" width="202" height="276" rx="10" fill="#07090b" stroke="' + theme.edge + '" stroke-width="2"/>' +
+            '<rect x="400" y="78" width="186" height="260" rx="6" fill="url(#eqField)" stroke="#000"/>' +
+            '<text x="493" y="96" font-family="Arial" font-size="11.5" font-weight="700" letter-spacing="1.6" fill="#d4d7da" text-anchor="middle">PRESET MEMORY</text>' +
+            keyDefs.map((keyDef, i) => {
+                const col = Math.floor(i / 8), row = i % 8;
+                const x = 405 + col * 94, y = 103 + row * 29;
+                return '<g id="eqKey_' + keyDef.id + '" role="button" tabindex="0" aria-label="EQ 프리셋 ' + keyDef.title + '" style="cursor:pointer">' +
+                    '<title>' + keyDef.title + '</title>' +
+                    '<rect x="' + x + '" y="' + y + '" width="88" height="25" rx="4" fill="#191b21" stroke="#3a3e46" stroke-width="1.2"/>' +
+                    '<path d="M' + (x + 4) + ' ' + (y + 3.5) + ' H' + (x + 84) + '" stroke="#fff" stroke-width="1.2" opacity=".16" pointer-events="none"/>' +
+                    '<circle id="eqKeyLed_' + keyDef.id + '" cx="' + (x + 9) + '" cy="' + (y + 12.5) + '" r="2.8" fill="#1c3527" pointer-events="none"/>' +
+                    '<text x="' + (x + 48) + '" y="' + (y + 17) + '" font-family="Arial" font-size="9.5" font-weight="700" letter-spacing=".6" fill="#c4c8ce" text-anchor="middle" pointer-events="none">' + keyDef.key + '</text></g>';
+            }).join("");
+    }
     let modelTrim = "";
     if (model.architecture === "wide") {
         modelTrim = '<rect x="336" y="78" width="44" height="244" rx="8" fill="#090a0d" stroke="#434750"/><path d="M358 98 V302" stroke="#b9bdc5" stroke-width="2" opacity=".45"/><text x="358" y="344" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2" fill="' + theme.muted + '" text-anchor="middle">WIDE</text>';
@@ -817,11 +992,13 @@ function mountEq() {
         modelTrim = '<path d="M62 34 H1938 M62 374 H1938" stroke="#fff" stroke-width="2" opacity=".5"/><rect x="344" y="38" width="250" height="25" rx="3" fill="#9b9d9e" stroke="#f7f7f3"/><text x="469" y="55" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2.4" fill="#282b2e" text-anchor="middle">LABORATORY CALIBRATED</text>';
     } else if (model.architecture === "signature") {
         modelTrim = '<rect x="344" y="36" width="250" height="28" rx="14" fill="#4f422b" stroke="#f1deb0"/><text x="469" y="55" font-family="Georgia, serif" font-style="italic" font-size="13" fill="#fff0c5" text-anchor="middle">Signature Reference</text><path d="M62 29 H330 M608 29 H1938" stroke="#fff6db" stroke-width="2" opacity=".42"/>';
+    } else if (model.architecture === "memory") {
+        modelTrim = '<rect x="344" y="38" width="250" height="24" rx="3" fill="#0a1410" stroke="#2f5a44"/><text x="469" y="55" font-family="Arial" font-size="10" font-weight="700" letter-spacing="2.2" fill="#6fe0a4" text-anchor="middle">COMPUTER MEMORY · MOTOR DRIVE</text>';
     } else {
         modelTrim = '<rect x="344" y="38" width="250" height="24" rx="3" fill="#0a0b0e" stroke="#494d55"/><text x="469" y="55" font-family="Arial" font-size="10" font-weight="700" letter-spacing="2.2" fill="#bfc2c8" text-anchor="middle">DISCRETE ANALOG FILTERS</text>';
     }
     document.getElementById("eqStage").innerHTML =
-        '<svg class="eq-svg" viewBox="0 0 2000 400" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="YAMAHA ' + model.name + ' 스테레오 그래픽 이퀄라이저">' +
+        '<svg class="eq-svg" viewBox="0 0 2000 400" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="' + (model.brand || "YAMAHA") + ' ' + model.name + ' 스테레오 그래픽 이퀄라이저">' +
         '<defs>' +
         '<linearGradient id="eqFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + theme.top + '"/><stop offset=".18" stop-color="' + theme.mid + '"/><stop offset=".68" stop-color="' + theme.mid + '"/><stop offset="1" stop-color="' + theme.bot + '"/></linearGradient>' +
         '<linearGradient id="eqField" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + theme.fieldA + '"/><stop offset=".12" stop-color="' + theme.fieldB + '"/><stop offset=".82" stop-color="' + theme.fieldA + '"/><stop offset="1" stop-color="#050608"/></linearGradient>' +
@@ -843,7 +1020,7 @@ function mountEq() {
         '<rect x="0" y="0" width="44" height="400" rx="8" fill="' + theme.ear + '"/><rect x="1956" y="0" width="44" height="400" rx="8" fill="' + theme.ear + '"/>' +
         screw(22, 52) + screw(22, 348) + screw(1978, 52) + screw(1978, 348) + modelTrim +
         // 좌측 컨트롤 블록
-        '<text x="78" y="82" font-family="Arial, sans-serif" font-size="32" font-weight="800" letter-spacing="2" fill="' + theme.ink + '">YAMAHA</text>' +
+        '<text x="78" y="82" font-family="Arial, sans-serif" font-size="32" font-weight="800" letter-spacing="2" fill="' + theme.ink + '">' + (model.brand || "YAMAHA") + '</text>' +
         '<text x="80" y="111" font-family="Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="2.1" fill="' + theme.sub + '">' + model.name + ' · ' + model.series + '</text>' +
         '<text x="80" y="137" font-family="Arial, sans-serif" font-size="11" letter-spacing="1.7" fill="' + theme.muted + '">NATURAL SOUND GRAPHIC EQUALIZER</text>' +
         '<text x="82" y="183" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.5" fill="' + theme.sub + '">POWER</text>' +
@@ -855,13 +1032,14 @@ function mountEq() {
         '<rect id="eqDefeatBtn" x="80" y="316" width="218" height="50" rx="6" fill="#202229" stroke="' + theme.edge + '" stroke-width="1.7" style="cursor:pointer" tabindex="0" role="button" aria-label="EQ 켜기/끄기"><title>EQ 켜기/끄기 (DEFEAT)</title></rect>' +
         '<rect x="87" y="322" width="204" height="11" rx="3" fill="#555962" opacity=".7" pointer-events="none"/>' +
         '<text x="189" y="354" font-family="Arial" font-size="15" font-weight="800" letter-spacing="2.2" fill="#f2f2ee" text-anchor="middle" pointer-events="none">DEFEAT / ACTIVE</text>' +
-        // 레벨 LED 컬럼
-        '<rect x="392" y="70" width="202" height="276" rx="10" fill="#07090b" stroke="' + theme.edge + '" stroke-width="2"/>' +
-        '<rect x="402" y="80" width="182" height="256" rx="6" fill="url(#eqField)" stroke="#000"/>' +
-        '<text x="545" y="101" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.8" fill="#d4d7da" text-anchor="middle">OUTPUT LEVEL</text>' +
-        '<text x="503" y="113" font-family="Arial" font-size="11" fill="#9ca0a5" text-anchor="end">+12</text>' +
-        '<text x="503" y="310" font-family="Arial" font-size="11" fill="#9ca0a5" text-anchor="end">-12</text>' +
-        lvl +
+        // 레벨 LED 컬럼 (SE-9는 같은 자리에 프리셋 키 뱅크)
+        (isMemory ? keyBank :
+            '<rect x="392" y="70" width="202" height="276" rx="10" fill="#07090b" stroke="' + theme.edge + '" stroke-width="2"/>' +
+            '<rect x="402" y="80" width="182" height="256" rx="6" fill="url(#eqField)" stroke="#000"/>' +
+            '<text x="545" y="101" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.8" fill="#d4d7da" text-anchor="middle">OUTPUT LEVEL</text>' +
+            '<text x="503" y="113" font-family="Arial" font-size="11" fill="#9ca0a5" text-anchor="end">+12</text>' +
+            '<text x="503" y="310" font-family="Arial" font-size="11" fill="#9ca0a5" text-anchor="end">-12</text>' +
+            lvl) +
         // 슬라이더 필드
         '<rect x="' + (fieldX + 5) + '" y="58" width="' + fieldW + '" height="320" rx="10" fill="#000" opacity=".55" filter="url(#eqSlotShadow)"/>' +
         '<rect x="' + fieldX + '" y="52" width="' + fieldW + '" height="320" rx="9" fill="url(#eqField)" stroke="' + theme.edge + '" stroke-width="2.4"/>' +
@@ -894,13 +1072,15 @@ function mountEq() {
         };
         hit.addEventListener("pointerdown", (e) => { drag = true; try { hit.setPointerCapture(e.pointerId); } catch (err) {} setFromY(e.clientY); e.preventDefault(); });
         hit.addEventListener("pointermove", (e) => { if (drag) setFromY(e.clientY); });
-        hit.addEventListener("pointerup", () => { drag = false; saveEq(); });
+        hit.addEventListener("pointerup", () => { drag = false; eqActivePreset = null; eqPaintKeys(); saveEq(); });
         hit.addEventListener("pointercancel", () => { drag = false; });
         hit.addEventListener("keydown", (e) => {
             const step = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0;
             if (!step) return;
             e.preventDefault();
             eqState.gains[eqModelId][i] = Math.max(-12, Math.min(12, eqState.gains[eqModelId][i] + step));
+            eqActivePreset = null;
+            eqPaintKeys();
             applyEq();
             updateEqVisuals();
             saveEq();
@@ -921,8 +1101,46 @@ function mountEq() {
             toggleDefeat();
         }
     });
+    if (isMemory) {
+        const bindKey = (id, fn) => {
+            const el = document.getElementById("eqKey_" + id);
+            if (!el) return;
+            el.addEventListener("click", fn);
+            el.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); }
+            });
+        };
+        EQ_PRESETS.forEach((preset) => bindKey(preset.id, () => eqApplyCurvePts(preset.pts, preset.label, preset.id)));
+        ["A", "B", "C", "D"].forEach((slot) => bindKey("slot" + slot, () => eqSlotPress(slot)));
+        bindKey("mem", () => {
+            eqMemArmed = !eqMemArmed;
+            eqPaintKeys();
+            playerSubtext.textContent = eqMemArmed
+                ? "MEMORY — A–D 키를 누르면 현재 커브가 저장됩니다."
+                : "MEMORY 취소";
+        });
+        bindKey("ab", eqToggleBank);
+        eqPaintKeys();
+    }
     renderEqPicker();
     updateEqVisuals();
+}
+
+// SE-9 키 램프 — 활성 프리셋·저장된 슬롯·MEMORY 무장·B 뱅크 상태를 칠한다
+function eqPaintKeys() {
+    if (!document.getElementById("eqKey_mem")) return;
+    const paint = (id, on, color) => {
+        const led = document.getElementById("eqKeyLed_" + id);
+        if (led) led.style.fill = on ? (color || "#54d18a") : "#1c3527";
+    };
+    EQ_PRESETS.forEach((preset) => paint(preset.id, eqActivePreset === preset.id));
+    ["A", "B", "C", "D"].forEach((slot) => {
+        const stored = !!(eqSlots[slot] && eqSlots[slot].pts);
+        paint("slot" + slot, eqActivePreset === "slot" + slot || stored,
+            eqActivePreset === "slot" + slot ? "#54d18a" : stored ? "#2c5c42" : null);
+    });
+    paint("mem", eqMemArmed, "#f0b43e");
+    paint("ab", eqBankOn, "#f0b43e");
 }
 
 function updateEqVisuals() {
@@ -932,7 +1150,8 @@ function updateEqVisuals() {
         if (!h) return;
         h.setAttribute("transform", "translate(0," + eqGainToY(eqState.gains[eqModelId][i]).toFixed(1) + ")");
         h.style.opacity = eqState.on ? 1 : 0.4;
-        v.textContent = (eqState.gains[eqModelId][i] > 0 ? "+" : "") + eqState.gains[eqModelId][i];
+        const shown = Math.round(eqState.gains[eqModelId][i] * 2) / 2;
+        v.textContent = (shown > 0 ? "+" : "") + shown;
         const hit = document.getElementById("eqHit" + i);
         if (hit) hit.setAttribute("aria-valuenow", eqState.gains[eqModelId][i]);
     });
@@ -940,6 +1159,8 @@ function updateEqVisuals() {
     if (led) led.style.fill = eqState.on ? "#ff7a3a" : "#3a2012";
 }
 
+// 8B 바이어스 미터 모드 — 0=VU · 1=CH A 바이어스 · 2=CH B 바이어스 (미터 클릭으로 순환)
+let ampBiasMode = 0;
 let ampModelId = loadJson("fmRadio.amp", "mc2105");
 if (!AMP_MODELS[ampModelId]) ampModelId = "mc2105";
 
@@ -1020,7 +1241,41 @@ function mountAmp() {
     applyPanelLighting(document.querySelector("#ampStage svg"));
     bindAmpVolume();
     updateVolKnob();
+    ampBiasMode = 0;
+    bindAmpBiasMeter();
     renderAmpPicker();
+}
+
+// 8B: 죽어 있던 BIAS 미터 소생 — 미터를 누를 때마다 VU → CH A 바이어스 → CH B 바이어스 순환.
+// 바이어스는 켠 직후 낮았다가 관이 달아오르며 정격(중앙 0)으로 올라온다 (tubeWarm 연동).
+function bindAmpBiasMeter() {
+    if (ampModelId !== "el34") return;
+    const svg = document.querySelector("#ampStage svg");
+    const lbl = document.getElementById("ampBiasLbl");
+    if (!svg || !lbl) return;
+    const hit = document.createElementNS(SVG_NS, "circle");
+    hit.setAttribute("cx", "250");
+    hit.setAttribute("cy", "406");
+    hit.setAttribute("r", "70");
+    hit.setAttribute("fill", "#000");
+    hit.setAttribute("fill-opacity", "0");
+    hit.setAttribute("style", "cursor:pointer");
+    hit.setAttribute("tabindex", "0");
+    hit.setAttribute("role", "button");
+    hit.setAttribute("aria-label", "바이어스 미터 — VU와 채널별 바이어스 표시 전환");
+    const title = document.createElementNS(SVG_NS, "title");
+    title.textContent = "METERING — 누를 때마다 VU · CH A BIAS · CH B BIAS";
+    hit.appendChild(title);
+    svg.appendChild(hit);
+    const cycle = () => {
+        ampBiasMode = (ampBiasMode + 1) % 3;
+        lbl.textContent = ampBiasMode === 1 ? "BIAS · CH A" : ampBiasMode === 2 ? "BIAS · CH B" : "BIAS";
+        playerSubtext.textContent = ampBiasMode
+            ? "바이어스 모니터 — CH " + (ampBiasMode === 1 ? "A" : "B") + " (워밍업과 함께 정격으로 올라옵니다)"
+            : "미터: VU 표시";
+    };
+    hit.addEventListener("click", cycle);
+    hit.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); cycle(); } });
 }
 
 function renderAmpPicker() {
@@ -1088,6 +1343,12 @@ let phonoActive = false;
 let radioStandby = null;   // 턴테이블 재생 중 튜닝해 둔 대기 방송국 (음반이 끝나면 연결)
 let phonoTrack = -1;
 let ttSpin = 0;
+// 모델 고유 속도 조작 — SL-1200 피치·TD124 4속·GARRARD 트림이 쓰는 공용 배율 (33⅓ 기준 1)
+let ttSpeedTrim = 1;
+let ttPitch = 0;          // SL-1200 피치 페이더 값 (-0.08 ~ +0.08)
+let ttSpeed124 = 33;      // TD124 속도 노브 위치 (16 · 33 · 45 · 78)
+let ttStrobeAng = 0;      // SL-1200 스트로브 드리프트 각
+let ttBraking = false;    // GARRARD 브레이크 레버 — 누르는 동안 플래터 급정지
 let ttAngle = 0;
 let ttArmAng = -26;
 let ttArmDrag = false;   // 톤암을 손으로 잡고 있는 동안 자동 추적을 멈춘다
@@ -1113,6 +1374,146 @@ function trackAtAngle(ang) {
 
 // 톤암 드래그 — 실물처럼 암을 들어 원하는 트랙 위에 내려놓으면 그 곡부터 재생.
 // 거치대 쪽(-5° 미만)에 내려놓으면 연주를 멈춘다.
+// 공용 33/45 버튼과 TD124 4속 노브의 상태 동기화
+function ttSyncCommonSpeed(rpm) {
+    if (ttModelId !== "td124") return;
+    ttSpeed124 = rpm;
+    ttSpeedTrim = 1;
+    ttSyncSpeedPtr();
+}
+
+function ttSyncSpeedPtr() {
+    const ptr = document.getElementById("ttSpeedPtr");
+    if (!ptr) return;
+    const ang = { 16: 0, 33: 36, 45: 72, 78: 108 }[ttSpeed124] || 36;
+    ptr.setAttribute("transform", "rotate(" + ang + " 140 292)");
+}
+
+// ----- 죽은 조작부 재생: 모델 고유 컨트롤 바인딩 (mountTurntable에서 호출) -----
+function bindTtModelControls() {
+    const svg = document.querySelector("#ttStage svg");
+    if (!svg) return;
+    const vbY = (clientY) => {
+        const r = svg.getBoundingClientRect();
+        return (clientY - r.top) / r.height * svg.viewBox.baseVal.height;
+    };
+    // SL-1200: 피치 페이더 ±8% + QUARTZ LOCK. WebKit은 드래그 종료 시 1회 대입(원샷 규칙).
+    const pitchHit = document.getElementById("ttPitchHit");
+    const pitchKnob = document.getElementById("ttPitchKnob");
+    if (pitchHit && pitchKnob) {
+        const paintPitch = () => {
+            pitchKnob.setAttribute("y", (363.5 + ttPitch / 0.08 * 61.5).toFixed(1));
+            const lamp = document.getElementById("ttQuartzLamp");
+            if (lamp) lamp.style.fill = Math.abs(ttPitch) < 0.0005 ? "#e94e35" : "#7e352a";
+            pitchHit.setAttribute("aria-valuenow", (ttPitch * 100).toFixed(1));
+        };
+        const setPitchFromY = (clientY) => {
+            const y = vbY(clientY);
+            ttPitch = Math.max(-0.08, Math.min(0.08, (y - 396) / 61.5 * 0.08));
+            if (Math.abs(ttPitch) < 0.003) ttPitch = 0;   // 센터 디텐트
+            ttSpeedTrim = 1 + ttPitch;
+            paintPitch();
+            playerSubtext.textContent = "피치 " + (ttPitch >= 0 ? "+" : "") + (ttPitch * 100).toFixed(1) + "%";
+        };
+        let drag = false;
+        pitchHit.addEventListener("pointerdown", (e) => { drag = true; try { pitchHit.setPointerCapture(e.pointerId); } catch (err) {} setPitchFromY(e.clientY); e.preventDefault(); });
+        pitchHit.addEventListener("pointermove", (e) => { if (drag) setPitchFromY(e.clientY); });
+        pitchHit.addEventListener("pointerup", () => { drag = false; applyRpmRate(); });
+        pitchHit.addEventListener("pointercancel", () => { drag = false; applyRpmRate(); });
+        pitchHit.addEventListener("keydown", (e) => {
+            const d = e.key === "ArrowUp" ? -0.005 : e.key === "ArrowDown" ? 0.005 : 0;
+            if (!d) return;
+            e.preventDefault();
+            ttPitch = Math.max(-0.08, Math.min(0.08, ttPitch + d));
+            ttSpeedTrim = 1 + ttPitch;
+            paintPitch();
+            applyRpmRate();
+        });
+        const quartz = document.getElementById("ttQuartzHit");
+        if (quartz) {
+            const lock = () => {
+                ttPitch = 0;
+                ttSpeedTrim = 1;
+                paintPitch();
+                applyRpmRate();
+                playerSubtext.textContent = "QUARTZ LOCK — 피치 0.0%";
+            };
+            quartz.addEventListener("click", lock);
+            quartz.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); lock(); } });
+        }
+        paintPitch();
+    }
+    // TD124: 4속 노브 — 누를 때마다 16⅔ → 33⅓ → 45 → 78 순환 (모두 원샷 대입이라 WebKit 안전)
+    const speedHit = document.getElementById("ttSpeedHit");
+    if (speedHit) {
+        const SPEEDS = [16, 33, 45, 78];
+        const TRIMS = { 16: 0.5, 33: 1, 45: 1.35, 78: 2.34 };
+        const NAMES = { 16: "16\u2154 RPM — 낭독·장시간", 33: "33\u2153 RPM", 45: "45 RPM — 빠르고 날카롭게", 78: "78 RPM — SP반의 속도" };
+        const cycle = () => {
+            ttSpeed124 = SPEEDS[(SPEEDS.indexOf(ttSpeed124) + 1) % SPEEDS.length];
+            ttRpm45 = false;                  // 속도는 노브가 단일 소스
+            ttSpeedTrim = TRIMS[ttSpeed124];
+            ttSyncSpeedPtr();
+            applyRpmRate();
+            updatePhonoVisuals();
+            playerSubtext.textContent = "회전 속도: " + NAMES[ttSpeed124];
+        };
+        speedHit.addEventListener("click", cycle);
+        speedHit.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); cycle(); } });
+        ttSyncSpeedPtr();
+    }
+    // GARRARD 301: 와전류 속도 트림 ±3% + 기계식 브레이크(누르는 동안 즉정지)
+    const trimHit = document.getElementById("ttTrimHit");
+    if (trimHit) {
+        let drag = false, startY = 0, startTrim = 0;
+        const paintTrim = () => {
+            const ptr = document.getElementById("ttTrimPtr");
+            if (ptr) ptr.setAttribute("transform", "rotate(" + ((ttSpeedTrim - 1) / 0.03 * 40).toFixed(1) + " 122 370)");
+            trimHit.setAttribute("aria-valuenow", ((ttSpeedTrim - 1) * 100).toFixed(1));
+        };
+        trimHit.addEventListener("pointerdown", (e) => { drag = true; startY = e.clientY; startTrim = ttSpeedTrim - 1; try { trimHit.setPointerCapture(e.pointerId); } catch (err) {} e.preventDefault(); });
+        trimHit.addEventListener("pointermove", (e) => {
+            if (!drag) return;
+            let t = startTrim - (e.clientY - startY) * 0.0004;
+            t = Math.max(-0.03, Math.min(0.03, t));
+            if (Math.abs(t) < 0.0015) t = 0;
+            ttSpeedTrim = 1 + t;
+            paintTrim();
+            playerSubtext.textContent = "속도 트림 " + (t >= 0 ? "+" : "") + (t * 100).toFixed(1) + "%";
+        });
+        trimHit.addEventListener("pointerup", () => { drag = false; applyRpmRate(); });
+        trimHit.addEventListener("pointercancel", () => { drag = false; applyRpmRate(); });
+        paintTrim();
+    }
+    const brakeHit = document.getElementById("ttBrakeHit");
+    if (brakeHit) {
+        let resume = false;
+        const lever = () => document.getElementById("ttBrakeLever");
+        const down = () => {
+            ttBraking = true;
+            if (lever()) lever().setAttribute("transform", "rotate(16 198 348)");
+            resume = phonoActive && isPlaying;
+            if (resume) audio.pause();
+            playerSubtext.textContent = "브레이크 — 플래터를 세웠습니다.";
+        };
+        const up = () => {
+            if (!ttBraking) return;
+            ttBraking = false;
+            if (lever()) lever().setAttribute("transform", "");
+            if (resume && phonoActive) {
+                audio.play().then(() => { isPlaying = true; updatePlayButton(); }).catch(() => {});
+                playerSubtext.textContent = "브레이크 해제 — 플래터가 다시 돕니다.";
+            }
+            resume = false;
+        };
+        brakeHit.addEventListener("pointerdown", (e) => { down(); try { brakeHit.setPointerCapture(e.pointerId); } catch (err) {} e.preventDefault(); });
+        brakeHit.addEventListener("pointerup", up);
+        brakeHit.addEventListener("pointercancel", up);
+        brakeHit.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); down(); } });
+        brakeHit.addEventListener("keyup", (e) => { if (e.key === "Enter" || e.key === " ") up(); });
+    }
+}
+
 function bindArmDrag() {
     const hit = document.getElementById("ttArmHit");
     if (!hit) return;
@@ -1201,7 +1602,7 @@ function phonoSrc(f) {
 // 45회전 배속 — WebKit에서는 프레임 루프 대입이 금지라 전환 순간에만 1회 대입한다
 function applyRpmRate() {
     if (!SAFARI_LIKE || !phonoActive) return;
-    try { audio.playbackRate = ttRpm45 ? 1.35 : 1; } catch (e) {}
+    try { audio.playbackRate = (ttRpm45 ? 1.35 : 1) * ttSpeedTrim; } catch (e) {}
 }
 
 // 턴테이블 전원 — 일시정지와 달리 완전히 내려놓는다:
@@ -1253,10 +1654,12 @@ function ttVisualSpec(id, skin) {
             body: '<path d="M48 18 Q48 0 68 0 H1118 Q1144 0 1144 28 V596 Q1144 622 1118 622 H68 Q44 622 44 596 Z" fill="url(#ttCastSilver)" stroke="#5a5d61" stroke-width="4"/><path d="M68 28 H1118 V590 H68 Z" fill="none" stroke="#fff" stroke-width="2" opacity=".45"/><path d="M84 44 H1098" stroke="#fff" stroke-width="4" opacity=".28"/><rect x="48" y="2" width="1094" height="618" rx="18" fill="url(#ttMetalGrain)" opacity=".46" pointer-events="none"/>',
             brand: '<text x="70" y="68" font-family="Arial" font-size="28" font-style="italic" font-weight="800" letter-spacing="-1" fill="#25272a">Technics</text><text x="72" y="98" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2.3" fill="#45484c">SL-1200MK2 · QUARTZ DIRECT DRIVE</text>',
             platterBase: '<ellipse cx="570" cy="348" rx="294" ry="286" fill="#000" opacity=".42" filter="url(#ttShadow)"/><circle cx="560" cy="330" r="288" fill="url(#ttChrome)" stroke="#33353a" stroke-width="3"/><circle cx="560" cy="330" r="278" fill="#1c1e21"/><circle cx="560" cy="330" r="273" fill="url(#ttRubber)"/>',
-            spinTrim: '<g>' + strobe + '</g><circle cx="560" cy="330" r="257" fill="none" stroke="#090a0c" stroke-width="6"/>',
+            spinTrim: '<g id="ttStrobeRing">' + strobe + '</g><circle cx="560" cy="330" r="257" fill="none" stroke="#090a0c" stroke-width="6"/>',
             armBase: '<ellipse cx="1070" cy="132" rx="64" ry="60" fill="#000" opacity=".4" filter="url(#ttShadow)"/><circle cx="1065" cy="120" r="55" fill="url(#ttChrome)" stroke="#42454a" stroke-width="3"/><circle cx="1065" cy="120" r="40" fill="#303338" stroke="#f2f2ee" stroke-width="2"/><path d="M1027 120 H1103 M1065 82 V158" stroke="#9ea1a5" stroke-width="4"/><circle cx="1065" cy="120" r="19" fill="url(#ttDarkMetal)"/><rect x="916" y="476" width="30" height="51" rx="7" fill="#292c30" stroke="#6f7277"/><rect x="908" y="474" width="46" height="13" rx="5" fill="url(#ttChrome)"/>',
             arm: '<g id="ttArmG"><rect x="1118" y="59" width="72" height="36" rx="16" fill="url(#ttDarkMetal)" stroke="#777a80" stroke-width="2"/><circle cx="1127" cy="77" r="18" fill="#15171a"/><path d="M1125 88 L1070 115" stroke="#4b4e53" stroke-width="13" stroke-linecap="round"/><path d="M1065 120 C1018 145 1020 204 966 240 S850 337 768 428" fill="none" stroke="#3d4045" stroke-width="13" stroke-linecap="round"/><path d="M1065 120 C1018 145 1020 204 966 240 S850 337 768 428" fill="none" stroke="url(#ttArmSilver)" stroke-width="7" stroke-linecap="round"/><g transform="rotate(-46 762 434)"><rect x="730" y="416" width="66" height="30" rx="4" fill="#292b30" stroke="#e1e2e0"/><rect x="740" y="444" width="17" height="9" rx="2" fill="#d4402f"/></g>' + hit + '</g>',
-            detail: '<g pointer-events="none"><circle cx="190" cy="330" r="45" fill="#24262a" stroke="#63666b" stroke-width="3"/><circle cx="190" cy="330" r="32" fill="#111214"/><path d="M190 330 L190 303" stroke="#f1f1ed" stroke-width="5" stroke-linecap="round"/><text x="190" y="394" font-family="Arial" font-size="12" font-weight="700" fill="#35383c" text-anchor="middle">START · STOP</text><rect x="936" y="272" width="62" height="252" rx="9" fill="#27292d" stroke="#74777b" stroke-width="2"/><rect x="946" y="300" width="42" height="192" rx="7" fill="#151619"/><rect x="950" y="347" width="34" height="65" rx="6" fill="url(#ttChrome)" stroke="#34363a"/><path d="M959 365 H975 M959 375 H975 M959 385 H975" stroke="#44474b"/><text x="967" y="545" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1.4" fill="#383b3f" text-anchor="middle">PITCH ADJ.</text><circle cx="1028" cy="544" r="18" fill="#17191c" stroke="#6f7277"/><circle cx="1028" cy="544" r="7" fill="#e94e35"/><path d="M1018 516 Q1028 500 1038 516" fill="none" stroke="#313439" stroke-width="5"/></g>' + modelScrew(86, 566, true) + modelScrew(1100, 566, true)
+            detail: '<g pointer-events="none"><circle cx="190" cy="330" r="45" fill="#24262a" stroke="#63666b" stroke-width="3"/><circle cx="190" cy="330" r="32" fill="#111214"/><path d="M190 330 L190 303" stroke="#f1f1ed" stroke-width="5" stroke-linecap="round"/><text x="190" y="394" font-family="Arial" font-size="12" font-weight="700" fill="#35383c" text-anchor="middle">START · STOP</text><rect x="936" y="272" width="62" height="252" rx="9" fill="#27292d" stroke="#74777b" stroke-width="2"/><rect x="946" y="300" width="42" height="192" rx="7" fill="#151619"/><rect id="ttPitchKnob" x="950" y="332" width="34" height="65" rx="6" fill="url(#ttChrome)" stroke="#34363a"/><text x="967" y="545" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1.4" fill="#383b3f" text-anchor="middle">PITCH ADJ.</text><circle cx="1028" cy="544" r="18" fill="#17191c" stroke="#6f7277"/><circle id="ttQuartzLamp" cx="1028" cy="544" r="7" fill="#e94e35"/><path d="M1018 516 Q1028 500 1038 516" fill="none" stroke="#313439" stroke-width="5"/></g>' +
+                '<rect id="ttPitchHit" x="930" y="266" width="74" height="264" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none" tabindex="0" role="slider" aria-label="피치 조정 ±8%"><title>PITCH ADJ. — 위아래로 끌어 ±8%</title></rect>' +
+                '<circle id="ttQuartzHit" cx="1028" cy="544" r="24" fill="#000" fill-opacity="0" style="cursor:pointer" tabindex="0" role="button" aria-label="쿼츠 록 — 피치 0으로 복귀"><title>QUARTZ LOCK — 피치를 0으로 되돌립니다</title></circle>' + modelScrew(86, 566, true) + modelScrew(1100, 566, true)
         },
         td124: {
             body: '<rect x="30" y="-12" width="1136" height="658" rx="12" fill="url(#ttWalnutDark)" stroke="#27160d" stroke-width="5"/><path d="M58 20 H1110 Q1138 20 1138 48 V574 Q1138 614 1098 614 H58 Z" fill="url(#ttIvoryCast)" stroke="#6b665b" stroke-width="3"/><path d="M76 40 H1096 M76 594 H1082" stroke="#fffdf4" stroke-width="3" opacity=".65"/>',
@@ -1265,7 +1668,8 @@ function ttVisualSpec(id, skin) {
             spinTrim: '<circle cx="560" cy="330" r="267" fill="none" stroke="#c9c5ba" stroke-width="5" stroke-dasharray="1 7"/><circle cx="560" cy="330" r="259" fill="none" stroke="#4c4b47" stroke-width="3"/>',
             armBase: '<ellipse cx="1070" cy="132" rx="58" ry="58" fill="#000" opacity=".42" filter="url(#ttShadow)"/><circle cx="1065" cy="120" r="52" fill="#d7d1c3" stroke="#58544c" stroke-width="3"/><circle cx="1065" cy="120" r="34" fill="url(#ttChrome)"/><circle cx="1065" cy="120" r="14" fill="#2b2c30"/><rect x="916" y="480" width="28" height="46" rx="4" fill="#393a3d" stroke="#77756f"/><path d="M910 481 H950" stroke="#d8d2c5" stroke-width="12" stroke-linecap="round"/>',
             arm: '<g id="ttArmG"><circle cx="1134" cy="77" r="27" fill="#25262a" stroke="#aba79d" stroke-width="3"/><rect x="1126" y="62" width="54" height="30" rx="13" fill="url(#ttDarkMetal)"/><line x1="1122" y1="89" x2="1065" y2="120" stroke="#4d4f52" stroke-width="12" stroke-linecap="round"/><path d="M1065 120 C1000 166 938 252 880 324 S808 400 768 428" fill="none" stroke="#494b50" stroke-width="12" stroke-linecap="round"/><path d="M1065 120 C1000 166 938 252 880 324 S808 400 768 428" fill="none" stroke="url(#ttArmSilver)" stroke-width="6.5" stroke-linecap="round"/><g transform="rotate(-46 762 434)"><path d="M731 418 H793 L788 447 H736 Z" fill="#3a3b3e" stroke="#d5d0c4"/><rect x="741" y="444" width="16" height="9" rx="2" fill="#7f2d24"/></g>' + hit + '</g>',
-            detail: '<g pointer-events="none"><path d="M67 292 A73 73 0 0 1 213 292" fill="none" stroke="#5d584e" stroke-width="4"/><path d="M91 287 L75 266 M113 268 L105 240 M140 260 V228 M167 268 L177 240 M190 287 L207 266" stroke="#5d584e" stroke-width="3"/><circle cx="140" cy="292" r="43" fill="#e2dccf" stroke="#58544c" stroke-width="3"/><circle cx="140" cy="292" r="28" fill="url(#ttDarkMetal)"/><path d="M140 292 L118 276" stroke="#eee9de" stroke-width="5" stroke-linecap="round"/><text x="140" y="354" font-family="Arial" font-size="12" font-weight="700" fill="#4f4a42" text-anchor="middle">16 · 33 · 45 · 78</text><rect x="66" y="392" width="205" height="78" rx="8" fill="#c8c1b3" stroke="#5b564d" stroke-width="2"/><circle cx="108" cy="431" r="22" fill="#3a3938"/><path d="M108 431 L123 418" stroke="#f2ede3" stroke-width="4"/><text x="178" y="424" font-family="Arial" font-size="10" font-weight="700" letter-spacing="1.3" fill="#4e4941" text-anchor="middle">FINE SPEED</text><text x="178" y="445" font-family="Arial" font-size="9" fill="#665f55" text-anchor="middle">IDLER ENGAGED</text></g>' + modelScrew(76, 560, true) + modelScrew(1092, 560, true)
+            detail: '<g pointer-events="none"><path d="M67 292 A73 73 0 0 1 213 292" fill="none" stroke="#5d584e" stroke-width="4"/><path d="M91 287 L75 266 M113 268 L105 240 M140 260 V228 M167 268 L177 240 M190 287 L207 266" stroke="#5d584e" stroke-width="3"/><circle cx="140" cy="292" r="43" fill="#e2dccf" stroke="#58544c" stroke-width="3"/><circle cx="140" cy="292" r="28" fill="url(#ttDarkMetal)"/><path id="ttSpeedPtr" d="M140 292 L118 276" stroke="#eee9de" stroke-width="5" stroke-linecap="round"/><text x="140" y="354" font-family="Arial" font-size="12" font-weight="700" fill="#4f4a42" text-anchor="middle">16 · 33 · 45 · 78</text><rect x="66" y="392" width="205" height="78" rx="8" fill="#c8c1b3" stroke="#5b564d" stroke-width="2"/><circle cx="108" cy="431" r="22" fill="#3a3938"/><path d="M108 431 L123 418" stroke="#f2ede3" stroke-width="4"/><text x="178" y="424" font-family="Arial" font-size="10" font-weight="700" letter-spacing="1.3" fill="#4e4941" text-anchor="middle">FINE SPEED</text><text x="178" y="445" font-family="Arial" font-size="9" fill="#665f55" text-anchor="middle">IDLER ENGAGED</text></g>' +
+                '<circle id="ttSpeedHit" cx="140" cy="292" r="52" fill="#000" fill-opacity="0" style="cursor:pointer" tabindex="0" role="button" aria-label="회전 속도 전환 16·33·45·78"><title>SPEED — 누를 때마다 16&#8532; · 33&#8531; · 45 · 78</title></circle>' + modelScrew(76, 560, true) + modelScrew(1092, 560, true)
         },
         g301: {
             body: '<rect x="28" y="-14" width="1140" height="660" rx="9" fill="url(#ttWalnutDark)" stroke="#24140c" stroke-width="6"/><path d="M58 20 H812 Q854 20 884 50 L920 86 H1128 V594 H58 Z" fill="url(#ttHammerCream)" stroke="#5d584e" stroke-width="3"/><path d="M78 42 H804 Q842 42 870 70" fill="none" stroke="#fffdf3" stroke-width="3" opacity=".55"/>',
@@ -1274,7 +1678,9 @@ function ttVisualSpec(id, skin) {
             spinTrim: '<circle cx="560" cy="330" r="267" fill="none" stroke="#dedbd2" stroke-width="4" stroke-dasharray="3 5"/><circle cx="560" cy="330" r="260" fill="none" stroke="#4a4a47" stroke-width="4"/>',
             armBase: '<ellipse cx="1070" cy="134" rx="61" ry="62" fill="#000" opacity=".48" filter="url(#ttShadow)"/><rect x="1018" y="69" width="94" height="104" rx="36" fill="#28292d" stroke="#77756e" stroke-width="3"/><circle cx="1065" cy="120" r="38" fill="#17181b" stroke="#b7b2a7" stroke-width="2"/><circle cx="1065" cy="120" r="17" fill="url(#ttGoldMetal)"/><rect x="916" y="479" width="28" height="49" rx="4" fill="#28292c" stroke="#807b70"/><path d="M910 481 H950" stroke="#b5aa92" stroke-width="11" stroke-linecap="round"/>',
             arm: '<g id="ttArmG"><rect x="1118" y="59" width="76" height="38" rx="15" fill="#1d1e21" stroke="#9b9485" stroke-width="2"/><circle cx="1127" cy="78" r="18" fill="url(#ttGoldMetal)"/><line x1="1122" y1="90" x2="1065" y2="120" stroke="#2b2d31" stroke-width="14" stroke-linecap="round"/><line x1="1065" y1="120" x2="768" y2="428" stroke="#1e2024" stroke-width="13" stroke-linecap="round"/><line x1="1065" y1="120" x2="768" y2="428" stroke="#8b806d" stroke-width="7" stroke-linecap="round"/><line x1="1065" y1="120" x2="768" y2="428" stroke="#d7ceb9" stroke-width="2" stroke-linecap="round" opacity=".7"/><g transform="rotate(-46 762 434)"><rect x="728" y="416" width="69" height="31" rx="3" fill="#242529" stroke="#b3aa98"/><rect x="740" y="444" width="18" height="10" rx="2" fill="#8e2e21"/></g>' + hit + '</g>',
-            detail: '<g pointer-events="none"><rect x="62" y="278" width="214" height="218" rx="16" fill="#bcb5a4" stroke="#555047" stroke-width="3"/><rect x="78" y="295" width="182" height="184" rx="11" fill="url(#ttHammerCream)" stroke="#eae5da"/><text x="169" y="320" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2" fill="#4a463f" text-anchor="middle">SPEED CONTROL</text><circle cx="122" cy="370" r="33" fill="#2b2d30" stroke="#77756e" stroke-width="2"/><path d="M122 370 L106 345" stroke="#e6e0d5" stroke-width="5" stroke-linecap="round"/><text x="122" y="421" font-family="Arial" font-size="10" fill="#514d45" text-anchor="middle">33 · 45 · 78</text><path d="M198 348 L226 410" stroke="#303236" stroke-width="15" stroke-linecap="round"/><circle cx="198" cy="348" r="15" fill="#25272a" stroke="#8c887f"/><text x="211" y="438" font-family="Arial" font-size="10" font-weight="700" fill="#514d45" text-anchor="middle">BRAKE</text></g>' + modelScrew(84, 562, true) + modelScrew(1094, 562, true)
+            detail: '<g pointer-events="none"><rect x="62" y="278" width="214" height="218" rx="16" fill="#bcb5a4" stroke="#555047" stroke-width="3"/><rect x="78" y="295" width="182" height="184" rx="11" fill="url(#ttHammerCream)" stroke="#eae5da"/><text x="169" y="320" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2" fill="#4a463f" text-anchor="middle">SPEED CONTROL</text><circle cx="122" cy="370" r="33" fill="#2b2d30" stroke="#77756e" stroke-width="2"/><path id="ttTrimPtr" d="M122 370 L106 345" stroke="#e6e0d5" stroke-width="5" stroke-linecap="round"/><text x="122" y="421" font-family="Arial" font-size="10" fill="#514d45" text-anchor="middle">33 · 45 · 78</text><path id="ttBrakeLever" d="M198 348 L226 410" stroke="#303236" stroke-width="15" stroke-linecap="round"/><circle cx="198" cy="348" r="15" fill="#25272a" stroke="#8c887f"/><text x="211" y="438" font-family="Arial" font-size="10" font-weight="700" fill="#514d45" text-anchor="middle">BRAKE</text></g>' +
+                '<circle id="ttTrimHit" cx="122" cy="370" r="42" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none" tabindex="0" role="slider" aria-label="와전류 속도 미세 조정 ±3%"><title>SPEED CONTROL — 위아래로 끌어 ±3%</title></circle>' +
+                '<rect id="ttBrakeHit" x="176" y="330" width="72" height="102" fill="#000" fill-opacity="0" style="cursor:pointer;touch-action:none" tabindex="0" role="button" aria-label="브레이크 — 누르는 동안 플래터 정지"><title>BRAKE — 누르는 동안 플래터를 즉시 세웁니다</title></rect>' + modelScrew(84, 562, true) + modelScrew(1094, 562, true)
         },
         lp12: {
             body: '<rect x="30" y="-14" width="1138" height="662" rx="8" fill="url(#ttRosewood)" stroke="#21120b" stroke-width="6"/><rect x="58" y="18" width="1080" height="598" rx="3" fill="#121316" stroke="#666970" stroke-width="2"/><path d="M44 4 H1152 M44 630 H1152" stroke="#df9561" stroke-width="3" opacity=".38"/><rect x="42" y="-2" width="1112" height="638" rx="6" fill="url(#ttWoodLines)" opacity=".5" pointer-events="none"/>',
@@ -1290,6 +1696,12 @@ function ttVisualSpec(id, skin) {
 }
 
 function mountTurntable() {
+    // 모델 교체 시 고유 조작 상태 초기화 — 물건이 바뀌면 손잡이도 제자리
+    ttSpeedTrim = 1;
+    ttPitch = 0;
+    ttSpeed124 = 33;
+    ttBraking = false;
+    applyRpmRate();
     const ttSkin = TT_MODELS[ttModelId];
     const ttVisual = ttVisualSpec(ttModelId, ttSkin);
     let grooves = "";
@@ -1465,8 +1877,8 @@ function mountTurntable() {
         if (phonoActive) togglePlay();
         else playPhonoTrack(0);
     });
-    document.getElementById("tt33").addEventListener("click", () => { ttRpm45 = false; applyRpmRate(); updatePhonoVisuals(); });
-    document.getElementById("tt45").addEventListener("click", () => { ttRpm45 = true; applyRpmRate(); updatePhonoVisuals(); });
+    document.getElementById("tt33").addEventListener("click", () => { ttRpm45 = false; ttSyncCommonSpeed(33); applyRpmRate(); updatePhonoVisuals(); });
+    document.getElementById("tt45").addEventListener("click", () => { ttRpm45 = true; ttSyncCommonSpeed(45); applyRpmRate(); updatePhonoVisuals(); });
     document.getElementById("ttPrevRec").addEventListener("click", () => setRecord(recordIdx - 1));
     document.getElementById("ttNextRec").addEventListener("click", () => setRecord(recordIdx + 1));
     document.getElementById("ttCrateBtn").addEventListener("click", openCrate);
@@ -1494,6 +1906,7 @@ function mountTurntable() {
     document.getElementById("ttJacketHit").addEventListener("click", openJacketView);
     svgButtonize("ttJacketHit", "재킷 크게 보기");
     bindArmDrag();
+    bindTtModelControls();
     document.getElementById("ttPowerBtn").addEventListener("click", phonoPower);
     svgButtonize("ttPowerBtn", "턴테이블 전원");
     svgButtonize("ttStartBtn", "턴테이블 START/STOP");
@@ -1599,14 +2012,25 @@ function ttFrame(now) {
     }
 
     const ttSpec = TT_MODELS[ttModelId] || TT_MODELS.pl12;
-    const rpm = ttRpm45 ? 45 : 100 / 3;
-    const spinTarget = (phonoActive && isPlaying) ? 1 : 0;
-    const step = spinTarget > ttSpin ? dt / ttSpec.spinUp : dt / ttSpec.runDown;
+    const rpm = (ttRpm45 ? 45 : 100 / 3) * ttSpeedTrim;
+    const spinTarget = (phonoActive && isPlaying && !ttBraking) ? 1 : 0;
+    // 브레이크(GARRARD)는 기계식 즉정지 — 런다운을 기다리지 않는다
+    const step = spinTarget > ttSpin ? dt / ttSpec.spinUp : dt / (ttBraking ? 0.3 : ttSpec.runDown);
     ttSpin = Math.max(0, Math.min(1, ttSpin + (spinTarget > ttSpin ? 1 : -1) * step));
     if (ttSpin > 0.002) {
         ttAngle = (ttAngle + rpm / 60 * 360 * ttSpin * dt) % 360;
         const g = document.getElementById("ttSpinG");
         if (g) g.setAttribute("transform", "rotate(" + ttAngle.toFixed(2) + " 560 330)");
+    }
+    // SL-1200 스트로브 — 도트는 플래터와 함께 돌지만, 스트로브 조명 아래에서는
+    // 정속(피치 0)일 때 멈춰 보인다: 역회전으로 상쇄하고 편차만큼만 흐르게 한다.
+    if (ttModelId === "sl1200") {
+        const ring = document.getElementById("ttStrobeRing");
+        if (ring) {
+            const effRate = ttSpeedTrim * (ttSpin < 0.999 ? (0.5 + 0.5 * ttSpin) : 1);
+            if (ttSpin > 0.002) ttStrobeAng = (ttStrobeAng + dt * (effRate - 1) * 200) % 360;
+            ring.setAttribute("transform", "rotate(" + (((-ttAngle + ttStrobeAng) % 360)).toFixed(2) + " 560 330)");
+        }
     }
 
     // 톤암: 정지 시 암레스트, 재생 시 트랙 진행에 따라 안쪽으로
@@ -1628,7 +2052,7 @@ function ttFrame(now) {
         const t = now / 1000;
         const wow = 1 + 0.0022 * Math.sin(t * 2 * Math.PI * 0.43) + 0.0007 * Math.sin(t * 2 * Math.PI * 3.1);
         const spinPitch = ttSpin < 0.999 ? (0.5 + 0.5 * ttSpin) : 1;
-        const mult = ttRpm45 ? 1.35 : 1;
+        const mult = (ttRpm45 ? 1.35 : 1) * ttSpeedTrim;
         try { audio.playbackRate = wow * spinPitch * mult; } catch (e) {}
     }
     // 먼지 — 시간이 흐르면 랜덤하게 쌓인다 (판이 도는 동안 3배 빨리). 클리닝 중엔 빠르게 닦인다.
@@ -1738,7 +2162,12 @@ function ttFrame(now) {
     ["ampVuL", "ampVuR", "deckVuL", "deckVuR"].forEach((id, idx) => {
         const n = document.getElementById(id);
         if (!n) return;
-        const sig = id.startsWith("amp") ? vuSig * ampWarm : deckSig;
+        let sig = id.startsWith("amp") ? vuSig * ampWarm : deckSig;
+        // 8B: BIAS 모드에서는 좌측 미터가 신호 대신 채널 바이어스를 가리킨다 —
+        // 켠 직후엔 낮았다가 관이 달아오르며 정격(중앙)으로 올라온다
+        if (id === "ampVuL" && ampModelId === "el34" && ampBiasMode) {
+            sig = tubeWarm * (ampBiasMode === 2 ? 0.485 : 0.5) + 0.008 * Math.sin(now / 300);
+        }
         if (n.getAttribute("data-meter-style") === "segments") {
             const level = Math.max(0, Math.min(1, sig * (idx % 2 ? .96 : 1)));
             const segments = n.querySelectorAll("[data-meter-segment]");
@@ -1781,11 +2210,20 @@ function ttFrame(now) {
             }
         }
         const deckSpec = DECK_MODELS[deckModelId] || DECK_MODELS.dragon;
-        if (hissGain) hissGain.gain.value += ((deckSegPlaying ? deckSpec.hissFloor : deckSpec.blankHiss) - hissGain.gain.value) * 0.1;
+        if (hissGain) hissGain.gain.value += ((deckSegPlaying ? deckSpec.hissFloor : deckSpec.blankHiss) * (deckTape && deckTape.cal ? 0.55 : 1) - hissGain.gain.value) * 0.1;
     } else if (deckMode === "wind") {
         const deckSpec = DECK_MODELS[deckModelId] || DECK_MODELS.dragon;
         tapePos = Math.max(0, Math.min(tapeLenOf(deckTape), tapePos + windDir * deckSpec.windRate * dt));
-        if (tapePos <= 0 || tapePos >= tapeLenOf(deckTape)) { deckMode = "stop"; windDir = 0; }
+        // LOC 자동 와인딩 — 목표 지점에 도달하면 스스로 정지 (B215 컴퓨터 컨트롤)
+        if (deckWindTarget != null && ((windDir > 0 && tapePos >= deckWindTarget) || (windDir < 0 && tapePos <= deckWindTarget))) {
+            tapePos = deckWindTarget;
+            deckWindTarget = null;
+            deckMode = "stop";
+            windDir = 0;
+            deckSyncTape();
+            playerSubtext.textContent = "LOC — " + formatDuration(tapePos * 1000) + " 위치에 도착했습니다.";
+        }
+        if (tapePos <= 0 || tapePos >= tapeLenOf(deckTape)) { deckMode = "stop"; windDir = 0; deckWindTarget = null; }
     }
     const deckRolling = (deckMode === "play") || (deckMode === "rec" && recorder);
     syncDeckStageLive();
@@ -1853,6 +2291,20 @@ function ttFrame(now) {
     const pled = document.getElementById("ampPwrLed");
     if (pled) pled.style.fill = isPlaying ? "#ff7a3a" : "#3a2012";
 
+    // SE-9 맥락 점등 — 지금 소스에 맞는 프리셋 키가 은은히 글로우 ("기계가 알고 있다")
+    const eqCtx = (currentStation && isPlaying) ? "fmnr" : phonoActive ? "vinyl" : deckMode === "play" ? "tape" : null;
+    if (eqCtx !== ttFrame.eqCtxLast && document.getElementById("eqKey_mem")) {
+        ["fmnr", "vinyl", "tape"].forEach((id) => {
+            const g = document.getElementById("eqKey_" + id);
+            if (!g) return;
+            const rect = g.querySelector("rect");
+            if (rect) {
+                rect.setAttribute("stroke", id === eqCtx ? "#54d18a" : "#3a3e46");
+                rect.setAttribute("stroke-width", id === eqCtx ? "1.8" : "1.2");
+            }
+        });
+        ttFrame.eqCtxLast = eqCtx;
+    }
     // EQ 레벨 LED 컬럼 — 점등 시 발광(블룸), 소등 시 거의 꺼진 상태
     for (let i = 0; i < 12; i++) {
         const el = document.getElementById("eqLvl" + i);

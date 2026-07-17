@@ -629,7 +629,7 @@ function mfaDeckSvg(spec) {
         : mfaMeter(1120, 110, 284, 172, "deckVuL", "LEVEL L", "#e9dcb5", false) + mfaMeter(1430, 110, 284, 172, "deckVuR", "LEVEL R", "#e9dcb5", false);
     const signature = spec.signature === "revox"
         ? '<g><rect x="64" y="166" width="320" height="166" rx="6" fill="#111317" stroke="#5c6168" stroke-width="2"/>' +
-            '<g fill="url(#' + uid + 'Key)" stroke="#747981">' + Array.from({length: 12}, (_, i) => '<rect x="' + (78 + (i % 6) * 49) + '" y="' + (184 + Math.floor(i / 6) * 60) + '" width="39" height="46" rx="4"/>').join("") + '</g>' +
+            '<g fill="url(#' + uid + 'Key)" stroke="#747981">' + Array.from({length: 12}, (_, i) => '<rect id="deckKeyR' + i + '" x="' + (78 + (i % 6) * 49) + '" y="' + (184 + Math.floor(i / 6) * 60) + '" width="39" height="46" rx="4"' + ([6, 7, 9, 11].includes(i) ? ' style="cursor:pointer"' : '') + '/>').join("") + '</g>' +
             '<g fill="#86d4ad">' + Array.from({length: 6}, (_, i) => '<circle cx="' + (97 + i * 49) + '" cy="197" r="3.5"/>').join("") + '</g>' +
             '<g font-family="Arial Narrow,Arial" font-size="13" font-weight="700" fill="#adb2b8" text-anchor="middle"><text x="97" y="222">BIAS</text><text x="146" y="222">EQ</text><text x="195" y="222">CAL</text><text x="244" y="222">MON</text><text x="293" y="222">MPX</text><text x="342" y="222">NR</text><text x="97" y="282">MEM</text><text x="146" y="282">CUE</text><text x="195" y="282">REP</text><text x="244" y="282">AUTO</text><text x="293" y="282">TIME</text><text x="342" y="282">RST</text></g></g>'
         : spec.signature === "tandberg"
