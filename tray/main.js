@@ -17,9 +17,9 @@ const VOLUME_PRESETS = [100, 80, 60, 40, 20, 0];
 const DEBUG = !!process.env.MFA_TRAY_DEBUG;
 
 // 보기별 창 크기 (슬림 바는 곡명 + 재생/정지만)
+// 오디오 시스템 보기는 크기 대신 진짜 전체 화면(풀스크린)으로 띄운다
 const SIZE = {
     tuner: { w: 540, h: 300 },
-    system: { w: 520, h: 840 },
     bar: { w: 340, h: 58 }
 };
 
@@ -133,15 +133,15 @@ function createWindow() {
         if (barMode || !win.isVisible()) return;
         // 재생 중이면(어느 보기든) 바로 숨기지 않고 슬림 바로 축소한다
         if (state.playing) enterBarMode();
-        else win.hide();
+        else hideWindow();
     });
 
     win.webContents.on("before-input-event", (event, input) => {
         if (input.type !== "keyDown" || input.key !== "Escape") return;
         event.preventDefault();
-        if (barMode) win.hide();
+        if (barMode) hideWindow();
         else if (state.playing) enterBarMode();
-        else win.hide();
+        else hideWindow();
     });
 
     if (DEBUG) {
@@ -193,11 +193,29 @@ function applyBounds(bounds) {
     win.setResizable(false);
 }
 
+// 풀스크린을 빠져나온 '다음에' 배치를 적용한다 — 해제 직후 Chromium이 이전 창 크기를
+// 복원하며 setBounds를 덮어쓰므로, 이벤트 후 한 박자 늦춰 적용한다
+function exitFullScreenThen(fn) {
+    if (!win.isFullScreen()) return fn();
+    win.once("leave-full-screen", () => setTimeout(fn, 80));
+    win.setFullScreen(false);
+}
+
+// 현재 보기에 맞는 '펼친' 배치 — 튜너형은 트레이 옆 소형 창, 오디오 시스템은 진짜 전체 화면
+function applyViewBounds() {
+    if (currentView === "system") {
+        win.setResizable(true);   // 리사이즈 불가 창은 Windows에서 풀스크린 전환이 무시된다
+        win.setFullScreen(true);
+    } else {
+        exitFullScreenThen(() => applyBounds(placement(SIZE.tuner)));
+    }
+}
+
 function showFull() {
     barMode = false;
     sendCommand({ trayMode: "full" });
     win.setAlwaysOnTop(true);   // 일반 최상위 레벨로 복귀
-    applyBounds(placement(SIZE[currentView]));
+    applyViewBounds();
     win.show();
     win.focus();
     refreshTray();
@@ -206,17 +224,27 @@ function showFull() {
 function enterBarMode() {
     barMode = true;
     sendCommand({ trayMode: "bar" });
-    // 작업표시줄은 자체가 최상위 창이라, 그 위에 그리려면 레벨을 한 단계 올린다
-    win.setAlwaysOnTop(true, "screen-saver");
-    applyBounds(barPlacement());   // 창은 계속 떠 있고(오디오 유지) 슬림 바로 줄어든다
+    exitFullScreenThen(() => {
+        // 작업표시줄은 자체가 최상위 창이라, 그 위에 그리려면 레벨을 한 단계 올린다
+        win.setAlwaysOnTop(true, "screen-saver");
+        applyBounds(barPlacement());   // 창은 계속 떠 있고(오디오 유지) 슬림 바로 줄어든다
+    });
     refreshTray();
+}
+
+function hideWindow() {
+    if (win.isFullScreen()) {
+        win.once("leave-full-screen", () => win.setResizable(false));
+        win.setFullScreen(false);
+    }
+    win.hide();
 }
 
 function toggleWindow() {
     if (!win.isVisible()) return showFull();
     if (barMode) return showFull();
     if (state.playing) enterBarMode();
-    else win.hide();
+    else hideWindow();
 }
 
 // 개발 모드에서는 electron.exe가 실행 파일이므로 앱 경로를 인자로 넘겨야 한다
@@ -328,7 +356,7 @@ function createTray() {
 // 셸이 보기를 바꾸면(사용자가 '오디오 시스템'/'미니 플레이어'를 누름) 창 크기를 맞춘다
 ipcMain.on("widget-view", (_event, view) => {
     currentView = view === "system" ? "system" : "tuner";
-    if (win.isVisible() && !barMode) applyBounds(placement(SIZE[currentView]));
+    if (win.isVisible() && !barMode) applyViewBounds();
     refreshTray();
 });
 
