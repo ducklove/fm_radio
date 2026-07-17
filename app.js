@@ -831,7 +831,7 @@ function setEqModel(id) {
 // ----- 컴포넌트 표시 구성 -----
 // 오디오 구성에서 랙 유닛을 개별로 숨길 수 있다. 숨김은 시각적일 뿐 —
 // 오디오 체인(EQ 등)과 재생 중인 소리는 그대로다. EQ만 기본 숨김.
-const UNIT_STAGES = { tuner: "tunerStage", eq: "eqStage", amp: "ampStage", deck: "deckStage", tt: "ttStage" };
+const UNIT_STAGES = { tuner: "tunerStage", timer: "timerStage", eq: "eqStage", amp: "ampStage", deck: "deckStage", tt: "ttStage" };
 let unitShow = loadJson("fmRadio.units", null);
 if (!unitShow || typeof unitShow !== "object") {
     unitShow = { tuner: true, eq: loadJson("fmRadio.eqShow", false), amp: true, deck: true, tt: true };
@@ -873,6 +873,7 @@ function setUnitShow(key, show) {
     renderAmpPicker();
     renderDeckPicker();
     renderTtPicker();
+    renderTimerPicker();
 }
 
 // 피커 공통 '숨김' 알약
@@ -968,6 +969,111 @@ function renderEqPicker() {
         el.appendChild(b);
     });
     el.appendChild(hidePill("eq"));
+}
+
+// ----- 오디오 타이머 (PIONEER DT-540) -----
+// 예약 녹음 엔진의 실물 전면 — 시계와 다음 예약을 VFD로 보여주고,
+// TIMER 스위치가 실물 타이머의 스위치드 아웃렛처럼 예약 발화를 전담한다.
+let timerArmed = loadJson("fmRadio.timerArmed", true);
+
+function renderTimerPicker() { renderSinglePicker("timerPicker", "timer", TIMER_MODELS.dt540.label); }
+
+function mountTimer() {
+    const stage = document.getElementById("timerStage");
+    if (!stage) return;
+    stage.innerHTML = TIMER_MODELS.dt540.svg;
+    applyPanelLighting(stage.querySelector("svg"));
+    const bind = (id, fn, label) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("click", fn);
+        svgButtonize(el, label);
+    };
+    bind("dtHitDisplay", () => openSchedule("res"), "편성표와 예약 녹음 열기");
+    bind("dtBtnProg", () => openSchedule("res"), "예약 녹음 목록과 편성표 열기");
+    bind("dtBtnSleep", () => cycleSleepTimer(), "취침 타이머 — 누를 때마다 단계 순환");
+    bind("dtHitTimer", () => setTimerArmed(!timerArmed), "TIMER 스위치 — 예약 녹음 대기 켜기/끄기");
+    timerPaint();
+}
+
+// 실물 문법: 스위치를 내리면 아웃렛 전원이 끊긴다 — 진행 중이던 회차도 그 자리에서 멈춘다.
+function setTimerArmed(on) {
+    timerArmed = !!on;
+    saveJson("fmRadio.timerArmed", timerArmed);
+    if (!timerArmed && activeResRec) {
+        if (activeResRec.started && recorder) {
+            finishReservedRecording();
+            playerSubtext.textContent = "TIMER OFF — 진행 중이던 예약 녹음을 마치고 카세트를 랙에 보관했습니다.";
+        } else {
+            cancelReservedRecording("TIMER OFF — 대기 중이던 예약 회차를 내렸습니다.");
+        }
+    } else {
+        playerSubtext.textContent = timerArmed
+            ? "TIMER ON — 예약 시각이 되면 튜너와 데크가 스스로 깨어나 녹음합니다."
+            : "TIMER OFF — 예약이 있어도 녹음하지 않습니다. 스위치를 올리면 다시 대기합니다.";
+    }
+    updateResChip();
+    timerPaint();
+    gtag('event', 'timer_arm', { on: timerArmed ? 1 : 0 });
+}
+
+// 매초(tickClock)와 예약 상태 변화(updateResChip)마다 표시를 갱신한다.
+function timerPaint() {
+    const hEl = document.getElementById("dtClockH");
+    if (!hEl) return;
+    const now = new Date();
+    const pad = (v) => String(v).padStart(2, "0");
+    hEl.textContent = pad(now.getHours());
+    document.getElementById("dtClockM").textContent = pad(now.getMinutes());
+    document.getElementById("dtClockSec").textContent = pad(now.getSeconds());
+    document.getElementById("dtClockColon").style.opacity = now.getSeconds() % 2 ? "0.25" : "1";
+    document.getElementById("dtDayText").textContent = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][now.getDay()];
+
+    // 다음 회차 — 켜진 예약 중 가장 이른 것 (진행 중 포함)
+    const nowTs = now.getTime();
+    let next = null;
+    reservations.forEach((res) => {
+        if (!res.enabled) return;
+        const occ = resOccurrence(res, nowTs);
+        if (occ && occ.endTs > nowTs && (!next || occ.startTs < next.occ.startTs)) next = { res, occ };
+    });
+    const recActive = !!(activeResRec && activeResRec.started && recorder);
+    const prog = document.getElementById("dtProgText");
+    if (!timerArmed) {
+        prog.textContent = "TIMER OFF";
+    } else if (recActive) {
+        prog.textContent = "● REC 〜" + FMSchedule.fmtHM(activeResRec.res.endMin) + " · " + activeResRec.res.title;
+    } else if (activeResRec) {
+        prog.textContent = "REC 대기 · " + activeResRec.res.title;
+    } else if (next) {
+        const st = stations.find((s) => s.id === next.res.stationId);
+        const day = next.occ.ymd !== FMSchedule.ymdOf(now) ? DOW_KO[ymdToDate(next.occ.ymd).getDay()] + " " : "";
+        prog.textContent = "ON " + day + FMSchedule.fmtHM(next.res.startMin) + " · OFF " + FMSchedule.fmtHM(next.res.endMin) + " · " + (st ? st.name : next.res.stationId);
+    } else {
+        prog.textContent = "PROGRAM --:--";
+    }
+
+    const lamp = (id, onColor, on) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.fill = on ? onColor : "#12301f";
+            el.style.filter = on ? "drop-shadow(0 0 4px " + onColor + ")" : "none";
+        }
+    };
+    const blink = now.getSeconds() % 2 === 0;
+    lamp("dtLampTimer", "#8ce9b6", timerArmed && !!(next || activeResRec));
+    lamp("dtLampRec", "#ff5a3c", recActive && blink);
+    lamp("dtLampSleep", "#8ce9b6", sleepDeadline > 0);
+    document.getElementById("dtSleepText").textContent =
+        sleepDeadline > 0 ? "SLEEP " + formatDuration(sleepDeadline - Date.now()) : "";
+
+    const sw = document.getElementById("dtSwTimer");
+    if (sw) {
+        sw.setAttribute("y", timerArmed ? "98" : "110");   // 올림 = ON
+        sw.style.fill = timerArmed ? "#cfe9d8" : "#b8babd";
+    }
+    const hit = document.getElementById("dtHitTimer");
+    if (hit) hit.setAttribute("aria-pressed", String(timerArmed));
 }
 
 function eqGainToY(g) {
@@ -2446,7 +2552,7 @@ function ttFrame(now) {
             const recPending = activeResRec && !activeResRec.started;   // 발화됐지만 아직 시작 전 (튠·차단 대기)
             tled.style.fill = recActive ? ((now % 1000) < 550 ? "#ff2a1a" : "#7a1a10")
                 : recPending ? ((now % 460) < 250 ? "#ff2a1a" : "#5a1a10")
-                : reservations.some((r) => r.enabled) ? "#c24530" : "#3a1210";
+                : timerArmed && reservations.some((r) => r.enabled) ? "#c24530" : "#3a1210";
         }
     }
     // 더블데크 B웰 — 녹음이 도는 동안 릴·팩·카운터가 독립적으로 움직인다
@@ -2590,9 +2696,10 @@ function ttFrame(now) {
     const digitOp = Math.max(0.08 + tunerWarm * 0.92, previewOn ? 1 : 0).toFixed(2);
     if (tsFreq) { tsFreq.style.opacity = digitOp; tsFreqGlow.style.opacity = digitOp; }
 
-    // 전원 연동 조명: 튜너는 수신 램프를, 나머지 유닛은 시스템 웜업을 따른다
+    // 전원 연동 조명: 튜너는 수신 램프를, 나머지 유닛은 시스템 웜업을 따른다.
+    // 타이머는 시계라 항상 통전 상태 — 어두워지지 않는다.
     document.querySelectorAll(".lzPowerDim").forEach((el) => {
-        const w = el.closest("#tunerStage") ? tunerLight : el.closest("#deckStage") ? tubeWarm : ampWarm;
+        const w = el.closest("#tunerStage") ? tunerLight : el.closest("#timerStage") ? 1 : el.closest("#deckStage") ? tubeWarm : ampWarm;
         el.style.opacity = (0.22 * (1 - w)).toFixed(3);
     });
     // 미터 백라이트: 꺼진 미터 면은 어둡다
@@ -3500,6 +3607,8 @@ function cycleSleepTimer() {
         btnTimer.classList.remove("armed");
         btnTimer.setAttribute("aria-label", "취침 타이머 설정");
         timerLabel.textContent = "타이머";
+        playerSubtext.textContent = "취침 타이머를 껐습니다.";
+        timerPaint();
         return;
     }
 
@@ -3514,6 +3623,8 @@ function cycleSleepTimer() {
             updateSleepLabel();
         }
     }, 1000);
+    playerSubtext.textContent = `취침 타이머 ${minutes}분 — 시간이 되면 재생을 정지합니다.`;
+    timerPaint();
 
     gtag('event', 'set_sleep_timer', { minutes });
 }
@@ -3532,6 +3643,7 @@ function expireSleepTimer() {
     timerLabel.textContent = "타이머";
     stopPlay();
     playerSubtext.textContent = "취침 타이머가 끝나 재생을 정지했습니다.";
+    timerPaint();
 }
 
 // ----- VU 미터 -----
@@ -3634,6 +3746,7 @@ function tickClock() {
     const now = new Date();
     const pad = (value) => String(value).padStart(2, "0");
     liveClock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    timerPaint();
 }
 
 setInterval(tickClock, 1000);
@@ -3806,6 +3919,7 @@ restoreLastStation();
 updateRecButton();
 openRecordingDb();
 initTunerSkin(loadJson("fmRadio.skin", "mr78"));
+mountTimer();
 mountEq();
 mountAmp();
 mountDeck();
@@ -3813,6 +3927,7 @@ mountTurntable();
 applyUnitVisibility();
 renderDeckPicker();
 renderTtPicker();
+renderTimerPicker();
 tunerLoop();
 mountCoach();
 
@@ -4301,7 +4416,7 @@ function renderResList() {
         const meta = document.createElement("div");
         meta.className = "res-meta";
         const state = activeResRec && activeResRec.res.id === res.id && activeResRec.started ? "녹음 중"
-            : res.missed ? "놓침 — 앱이 꺼져 있었어요"
+            : res.missed ? "놓침 — 앱 또는 타이머가 꺼져 있었어요"
             : res.done ? "완료"
             : res.enabled ? "" : "꺼짐";
         meta.textContent = [(st ? st.name : res.stationId),
@@ -4387,8 +4502,11 @@ function updateResChip() {
     const n = reservations.filter((r) => r.enabled).length;
     const recording = activeResRec && activeResRec.started && recorder;
     btnResChip.hidden = !n && !recording;
-    document.getElementById("resChipLabel").textContent = recording ? "예약 녹음 중" : "예약 " + n;
-    btnResChip.classList.toggle("armed", n > 0 || !!recording);
+    document.getElementById("resChipLabel").textContent = recording ? "예약 녹음 중"
+        : !timerArmed && n ? "예약 꺼짐" : "예약 " + n;
+    btnResChip.title = !timerArmed && n ? "타이머 TIMER 스위치가 내려가 있어 예약이 발화하지 않습니다" : "";
+    btnResChip.classList.toggle("armed", timerArmed && (n > 0 || !!recording));
+    timerPaint();
 }
 
 // ----- 예약 실행 엔진 -----
@@ -4739,10 +4857,11 @@ function reservationTick() {
             changed = true;
             return;
         }
+        // TIMER 스위치가 내려가 있으면 발화·예고하지 않는다 — 실물 타이머의 아웃렛 전원 차단
         if (nowTs >= occ.startTs && nowTs < occ.endTs - 5000) {
             const mark = resFiredOcc[key];
-            if (!activeResRec && (!mark || mark === 1 || mark === true)) fireReservation(res, occ, key);
-        } else if (occ.startTs > nowTs && occ.startTs - nowTs <= 300000 && !resAlerted[key]) {
+            if (timerArmed && !activeResRec && (!mark || mark === 1 || mark === true)) fireReservation(res, occ, key);
+        } else if (timerArmed && occ.startTs > nowTs && occ.startTs - nowTs <= 300000 && !resAlerted[key]) {
             resAlerted[key] = true;
             playerSubtext.textContent = "5분 뒤 예약 녹음이 시작됩니다 — " + res.title;
             notifyRes("예약 녹음 예정", res.title + " — 5분 뒤 시작됩니다. 앱을 켜 두세요.");

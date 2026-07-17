@@ -66,7 +66,7 @@ const LZ_DEFS = '<defs>' +
     '</defs>';
 
 const LZ_HARDWARE_BUTTONS = [
-    '[id^="deckBtn"]', '#eqDefeatBtn', '#ttCleanBtn', '#ttPowerBtn', '#ttStartBtn',
+    '[id^="deckBtn"]', '[id^="dtBtn"]', '#eqDefeatBtn', '#ttCleanBtn', '#ttPowerBtn', '#ttStartBtn',
     '#tt33', '#tt45', '#ttPrevRec', '#ttNextRec'
 ].join(',');
 

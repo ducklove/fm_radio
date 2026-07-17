@@ -38,9 +38,9 @@ test.describe("데스크톱", () => {
         expect(errors, "콘솔 오류·페이지 예외 없음").toEqual([]);
     });
 
-    test("초기 렌더링: 기본 랙 4기기·숨김 EQ·가로 오버플로 없음", async ({ page }) => {
+    test("초기 렌더링: 기본 랙 5기기·숨김 EQ·가로 오버플로 없음", async ({ page }) => {
         await expect(page).toHaveTitle(/Mad for Audio/);
-        for (const id of ["tunerStage", "ampStage", "deckStage", "ttStage"]) {
+        for (const id of ["tunerStage", "timerStage", "ampStage", "deckStage", "ttStage"]) {
             await expect(page.locator(`#${id} svg`)).toBeVisible();
         }
         await expect(page.locator("#eqStage svg")).toHaveCount(1);
@@ -327,6 +327,48 @@ test.describe("데스크톱", () => {
         });
         expect(blobSize, "녹음 파일 실데이터(>20KB)").toBeGreaterThan(20000);
         expect(await page.evaluate(() => playerSubtext.textContent), "카세트 보관 안내").toContain("테이프 랙에 보관");
+    });
+
+    test("오디오 타이머 DT-540: 시계·SLEEP·TIMER 스위치 게이트·PROGRAM 진입", async ({ page }) => {
+        await expect(page.locator("#timerStage svg")).toBeVisible();
+        // 시계가 실제 시각을 따른다 (자정 넘김 대비 원형 거리)
+        const clock = await page.evaluate(() => ({
+            shownMin: parseInt(document.getElementById("dtClockH").textContent, 10) * 60
+                + parseInt(document.getElementById("dtClockM").textContent, 10),
+            realMin: new Date().getHours() * 60 + new Date().getMinutes(),
+        }));
+        const diff = Math.abs(clock.shownMin - clock.realMin);
+        expect(Math.min(diff, 1440 - diff), "시계 표시 = 실제 시각").toBeLessThanOrEqual(1);
+        // SLEEP 버튼 — 취침 타이머 연동 + VFD 잔여 표시
+        await page.evaluate(() => document.getElementById("dtBtnSleep").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+        expect(await page.evaluate(() => sleepDeadline > Date.now()), "취침 타이머 활성").toBe(true);
+        expect(await page.evaluate(() => { timerPaint(); return document.getElementById("dtSleepText").textContent; })).toContain("SLEEP");
+        await page.evaluate(() => { sleepIndex = SLEEP_STEPS.length - 1; cycleSleepTimer(); });   // 한 바퀴 돌려 끄기
+        // TIMER 스위치 OFF — 예약이 있어도 발화하지 않는다 (localStorage 영속)
+        await page.evaluate(() => setTimerArmed(false));
+        expect(await page.evaluate(() => loadJson("fmRadio.timerArmed", null)), "OFF 영속").toBe(false);
+        await page.evaluate(() => {
+            const st = window.FMRadio.stations[0];
+            const d = new Date(); d.setHours(0, 0, 0, 0);
+            addReservation({ stationId: st.id, title: "게이트", startMin: 0, endMin: 1439, repeat: "once", ymd: FMSchedule.ymdOf(d) });
+            reservationTick();
+        });
+        expect(await page.evaluate(() => !!activeResRec), "OFF에서는 발화 금지").toBe(false);
+        expect(await page.evaluate(() => document.getElementById("dtProgText").textContent)).toBe("TIMER OFF");
+        // ON이면 즉시 발화하고, 다시 내리면 회차가 그 자리에서 정리된다
+        await page.evaluate(() => { setTimerArmed(true); reservationTick(); });
+        expect(await page.evaluate(() => !!activeResRec), "ON이면 발화").toBe(true);
+        await page.evaluate(() => setTimerArmed(false));
+        expect(await page.evaluate(() => !!activeResRec), "스위치 내림 = 회차 종료").toBe(false);
+        await page.evaluate(() => {
+            setTimerArmed(true);
+            reservations.slice().forEach((r) => removeReservation(r.id));
+        });
+        // PROGRAM 버튼 — 편성표 예약 탭으로 진입
+        await page.evaluate(() => document.getElementById("dtBtnProg").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+        await expect(page.locator("#schedOverlay")).toBeVisible();
+        expect(await page.evaluate(() => schedState.view), "예약 탭으로 열림").toBe("res");
+        await page.evaluate(() => closeSchedule());
     });
 
     test("예약 발화 중에도 턴테이블 재생 유지 — 백그라운드 녹음 (프리징 회귀 방지)", async ({ context, page }) => {

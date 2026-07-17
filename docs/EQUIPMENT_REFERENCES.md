@@ -41,6 +41,12 @@
 | Garrard 301 | [Garrard 301 아카이브](https://www.garrard.nl/) | 크림색 모터 유닛, 묵직한 우드 플린스, 좌측 속도·브레이크 레버, 필기체 배지 |
 | Linn Sondek LP12 | [Linn 공식 역사](https://radio.linn.co.uk/about/our-story) | 미니멀한 검정 상판, 두꺼운 우드 플린스, 작은 전원 버튼, 장식이 거의 없는 서스펜디드 구조 |
 
+## 오디오 타이머
+
+| 모델 | 사진·자료 | SVG에 반영한 식별 포인트 |
+|---|---|---|
+| Pioneer DT-540 | [HiFi Engine](https://www.hifiengine.com/manual_library/pioneer/dt-540.shtml), [SpenCertified](https://spencertified.com/products/pioneer-dt-540-audio-digital-timer-1983-85) | 420×52mm 초슬림 실버 패널(1983), 중앙 그린 형광(VFD) 시계 표시창, 우측 프로그램·슬립 버튼 열, 후면 2구 스위치드 아웃렛 (링크 확인 2026-07-17) |
+
 ## 구현 원칙
 
 - 사진은 레퍼런스로만 사용하고 배포 파일에는 포함하지 않는다.

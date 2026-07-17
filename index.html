@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=102">
+    <link rel="stylesheet" href="styles.css?v=103">
 </head>
 <body>
     <div class="page-shell">
@@ -58,6 +58,7 @@
 
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
             <div class="tuner-stage" id="tunerStage"></div>
+            <div class="rack-unit" id="timerStage" aria-label="오디오 타이머"></div>
             <div class="rack-unit" id="eqStage" aria-label="그래픽 이퀄라이저"></div>
             <div class="rack-unit" id="ampStage" aria-label="앰프"></div>
             <div class="rack-unit" id="deckStage" aria-label="카세트 데크"></div>
@@ -153,6 +154,10 @@
                 <div class="skin-picker" id="skinPicker" role="group" aria-label="튜너 선택"></div>
             </div>
             <div class="settings-sec">
+                <div class="settings-title">오디오 타이머</div>
+                <div class="skin-picker" id="timerPicker" role="group" aria-label="오디오 타이머 표시"></div>
+            </div>
+            <div class="settings-sec">
                 <div class="settings-title">이퀄라이저</div>
                 <div class="skin-picker" id="eqPicker" role="group" aria-label="이퀄라이저 선택"></div>
             </div>
@@ -215,7 +220,7 @@
                     </div>
                 </form>
             </div>
-            <div class="sched-note" id="schedNote">예약 녹음은 앱(브라우저 탭)이 실행 중이면 작동합니다 — 이 편성표 창은 닫아도 돼요. 실제 오디오 타이머처럼 본체 전원만 켜 두면, 시간이 되면 튜너와 데크가 스스로 깨어나 무음으로 녹음합니다.</div>
+            <div class="sched-note" id="schedNote">예약 녹음은 앱(브라우저 탭)이 실행 중이고 랙의 오디오 타이머(DT-540) TIMER 스위치가 ON이면 작동합니다 — 이 편성표 창은 닫아도 돼요. 실물 오디오 타이머처럼, 시간이 되면 튜너와 데크가 스스로 깨어나 무음으로 녹음합니다.</div>
         </div>
     </div>
 
@@ -249,15 +254,15 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=102"></script>
-    <script src="player-core.js?v=102"></script>
-    <script src="store.js?v=102"></script>
-    <script src="schedule.js?v=102"></script>
-    <script src="skins.js?v=102"></script>
-    <script src="component-skins.js?v=102"></script>
-    <script src="engine.js?v=102"></script>
-    <script src="deck.js?v=102"></script>
-    <script src="bootstrap.js?v=102"></script>
+    <script src="stations.js?v=103"></script>
+    <script src="player-core.js?v=103"></script>
+    <script src="store.js?v=103"></script>
+    <script src="schedule.js?v=103"></script>
+    <script src="skins.js?v=103"></script>
+    <script src="component-skins.js?v=103"></script>
+    <script src="engine.js?v=103"></script>
+    <script src="deck.js?v=103"></script>
+    <script src="bootstrap.js?v=103"></script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {
