@@ -322,10 +322,13 @@ test.describe("데스크톱", () => {
             selectStation = function (...a) { window.__selCount++; return orig.apply(this, a); };
             const st = window.FMRadio.stations[0];
             fireReservation({ id: 991, stationId: st.id, title: "동시 녹음", repeat: "once", enabled: true },
-                { ymd: "tk", startTs: Date.now(), endTs: Date.now() + 8000 }, "991:tk");
+                { ymd: "tk", startTs: Date.now(), endTs: Date.now() + 25000 }, "991:tk");
         });
-        // 프리징(마이크로태스크 루프)이 재발하면 여기서 타임아웃으로 실패한다
-        await page.waitForFunction(() => !!recorder && deckMode === "rec", null, { timeout: 15000 });
+        // 프리징(마이크로태스크 루프)이 재발하면 여기서 타임아웃으로 실패한다.
+        // 창 25초·대기 22초: 스로틀된 WebKit에서 bg 첫 어태치가 죽으면 재튠 워치독이
+        // ~10초에 살린다 — 창이 그보다 짧으면 회차가 미시작으로 만료된다.
+        // polling: 재생 중 rAF가 멈출 수 있어 interval 폴링으로 재평가한다.
+        await page.waitForFunction(() => !!recorder && deckMode === "rec", null, { timeout: 22000, polling: 120 });
         const s = await page.evaluate(() => ({
             sel: window.__selCount,
             phono: phonoActive,
@@ -335,9 +338,10 @@ test.describe("데스크톱", () => {
         expect(s.sel, "본체 선국 없음 — 백그라운드 수신").toBe(0);
         expect(s.phono && s.playing, "턴테이블은 계속 재생").toBe(true);
         expect(s.mainPaused, "본체 오디오 재생 유지").toBe(false);
-        await page.waitForFunction(() => !recorder && !activeResRec, null, { timeout: 15000 });
+        await page.waitForFunction(() => !recorder && !activeResRec, null, { timeout: 35000, polling: 120 });
         expect(await page.evaluate(() => phonoActive && isPlaying), "종료 후에도 턴테이블 유지").toBe(true);
     });
+
 
     test("예약 녹음 중 데크 조작: 경고 후 재조작 시 녹음 중단", async ({ page }) => {
         await page.evaluate(() => {
@@ -375,9 +379,9 @@ test.describe("데스크톱", () => {
         await page.evaluate(() => {
             const st = window.FMRadio.stations[0];
             fireReservation({ id: 993, stationId: st.id, title: "더블데크 예약", repeat: "once", enabled: true },
-                { ymd: "tw", startTs: Date.now(), endTs: Date.now() + 8000 }, "993:tw");
+                { ymd: "tw", startTs: Date.now(), endTs: Date.now() + 20000 }, "993:tw");
         });
-        await page.waitForFunction(() => !!recorder && recOnB === true, null, { timeout: 15000 });
+        await page.waitForFunction(() => !!recorder && recOnB === true, null, { timeout: 18000, polling: 120 });
         const mid = await page.evaluate(() => ({
             mode: deckMode,
             playing: isPlaying,
@@ -399,7 +403,7 @@ test.describe("데스크톱", () => {
         // (onstop→IndexedDB 저장이 비동기라 라벨 달린 카세트가 실릴 때까지 기다린다)
         await page.waitForFunction(() =>
             !recorder && !activeResRec && tapes.some((x) => x.label.includes("더블데크 예약") && x.segments.length),
-            null, { timeout: 20000 });
+            null, { timeout: 32000, polling: 120 });
         const end = await page.evaluate(() => {
             const t = tapes.find((x) => x.label.includes("더블데크 예약"));
             return {
@@ -435,12 +439,12 @@ test.describe("데스크톱", () => {
         await page.waitForFunction(() => deckMode === "play" && isPlaying, null, { timeout: 15000 });
         // 재생 중 REC — 싱글 데크라면 거부되지만 더블데크는 B웰 더빙으로 시작된다
         await page.evaluate(() => deckRec());
-        await page.waitForFunction(() => !!recorder && recOnB === true, null, { timeout: 8000 });
+        await page.waitForFunction(() => !!recorder && recOnB === true, null, { timeout: 8000, polling: 120 });
         expect(await page.evaluate(() => deckMode), "A웰 재생 유지").toBe("play");
         await page.waitForTimeout(2500);
         await page.evaluate(() => deckRec());   // 재누름 = 정지
         // onstop은 비동기 — 더빙 세그먼트가 랙의 카세트에 실릴 때까지 기다린다
-        await page.waitForFunction(() => !recorder && tapes.some((t) => t.segments.length && t !== deckTape), null, { timeout: 8000 });
+        await page.waitForFunction(() => !recorder && tapes.some((t) => t.segments.length && t !== deckTape), null, { timeout: 8000, polling: 120 });
         const end = await page.evaluate(() => ({
             mode: deckMode, bEmpty: deckBTape === null,
             dubbed: tapes.some((t) => t.segments.length && t !== deckTape),

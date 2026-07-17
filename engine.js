@@ -18,6 +18,46 @@ let bgRecAnalyser = null;
 // 오디오 스택을 태핑하는 녹음이 불가능하다. 대신 hls.js가 버퍼에 붙이는 fMP4/MP3
 // 바이트를 그대로 이어붙여 원본 음질의 재생 가능한 파일을 만든다 (모든 엔진 공통 경로).
 let bgRecCap = { active: false, mime: "", init: null, chunks: [], bytes: 0, rolling: [] };
+// ----- 마이크 입력 (REC INPUT: LINE/MIC) -----
+// 실제 데크의 MIC 단자 — 본체 그래프와 완전 분리된 getUserMedia 스트림을
+// MediaRecorder로 직접 녹음한다 (MediaElementSource가 아니므로 WebKit에서도 동작).
+// 모니터 출력은 연결하지 않는다 (스피커 하울링 방지) — 아날라이저는 VU 표시용.
+let micStream = null;
+let micCtx = null;
+let micAnalyser = null;
+let micArmed = false;    // REC INPUT 셀렉터가 MIC 위치인가 (세션 한정 — 영속하지 않는다)
+let recIsMic = false;    // 진행 중인 recorder가 마이크 녹음인가 (소스 전환·pause에 안 죽는다)
+
+async function micEnable() {
+    if (micStream) return true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+    // 에코 제거·노이즈 억제·AGC 전부 끔 — 방을 있는 그대로 담는 것이 데크답다
+    const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+    micStream = stream;
+    try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        micCtx = new Ctx();
+        micCtx.createMediaStreamSource(stream).connect(micAnalyser = micCtx.createAnalyser());
+        micAnalyser.fftSize = 1024;
+        if (micCtx.state === "suspended") micCtx.resume();
+    } catch (e) { micAnalyser = null; }   // 미터 없이도 녹음은 가능
+    // 브라우저 UI로 권한을 회수하면 트랙이 끝난다 — 셀렉터를 LINE으로 되돌린다
+    stream.getTracks().forEach((t) => { t.onended = () => micDisable(); });
+    return true;
+}
+
+function micDisable() {
+    if (recorder && recIsMic) stopRecording();
+    if (micStream) micStream.getTracks().forEach((t) => { t.onended = null; t.stop(); });
+    if (micCtx) { try { micCtx.close(); } catch (e) {} }
+    micStream = null;
+    micCtx = null;
+    micAnalyser = null;
+    micArmed = false;
+    if (typeof deckMicPaint === "function") deckMicPaint();
+}
 let ampInputTrim = null;
 let recDest = null;
 let analyser = null;

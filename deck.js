@@ -376,8 +376,81 @@ function mountDeck() {
     bindWind("deckBtnRew", -1);
     bindWind("deckBtnFf", 1);
     ["deckBtnPlay", "deckBtnStop", "deckBtnRec", "deckBtnEject"].forEach((id) => svgButtonize(id));
+    deckMountMicPanel();
     if (!deckTape) deckTape = newBlankTape();
     deckRefreshShelf();
+}
+
+// ----- REC INPUT (LINE/MIC) — 하단 좌측 입력 베이 -----
+// 모든 데크 스킨이 비워 두는 좌하단(트랜스포트 왼쪽)에 공용으로 주입한다.
+// 실제 데크의 마이크 단자 + 입력 셀렉터 문법: MIC로 전환하면 REC가 마이크를 녹음한다.
+function deckMountMicPanel() {
+    const svg = document.querySelector("#deckStage svg");
+    if (!svg || svg.querySelector("#deckMicPanel")) return;
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("id", "deckMicPanel");
+    g.setAttribute("role", "button");
+    g.setAttribute("tabindex", "0");
+    g.setAttribute("aria-label", "녹음 입력 선택 — LINE(재생 소스) / MIC(마이크)");
+    g.setAttribute("style", "cursor:pointer");
+    g.innerHTML = '<title>REC INPUT — LINE은 지금 나오는 소리를, MIC는 마이크를 녹음합니다</title>' +
+        '<rect x="112" y="434" width="272" height="72" rx="8" fill="#000" opacity=".38" filter="url(#lzSoft)"/>' +
+        '<rect x="108" y="430" width="272" height="72" rx="8" fill="#14161b" stroke="#3c4046" stroke-width="1.8"/>' +
+        '<path d="M116 434 H372" stroke="#fff" stroke-width="1.6" opacity=".14"/>' +
+        '<text x="124" y="451" font-family="Arial" font-size="10" letter-spacing="2" fill="#8a8e96">REC INPUT</text>' +
+        '<circle cx="152" cy="479" r="14" fill="#23262c" stroke="#767b83" stroke-width="2.4"/>' +
+        '<circle cx="152" cy="479" r="14" fill="url(#lzInCirc)" opacity=".5"/>' +
+        '<circle cx="152" cy="479" r="6.5" fill="#040507"/>' +
+        '<rect x="200" y="444" width="26" height="52" rx="6" fill="#26262c"/>' +
+        '<rect id="deckMicKnob" x="204" y="448" width="18" height="22" rx="3" fill="#55555c"/>' +
+        '<text id="deckMicLineLbl" x="238" y="463" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1" fill="#c9cdd3">LINE</text>' +
+        '<text id="deckMicMicLbl" x="238" y="493" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1" fill="#6a6e75">MIC</text>' +
+        '<circle id="deckMicLed" cx="342" cy="475" r="6" fill="#3a1210"/>' +
+        '<text x="342" y="496" font-family="Arial" font-size="8.5" letter-spacing="1.2" fill="#8a8e96" text-anchor="middle">MIC ON</text>';
+    svg.appendChild(g);
+    g.addEventListener("click", deckMicToggle);
+    g.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); deckMicToggle(); }
+    });
+    deckMicPaint();   // 스킨 교체 후에도 셀렉터 위치·LED가 상태를 따라간다
+}
+
+async function deckMicToggle() {
+    // 녹음 소스는 시작 시점에 고정된다 — 진행 중에는 셀렉터를 잠근다 (예약 백그라운드 녹음은 무관)
+    if (recorder && !activeResRec) {
+        playerSubtext.textContent = recIsMic
+            ? "마이크 녹음 중입니다 — REC 또는 정지로 먼저 저장하세요."
+            : "녹음 중에는 입력을 바꿀 수 없습니다 — 먼저 녹음을 정지하세요.";
+        return;
+    }
+    if (micArmed) {
+        micDisable();
+        playerSubtext.textContent = "녹음 입력: LINE — 지금 나오는 소리를 녹음합니다.";
+        return;
+    }
+    try {
+        if (!(await micEnable())) {
+            playerSubtext.textContent = "이 브라우저에서는 마이크 입력을 지원하지 않습니다.";
+            return;
+        }
+        micArmed = true;
+        playerSubtext.textContent = "녹음 입력: MIC — REC를 누르면 마이크를 " +
+            (isDoubleDeck() ? "B웰에 녹음합니다." : "테이프에 녹음합니다.");
+    } catch (e) {
+        playerSubtext.textContent = "마이크를 열 수 없습니다 — 브라우저의 마이크 권한을 허용해 주세요.";
+    }
+    deckMicPaint();
+}
+
+function deckMicPaint() {
+    const knob = document.getElementById("deckMicKnob");
+    if (knob) knob.setAttribute("y", micArmed ? "474" : "448");
+    const led = document.getElementById("deckMicLed");
+    if (led) led.style.fill = micArmed ? "#e8493a" : "#3a1210";
+    const line = document.getElementById("deckMicLineLbl");
+    const mic = document.getElementById("deckMicMicLbl");
+    if (line) line.setAttribute("fill", micArmed ? "#6a6e75" : "#c9cdd3");
+    if (mic) mic.setAttribute("fill", micArmed ? "#e8e3da" : "#6a6e75");
 }
 
 function deckSyncTape() {
@@ -547,7 +620,7 @@ function deckRec() {
         if (deckMode === "play" || deckMode === "wind") { playerSubtext.textContent = "정지 상태에서 REC를 누르세요."; return; }
         if (tapePos >= tapeLenOf(deckTape) - 1) { playerSubtext.textContent = "테이프 끝입니다 — 되감거나 EJECT로 새 테이프를 넣으세요."; return; }
     }
-    if (!isPlaying) { playerSubtext.textContent = "녹음할 소스가 없습니다 — 방송이나 음반, 테이프를 먼저 재생하세요."; return; }
+    if (!isPlaying && !micArmed) { playerSubtext.textContent = "녹음할 소스가 없습니다 — 방송이나 음반, 테이프를 재생하거나 REC INPUT을 MIC로 전환하세요."; return; }
     toggleRecording();
 }
 

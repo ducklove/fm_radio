@@ -1101,6 +1101,7 @@ let tubeWarm = 0;    // 진공관 웜업 상태 0..1 (켜면 서서히 달아오
 let tunerWarm = 0;   // 튜너 조명 상태 0..1 — 라디오 수신 중에만 점등 (포노/테이프 중엔 튜너는 꺼진 것)
 let ampWarm = 0;     // 앰프·EQ·턴테이블 조명 0..1 — 실제 청취 중일 때만 점등
 let bgRecSignal = 0; // 백그라운드 수신기 레벨 (예약 녹음 중 데크 VU 구동)
+let micSignal = 0;   // 마이크 입력 레벨 (REC INPUT=MIC일 때 데크 VU 구동 — 입력 모니터)
 let tsPreviewUntil = 0;   // 다이얼 조작 중 디스플레이 웨이크 시각
 
 // 톤암 각도 → 트랙 번호 (-5° 미만 = 거치대)
@@ -1508,7 +1509,7 @@ function mountTurntable() {
 
 // auto=true는 한 면을 이어 재생하는 자동 곡 넘김 — 바늘을 새로 놓는 게 아니므로 낙침음을 내지 않는다
 function playPhonoTrack(i, auto) {
-    stopRecording();
+    if (!recIsMic) stopRecording();   // MIC 녹음은 본체 소스와 무관 — 계속 담는다
     stopDeck();
     if (player) { player.destroy(); player = null; }
     // 그래프는 MSE 지원 브라우저에서만 (iOS 네이티브 HLS 충돌 회피 — 라디오와 동일한 기준)
@@ -1716,11 +1717,40 @@ function ttFrame(now) {
     } else if (bgRecSignal > 0) {
         bgRecSignal = Math.max(0, bgRecSignal - dt * 1.5);
     }
-    const deckSig = (recorder && activeResRec) ? bgRecSignal : vuSig;
+    // MIC 입력 모니터 — 셀렉터가 MIC이면 데크 VU는 마이크 레벨을 보여준다 (녹음 전에도)
+    if (micArmed && micAnalyser) {
+        if (!ttFrame.micTime || ttFrame.micTime.length !== micAnalyser.fftSize) ttFrame.micTime = new Uint8Array(micAnalyser.fftSize);
+        micAnalyser.getByteTimeDomainData(ttFrame.micTime);
+        let msum2 = 0;
+        for (let i = 0; i < ttFrame.micTime.length; i++) {
+            const dv = (ttFrame.micTime[i] - 128) / 128;
+            msum2 += dv * dv;
+        }
+        const mTarget = Math.min(1, Math.sqrt(msum2 / ttFrame.micTime.length) * 2.6);
+        micSignal += (mTarget - micSignal) * Math.min(1, dt * 8);
+    } else if (micSignal > 0) {
+        micSignal = Math.max(0, micSignal - dt * 1.5);
+    }
+    // 데크 VU 우선순위: 예약(백그라운드 수신) > 진행 중인 LINE 녹음(본체 신호) > MIC 모니터 > 본체
+    const deckSig = (recorder && activeResRec) ? bgRecSignal
+        : (micArmed && (!recorder || recIsMic)) ? micSignal
+        : vuSig;
     ["ampVuL", "ampVuR", "deckVuL", "deckVuR"].forEach((id, idx) => {
         const n = document.getElementById(id);
         if (!n) return;
         const sig = id.startsWith("amp") ? vuSig * ampWarm : deckSig;
+        if (n.getAttribute("data-meter-style") === "segments") {
+            const level = Math.max(0, Math.min(1, sig * (idx % 2 ? .96 : 1)));
+            const segments = n.querySelectorAll("[data-meter-segment]");
+            const lit = Math.round(level * segments.length);
+            segments.forEach((segment, segmentIndex) => {
+                const on = segmentIndex < lit;
+                const color = on ? segment.dataset.on : segment.dataset.off;
+                segment.style.fill = color;
+                segment.style.filter = on ? "drop-shadow(0 0 3px " + color + ")" : "none";
+            });
+            return;
+        }
         const ang = -42 + sig * 84;
         n.setAttribute("transform", "rotate(" + (ang * (idx % 2 ? 0.96 : 1)).toFixed(1) + " " + n.getAttribute("data-cx") + " " + n.getAttribute("data-cy") + ")");
     });
@@ -2243,7 +2273,7 @@ async function selectStation(id) {
 
     const mySeq = ++selectSeq;
 
-    stopRecording();
+    if (!recIsMic) stopRecording();   // MIC 녹음은 선국과 무관 — 계속 담는다
     stopPhono();
     stopDeck();
     radioStandby = null;
@@ -2340,7 +2370,7 @@ function togglePlay() {
 }
 
 function stopPlay() {
-    stopRecording();
+    if (!recIsMic) stopRecording();   // MIC 녹음은 본체 정지와 무관 — 계속 담는다
     stopPhono();
     stopDeck();
 
@@ -2380,7 +2410,7 @@ function updateActiveStation() {
 }
 
 function playEasterEgg() {
-    stopRecording();
+    if (!recIsMic) stopRecording();
     stopPhono();
     stopDeck();
 
@@ -2436,7 +2466,9 @@ function toggleRecording(opts) {
 
     // 예약 녹음은 백그라운드 수신기에서 녹음한다 — 본체가 꺼져 있어도 무방
     const bgRec = !!(opts && opts.source === "bg");
-    if (!bgRec && !isPlaying) {
+    // REC INPUT이 MIC이면 마이크가 소스 — 본체 재생 여부와 무관하게 녹음할 수 있다
+    const micRec = !bgRec && micArmed && !!micStream;
+    if (!bgRec && !micRec && !isPlaying) {
         // 예약 시각인데 아직 시작 전이면 REC 누름(제스처)이 곧 시동이다
         if (activeResRec && !activeResRec.started) {
             playerSubtext.textContent = "예약 녹음을 시작합니다 — " + activeResRec.res.title;
@@ -2491,6 +2523,18 @@ function toggleRecording(opts) {
                 if (this.onstop) this.onstop();
             }
         };
+    } else if (micRec) {
+        // 마이크는 getUserMedia 스트림을 직접 녹음 — MediaElementSource가 아니므로
+        // Safari 계열에서도 동작한다 (본체 그래프 불필요)
+        const mime = pickRecMime();
+        try {
+            rec = new MediaRecorder(micStream, mime ? { mimeType: mime, audioBitsPerSecond: 128000 } : undefined);
+        } catch (error) {
+            console.error(error);
+            playerSubtext.textContent = "마이크 녹음을 시작할 수 없습니다.";
+            return;
+        }
+        if (micCtx && micCtx.state === "suspended") micCtx.resume();
     } else {
         if (!ensureAudioGraph()) {
             playerSubtext.textContent = "이 브라우저에서는 녹음을 지원하지 않습니다.";
@@ -2510,6 +2554,7 @@ function toggleRecording(opts) {
     const chunks = [];
     const base = bgRec && activeResRec
         ? (stations.find((st) => st.id === activeResRec.res.stationId) || { id: activeResRec.res.stationId, name: activeResRec.res.title })
+        : micRec ? { id: "mic", name: "마이크 녹음" }
         : currentStation || {
             id: "phono",
             name: (phonoActive && phonoTrack >= 0) ? RECORD.tracks[phonoTrack].t : "레코드"
@@ -2554,6 +2599,7 @@ function toggleRecording(opts) {
     };
 
     recorder = rec;
+    recIsMic = micRec;
     recSavedMsgOverride = null;
     recStartMs = startMs;
     if (wellB) {
@@ -2569,7 +2615,9 @@ function toggleRecording(opts) {
     updateRecTime();
     btnRec.classList.add("recording");
     btnRec.setAttribute("aria-label", "녹음 정지 및 저장");
-    playerSubtext.textContent = `${station.name} 녹음 중입니다. 정지하거나 채널을 바꾸면 자동 저장됩니다.`;
+    playerSubtext.textContent = micRec
+        ? "MIC 녹음 중입니다 — 재생·선국과 무관하게 계속 담깁니다. REC를 다시 누르면 저장됩니다."
+        : `${station.name} 녹음 중입니다. 정지하거나 채널을 바꾸면 자동 저장됩니다.`;
 
     gtag('event', 'record_start', {
         station_id: station.id,
@@ -2582,6 +2630,7 @@ function stopRecording() {
 
     const active = recorder;
     recorder = null;
+    recIsMic = false;
     if (recOnB) {
         recOnB = false;
         if (deckBTape) {
@@ -2916,7 +2965,7 @@ document.addEventListener("keydown", (event) => {
 audio.addEventListener("pause", () => {
     // 수동 녹음(본체 소스 탭)만 소스 정지에 따라 멈춘다 —
     // 백그라운드 예약 녹음은 본체 재생과 무관하므로 계속 굴러가야 한다
-    if (!(recorder && activeResRec)) stopRecording();
+    if (!(recorder && (activeResRec || recIsMic))) stopRecording();
     stopVu();
     isPlaying = false;
     // 재생 중이었다면 대기로 — 버퍼링/오류 등 전환 중 상태는 건드리지 않는다
@@ -3888,7 +3937,12 @@ function serviceReservationRecording(nowTs) {
         }
         return;
     }
-    if (!activeResRec.tuning && (!bgRecPlayer || nowTs - (activeResRec.tunedAt || 0) > 15000)) {
+    // 죽은 어태치 감지 — 수신기가 붙었는데 바이트가 전혀 흐르지 않으면(스로틀된 WebKit에서
+    // 간헐 발생) 15초를 기다리지 말고 6초 만에 재튠한다. 짧은 예약 회차도 살릴 수 있다.
+    const bgStuck = bgRecPlayer && bgRecAudio && bgRecCap.bytes === 0 && !bgRecCap.rolling.length
+        && bgRecAudio.currentTime < 0.3;
+    const retuneAfterMs = bgStuck ? 6000 : 15000;
+    if (!activeResRec.tuning && (!bgRecPlayer || nowTs - (activeResRec.tunedAt || 0) > retuneAfterMs)) {
         activeResRec.tuning = true;
         activeResRec.tunedAt = nowTs;
         // 주의: 재시도는 반드시 매크로태스크(setTimeout)로 — .finally에서 곧바로 재귀하면
