@@ -50,7 +50,7 @@ let tapeMeta = loadJson("fmRadio.tapeMeta", {});
 function tapeMetaSave() {
     const out = {};
     tapes.forEach((t) => {
-        if (t.segments.length || t.named || t.cal) out[t.id] = { label: t.label, len: tapeLenOf(t), named: !!t.named, createdAt: tapeCreatedAt(t) || undefined, cal: t.cal || undefined, foreign: t.foreign || undefined };
+        if (t.segments.length || (t.segmentsB && t.segmentsB.length) || t.named || t.cal) out[t.id] = { label: t.label, len: tapeLenOf(t), named: !!t.named, createdAt: tapeCreatedAt(t) || undefined, cal: t.cal || undefined, foreign: t.foreign || undefined, side: (t.side && t.side !== "A") ? t.side : undefined };
     });
     tapeMeta = out;
     saveJson("fmRadio.tapeMeta", out);
@@ -59,7 +59,7 @@ function tapeMetaSave() {
 // 시작 시 메타에 있는 테이프를 빈 껍데기로 복원 — 녹음이 복원되면 세그먼트가 채워진다
 Object.entries(tapeMeta).forEach(([id, m]) => {
     if (!m || !m.label) return;
-    tapes.push({ id, label: m.label, segments: [], pos: 0, len: m.len || TAPE_LEN, blank: !m.named, named: !!m.named, createdAt: m.createdAt, cal: !!m.cal, foreign: !!m.foreign });
+    tapes.push({ id, label: m.label, segments: [], segmentsB: [], side: m.side === "B" ? "B" : "A", pos: 0, len: m.len || TAPE_LEN, blank: !m.named, named: !!m.named, createdAt: m.createdAt, cal: !!m.cal, foreign: !!m.foreign });
 });
 
 // 테이프 생성 시각 — 명시 필드가 없으면 id에 새겨진 타임스탬프("tape-<ms>-")에서 복원
@@ -93,10 +93,54 @@ function tapeSizeName(len) {
 
 function newBlankTape(lenSec) {
     const len = lenSec || TAPE_LEN;
-    const t = { id: "tape-" + Date.now() + "-" + tapeSeq, label: tapeSizeName(len) + " · TAPE " + tapeSeq, segments: [], pos: 0, len, blank: true, createdAt: Date.now() };
+    const t = { id: "tape-" + Date.now() + "-" + tapeSeq, label: tapeSizeName(len) + " · TAPE " + tapeSeq, segments: [], segmentsB: [], side: "A", pos: 0, len, blank: true, createdAt: Date.now() };
     tapeSeq += 1;
     tapes.unshift(t);
     return t;
+}
+
+// 양면 모델 — segments는 항상 '지금 위인 면'이고, 뒤집으면 segmentsB와 통째로 바뀐다.
+// 구버전 테이프(단면)는 처음 만질 때 B면이 빈 채로 생긴다.
+function tapeEnsureSides(t) {
+    if (!t.segmentsB) t.segmentsB = [];
+    if (!t.side) t.side = "A";
+}
+
+function tapeFlipArrays(t) {
+    tapeEnsureSides(t);
+    const a = t.segments;
+    t.segments = t.segmentsB;
+    t.segmentsB = a;
+    t.side = t.side === "B" ? "A" : "B";
+}
+
+// 카세트 뒤집기 — 물리 그대로: 감긴 자리가 유지되므로 카운터는 len - pos로 반전된다
+function flipTape() {
+    if (!deckTape) return;
+    if (!deckGuardReservedRec()) return;
+    if (recorder && !recOnB) { playerSubtext.textContent = "녹음 중에는 뒤집을 수 없습니다."; return; }
+    if (deckMode !== "stop") { playerSubtext.textContent = "정지(■) 상태에서 카세트를 뒤집으세요."; return; }
+    tapeFlipArrays(deckTape);
+    tapePos = Math.max(0, tapeLenOf(deckTape) - tapePos);
+    deckTape.pos = tapePos;
+    tapeMetaSave();
+    deckSyncTape();
+    playerSubtext.textContent = "카세트를 뒤집었습니다 — SIDE " + deckTape.side +
+        (deckTape.segments.length ? "" : " (공면)") + " · 카운터 " + formatDuration(tapePos * 1000);
+}
+
+// 지정 면에 세그먼트 삽입 — 비활성 면이면 잠시 바꿔치기해 같은 덮어쓰기 규칙을 태운다
+function tapeAddSegmentSide(tape, seg, side) {
+    tapeEnsureSides(tape);
+    if ((side || "A") === (tape.side || "A")) {
+        tapeAddSegment(tape, seg);
+        return;
+    }
+    const active = tape.segments;
+    tape.segments = tape.segmentsB;
+    tapeAddSegment(tape, seg);
+    tape.segmentsB = tape.segments;
+    tape.segments = active;
 }
 
 function tapeUsedSec(tape) {
@@ -386,6 +430,8 @@ function mountDeck() {
     bindWind("deckBtnFf", 1);
     ["deckBtnPlay", "deckBtnStop", "deckBtnRec", "deckBtnEject"].forEach((id) => svgButtonize(id));
     deckMountMicPanel();
+    bindDeckFlip();
+    if (typeof applyRecHeadroom === "function") applyRecHeadroom();
     if (deckModelId === "b215") bindB215Keys();
     if (isDoubleDeck()) bindW990Dub();
     if (deckModelId === "dragon") bindDragonPanel();
@@ -446,6 +492,33 @@ function bindB215Keys() {
         }, 2000);
     });
     bind(11, "RST — 카운터 0으로 자동 와인딩 (ZERO LOC)", () => deckAutoWind(0, "ZERO LOC"));
+}
+
+// ----- 카세트 뒤집기 히트 — 어느 스킨이든 라벨 판이 곧 손잡이다 -----
+function bindDeckFlip() {
+    const label = document.getElementById("deckLabel");
+    const svg = document.querySelector("#deckStage svg");
+    if (!label || !svg) return;
+    let bb = null;
+    try { bb = label.getBBox(); } catch (e) {}
+    if (!bb || !bb.width) bb = { x: 480, y: 140, width: 500, height: 60 };
+    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    r.setAttribute("x", bb.x - 46);
+    r.setAttribute("y", bb.y - 16);
+    r.setAttribute("width", bb.width + 92);
+    r.setAttribute("height", bb.height + 46);
+    r.setAttribute("fill", "#000");
+    r.setAttribute("fill-opacity", "0");
+    r.setAttribute("style", "cursor:pointer");
+    r.setAttribute("tabindex", "0");
+    r.setAttribute("role", "button");
+    r.setAttribute("aria-label", "카세트 뒤집기 — SIDE A/B 전환");
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    t.textContent = "카세트 뒤집기 — 정지 상태에서 라벨을 누르면 반대 면(SIDE A/B)으로";
+    r.appendChild(t);
+    svg.appendChild(r);
+    r.addEventListener("click", flipTape);
+    r.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flipTape(); } });
 }
 
 // ----- DRAGON — AUTO REVERSE(리피트) 토글 + NAAC 표시 -----
@@ -688,7 +761,8 @@ function updateDeckLabel() {
     if (!l || !deckTape) return;
     const maxLabel = formatDuration(tapeLenOf(deckTape) * 1000);
     l.textContent = deckTape.label;
-    s.textContent = "사용 " + formatDuration(tapeUsedSec(deckTape) * 1000) + " / " + maxLabel;
+    const sideTag = (deckTape.side || "A") === "B" || (deckTape.segmentsB && deckTape.segmentsB.length) ? "SIDE " + (deckTape.side || "A") + " · " : "";
+    s.textContent = sideTag + "사용 " + formatDuration(tapeUsedSec(deckTape) * 1000) + " / " + maxLabel;
     const counterMax = document.getElementById("deckCounterMax");
     if (counterMax) counterMax.textContent = "/ " + maxLabel;
 }
@@ -1038,7 +1112,7 @@ function tapeCaseDelete(id, btn) {
     }
     // 수록 녹음을 IndexedDB와 녹음 파일 목록에서도 제거한다 (미리듣기 src로 대조)
     const urls = new Set();
-    t.segments.forEach((seg) => {
+    t.segments.concat(t.segmentsB || []).forEach((seg) => {
         if (seg.dbId != null) deleteRecording(seg.dbId);
         if (seg.url) urls.add(seg.url);
     });

@@ -719,6 +719,59 @@ test.describe("데스크톱", () => {
         await page.waitForFunction(() => deckMode === "play" && tapePos < 8 && !!deckSegPlaying, null, { timeout: 8000, polling: 100 });
     });
 
+    test("양면 테이프: 뒤집기 물리·면별 수록·DRAGON SIDE B 반전·TCD 헤드룸", async ({ page }) => {
+        // 뒤집기 물리 — 감긴 자리가 유지되므로 카운터는 len - pos
+        const flip = await page.evaluate((b64) => {
+            const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+            const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+            const t = newBlankTape(1800);
+            tapeAddSegment(t, { start: 0, dur: 20, url, name: "A면 곡", type: "audio/wav" });
+            deckInsertTape(t.id);
+            tapePos = 100;
+            flipTape();
+            const r = { side: t.side, pos: tapePos, bHolds: t.segmentsB.length };
+            tapeAddSegment(t, { start: 0, dur: 20, url, name: "B면 곡", type: "audio/wav" });
+            tapePos = 0;
+            flipTape();
+            r.back = { side: t.side, aName: t.segments[0].name, bName: t.segmentsB[0].name };
+            tapeMetaSave();
+            window.__t2 = t.id;
+            return r;
+        }, makeWav(20).toString("base64"));
+        expect(flip.side).toBe("B");
+        expect(flip.pos).toBe(1700);
+        expect(flip.bHolds).toBe(1);
+        expect(flip.back).toEqual({ side: "A", aName: "A면 곡", bName: "B면 곡" });
+        // DRAGON 오토 리버스 — A면 끝에서 헤드가 반전해 SIDE B 재생
+        await page.evaluate(() => {
+            deckModelId = "dragon";
+            mountDeck();
+            deckInsertTape(window.__t2);
+            document.getElementById("deckAutoRevLbl").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+            deckPlay();
+        });
+        await page.waitForFunction(() => deckMode === "play", null, { timeout: 8000, polling: 100 });
+        await page.evaluate(() => {
+            tapePos = tapeLenOf(deckTape) - 0.2;
+            const t0 = performance.now() - 2000;
+            ttLastTs = t0;
+            for (let i = 1; i <= 20; i++) ttFrame(t0 + i * 60);
+        });
+        await page.waitForFunction(() =>
+            deckTape.side === "B" && deckMode === "play" && deckSegPlaying && deckSegPlaying.name === "B면 곡",
+            null, { timeout: 8000, polling: 100 });
+        // TCD3014 녹음 헤드룸 — 셰이퍼가 유일하게 무포화(null)
+        const hr = await page.evaluate(() => {
+            const r = { dragonSat: !!(recSatShaper && recSatShaper.curve) };
+            deckStopTransport();
+            deckModelId = "tcd3014";
+            mountDeck();
+            r.tcdClean = !!(recSatShaper && recSatShaper.curve === null);
+            return r;
+        });
+        expect(hr).toEqual({ dragonSat: true, tcdClean: true });
+    });
+
     test("테이프 보관함: 라벨 개명 영속·트랙 점프 재생·삭제 연동", async ({ page }) => {
         // 짧은 예약 녹음으로 수록곡 있는 테이프를 만든다
         await page.evaluate(() => {

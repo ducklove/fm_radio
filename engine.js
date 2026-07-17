@@ -60,6 +60,30 @@ function micDisable() {
 }
 let ampInputTrim = null;
 let recDest = null;
+// 수동(LINE) 녹음 헤드룸 — 대부분의 데크는 큰 신호에서 살짝 포화되지만,
+// TCD 3014A(Actilinear)만은 무포화로 받는다. 녹음 경로에만 걸린다 (청취 무관).
+let recSatShaper = null;
+let recSatCurveCache = null;
+
+function recSatCurve() {
+    if (recSatCurveCache) return recSatCurveCache;
+    const n = 2048;
+    const c = new Float32Array(n);
+    const knee = 0.78, ceiling = 0.96;
+    for (let i = 0; i < n; i++) {
+        const x = i / (n - 1) * 2 - 1;
+        const sign = x < 0 ? -1 : 1;
+        const mag = Math.abs(x);
+        c[i] = sign * (mag <= knee ? mag : knee + (ceiling - knee) * Math.tanh((mag - knee) / (1 - knee)));
+    }
+    recSatCurveCache = c;
+    return c;
+}
+
+function applyRecHeadroom() {
+    if (!recSatShaper) return;
+    recSatShaper.curve = (typeof deckModelId !== "undefined" && deckModelId === "tcd3014") ? null : recSatCurve();
+}
 let analyser = null;
 let blendFilter = null;
 // 소스 보이싱 — 튜너/턴테이블/데크 모델의 음색 시그니처를 싣는 셸프 한 쌍.
@@ -602,7 +626,10 @@ function ensureAudioGraph() {
         scratchGain.gain.value = 0;
         // EQ 밴드는 현재 모델(GE-5/GE-10)로 구성 — monoGain→EQ→ampDrive + 크랙클/히스 연결
         buildEqChain();
-        source.connect(recDest);
+        recSatShaper = audioCtx.createWaveShaper();
+        recSatShaper.oversample = "2x";
+        source.connect(recSatShaper).connect(recDest);
+        applyRecHeadroom();
         source.connect(analyser);
         applyBlend();
         applyMono();

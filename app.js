@@ -2346,8 +2346,21 @@ function ttFrame(now) {
         }
         if (tapePos >= tapeLenOf(deckTape)) {
             tapePos = tapeLenOf(deckTape);
-            // DRAGON 오토 리버스(리피트) — 끝나면 고속으로 되감아 처음부터 이어 재생
-            if (deckModelId === "dragon" && dragonRepeat && deckTape && deckTape.segments.length && !recorder) {
+            // DRAGON 오토 리버스 — 반대 면에 수록이 있으면 헤드가 그대로 뒤집혀 SIDE B 재생
+            // (실물의 자동 반전). 반대 면이 공면이면 되감기 리피트로 폴백.
+            if (deckModelId === "dragon" && dragonRepeat && deckTape && !recorder
+                && deckTape.segmentsB && deckTape.segmentsB.length) {
+                tapeFlipArrays(deckTape);
+                tapePos = 0;
+                deckSegPlaying = null;
+                tapeMetaSave();
+                updateDeckLabel();
+                deckRefreshShelf();
+                const revSeg = segmentAt(deckTape, 0) || nextSegmentAfter(deckTape, 0);
+                if (revSeg && revSeg.start < 1) deckStartSegment(revSeg, Math.max(0, -revSeg.start));
+                nowStation.textContent = deckTape.label + " — TAPE";
+                playerSubtext.textContent = "AUTO REVERSE — SIDE " + deckTape.side + " 재생으로 반전했습니다.";
+            } else if (deckModelId === "dragon" && dragonRepeat && deckTape && deckTape.segments.length && !recorder) {
                 deckAutoResume = true;
                 deckSegPlaying = null;
                 audio.pause();
@@ -3243,6 +3256,7 @@ function toggleRecording(opts) {
     const tapeTarget = wellB ? deckBTape : deckTape;
     const tapeStartPos = wellB ? deckBPos : tapePos;
     const tapeId = tapeTarget.id;
+    const tapeSide = tapeTarget.side || "A";   // 어느 면에 녹음되는지 — 복원 시 같은 면으로
 
     rec.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) chunks.push(event.data);
@@ -3260,6 +3274,7 @@ function toggleRecording(opts) {
             tapeId,
             tapeStart: tapeStartPos,
             tapeLen: tapeLenOf(tapeTarget),
+            side: tapeSide,
             blob: new Blob(chunks, { type })
         };
         record.dbId = await persistRecording(record);
@@ -3387,11 +3402,11 @@ function addRecordingItem(record) {
     let tape = record.tapeId ? tapes.find((t) => t.id === record.tapeId) : null;
     if (!tape) {
         const len = record.tapeLen || TAPE_LEN;
-        tape = { id: record.tapeId || ("tape-legacy-" + (record.dbId || Math.random())), label: tapeSizeName(len) + " · TAPE " + tapeSeq, segments: [], pos: 0, len, blank: true, createdAt: Date.parse(record.startedAt) || Date.now() };
+        tape = { id: record.tapeId || ("tape-legacy-" + (record.dbId || Math.random())), label: tapeSizeName(len) + " · TAPE " + tapeSeq, segments: [], segmentsB: [], side: "A", pos: 0, len, blank: true, createdAt: Date.parse(record.startedAt) || Date.now() };
         tapeSeq += 1;
         tapes.push(tape);
     }
-    tapeAddSegment(tape, { start: record.tapeStart || 0, dur: record.durationMs / 1000, url, name: record.stationName, dbId: record.dbId, type: record.type });
+    tapeAddSegmentSide(tape, { start: record.tapeStart || 0, dur: record.durationMs / 1000, url, name: record.stationName, dbId: record.dbId, type: record.type }, record.side);
     if (!deckTape) deckTape = tape;
     tapeMetaSave();
     deckRefreshShelf();
