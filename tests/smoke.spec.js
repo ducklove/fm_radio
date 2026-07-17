@@ -198,6 +198,25 @@ test.describe("데스크톱", () => {
         expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).model)).toBe("ge10chrome");
     });
 
+    test("10밴드 EQ 4종: 스펙트럼 명판이 우상단 게인 값과 겹치지 않음", async ({ page }) => {
+        for (const modelId of ["ge10", "ge10silver", "ge10chrome", "se9"]) {
+            const layout = await page.evaluate((id) => {
+                if (!unitShow.eq) setUnitShow("eq", true);
+                setEqModel(id);
+                const svg = document.querySelector("#eqStage svg");
+                const box = (el) => {
+                    const { x, y, width, height } = el.getBBox();
+                    return { x, y, width, height };
+                };
+                const label = box([...svg.querySelectorAll("text")].find((el) => el.textContent === "REAL-TIME SPECTRUM"));
+                const values = [8, 9].map((index) => box(document.getElementById("eqV" + index)));
+                return { label, values };
+            }, modelId);
+            const labelBottom = layout.label.y + layout.label.height;
+            expect(labelBottom, modelId).toBeLessThan(Math.min(...layout.values.map((box) => box.y)));
+        }
+    });
+
     test("MA2375 미터·레터 백라이트: 전원 OFF는 흐리고 ON은 선명함", async ({ page }) => {
         await page.click('button:has-text("오디오 구성")');
         await page.locator('#ampPicker .skin-btn', { hasText: "KT88 · MA2375" }).click();

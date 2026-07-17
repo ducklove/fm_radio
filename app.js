@@ -1070,6 +1070,11 @@ function mountEq() {
     } else {
         modelTrim = '<rect x="344" y="38" width="250" height="24" rx="3" fill="#0a0b0e" stroke="#494d55"/><text x="469" y="55" font-family="Arial" font-size="10" font-weight="700" letter-spacing="2.2" fill="#bfc2c8" text-anchor="middle">DISCRETE ANALOG FILTERS</text>';
     }
+    // 10밴드는 마지막 두 슬라이더의 수치가 우상단 안내문과 같은 행에 놓인다.
+    // 안내문을 상단 페이스의 독립 명판으로 올려 값 표시와 시각적 위계를 분리한다.
+    const spectrumLabel = isFive
+        ? '<text x="' + (fieldR - 20) + '" y="79" font-family="Arial" font-size="12" font-weight="700" letter-spacing="1.8" fill="' + theme.fieldInk + '" text-anchor="end">REAL-TIME SPECTRUM</text>'
+        : '<g pointer-events="none"><rect x="' + (fieldR - 246) + '" y="23" width="226" height="26" rx="4" fill="' + theme.fieldA + '" fill-opacity=".82" stroke="' + theme.edge + '" stroke-width="1.2"/><path d="M' + (fieldR - 238) + ' 28H' + (fieldR - 28) + '" stroke="#fff" stroke-width="1" opacity=".13"/><text x="' + (fieldR - 33) + '" y="41" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1.65" fill="' + theme.fieldInk + '" text-anchor="end">REAL-TIME SPECTRUM</text></g>';
     document.getElementById("eqStage").innerHTML =
         '<svg class="eq-svg" viewBox="0 0 2000 400" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="' + (model.brand || "YAMAHA") + ' ' + model.name + ' 스테레오 그래픽 이퀄라이저">' +
         '<defs>' +
@@ -1124,7 +1129,7 @@ function mountEq() {
         '<text x="' + (fieldX + 30) + '" y="' + (eqGainToY(0) + 5) + '" font-family="Arial" font-size="15" font-weight="700" fill="' + theme.fieldInk + '">0</text>' +
         '<text x="' + (fieldX + 28) + '" y="' + (eqGainToY(-6) + 5) + '" font-family="Arial" font-size="12" fill="' + theme.fieldMuted + '">-6</text>' +
         '<text x="' + (fieldX + 14) + '" y="' + (EQ_BOT + 6) + '" font-family="Arial" font-size="15" font-weight="700" fill="' + theme.fieldInk + '">-12</text>' +
-        sliders + '<text x="' + (fieldR - 20) + '" y="79" font-family="Arial" font-size="12" font-weight="700" letter-spacing="1.8" fill="' + theme.fieldInk + '" text-anchor="end">REAL-TIME SPECTRUM</text>' +
+        sliders + spectrumLabel +
         '<text x="' + (fieldR - 20) + '" y="359" font-family="Arial" font-size="14" font-weight="700" letter-spacing="1.5" fill="' + theme.fieldInk + '" text-anchor="end">Hz</text>' +
         '</svg>';
 
