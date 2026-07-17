@@ -1,4 +1,4 @@
-// SVG 스킨 모듈 — 조명 패스(LZ_DEFS), 튜너 스킨 4종, 진공관 렌더러(tubeSvg), 앰프 섀시 5종.
+// SVG 스킨 모듈 — 조명 패스(LZ_DEFS), 공개 튜너 3종, 진공관 렌더러(tubeSvg), 공개 앰프 기반 스킨.
 // 클래식 스크립트 — 전역 렉시컬 스코프를 공유한다. 로드 순서: store→skins→engine→deck→app.
 
 // ----- 튜너 스킨 시스템 -----
@@ -9,7 +9,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 let tunerSkinId = "t2";
 let tunerCfg = null;
 let tunerSvgEl = null;
-let tsFreq = null, tsFreqGlow = null, tsDialPtr = null, tsSignalPtr = null, tsTunePtr = null, tsKnob = null, tsStationMarks = null;
+let tsFreq = null, tsFreqGlow = null, tsDialPtr = null, tsSignalPtr = null, tsTunePtr = null, tsKnob = null, tsStationMarks = null, tsMultipathPtr = null;
 let tsRaf = null;
 let tsSignal = 0;
 let tsTune = 0.85;
@@ -25,9 +25,11 @@ let monoOn = false;
 // 모든 랙 유닛에 동일한 광원(전방 상단)을 입힌다: 상단 글로스, 수직 셰이드, 비네트.
 // url(#id)는 문서 전체에서 해석되므로 defs는 중복 마운트되어도 무해하다.
 const LZ_DEFS = '<defs>' +
-    '<linearGradient id="lzGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.06"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0.015"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
-    '<linearGradient id="lzShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="0.7" stop-color="#000000" stop-opacity="0.04"/><stop offset="1" stop-color="#000000" stop-opacity="0.2"/></linearGradient>' +
-    '<radialGradient id="lzVign" cx="0.5" cy="0.4" r="0.9"><stop offset="0.62" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.12"/></radialGradient>' +
+    '<linearGradient id="lzGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.045"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0.012"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="lzShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0"/><stop offset="0.72" stop-color="#000000" stop-opacity="0.025"/><stop offset="1" stop-color="#000000" stop-opacity="0.12"/></linearGradient>' +
+    '<radialGradient id="lzVign" cx="0.48" cy="0.4" r="0.94"><stop offset="0.64" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.08"/></radialGradient>' +
+    '<linearGradient id="lzKeyLight" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#eaf4ff" stop-opacity=".035"/><stop offset=".32" stop-color="#ffffff" stop-opacity=".012"/><stop offset=".68" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity=".025"/></linearGradient>' +
+    '<linearGradient id="lzFloorBounce" x1="0" y1="0" x2="0" y2="1"><stop offset=".72" stop-color="#ffd9a0" stop-opacity="0"/><stop offset="1" stop-color="#ffd9a0" stop-opacity=".022"/></linearGradient>' +
     '<linearGradient id="lzInset" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000000" stop-opacity="0.42"/><stop offset="1" stop-color="#000000" stop-opacity="0"/></linearGradient>' +
     '<linearGradient id="lzStreak" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.04"/><stop offset="0.22" stop-color="#ffffff" stop-opacity="0.01"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/></linearGradient>' +
     '<radialGradient id="lzLamp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd9a0" stop-opacity="0.30"/><stop offset="0.55" stop-color="#ffc070" stop-opacity="0.10"/><stop offset="1" stop-color="#ffb050" stop-opacity="0"/></radialGradient>' +
@@ -127,6 +129,8 @@ function applyPanelLighting(svg) {
     g.setAttribute("pointer-events", "none");
     g.innerHTML = LZ_DEFS +
         '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + Math.round(H * 0.32) + '" rx="8" fill="url(#lzGloss)"/>' +
+        '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="url(#lzKeyLight)"/>' +
+        '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="url(#lzFloorBounce)"/>' +
         '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="url(#lzShade)"/>' +
         '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="url(#lzVign)"/>' +
         '<rect x="' + (X + 2) + '" y="' + (Y + 2) + '" width="' + (W - 4) + '" height="' + (H - 4) + '" rx="7" fill="none" stroke="url(#lzEdgeLight)" stroke-width="2" opacity="0.34"/>' +
@@ -150,7 +154,7 @@ const TS_HIT_META = {
 
 const TUNER_SKINS = {
     t2: {
-        label: "YAHAMA T-2",
+        label: "YAMAHA T-2",
         cfg: {
             freq: { x88: 300, px: 47, drawX: 864 },
             mark: { y: 82, h: 7, hOn: 12, color: "#e8c85a", colorOn: "#ff8a3a" },
@@ -162,7 +166,7 @@ const TUNER_SKINS = {
             digit: { lit: "#ff5230", glow: "#ff3a1e", dim: "#5a1e12", dimGlow: "#3a1208" },
             hits: { power: [128, 160, 52, 56], dial: [150, 56, 1220, 64], rec: [244, 138, 56, 80], blend: [338, 138, 56, 80], mode: [428, 138, 56, 80], mute: [520, 138, 56, 80], if: [608, 138, 56, 80], rf: [694, 138, 56, 80], knob: [1852, 140, 112] }
         },
-        svg: `<svg class="tuner-svg" viewBox="0 0 2000 269" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Yahama Natural Sound FM Stereo Tuner T-2">
+        svg: `<svg class="tuner-svg" viewBox="0 0 2000 269" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Yamaha Natural Sound FM Stereo Tuner T-2">
             <defs>
                 <linearGradient id="tnPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#68645c"/><stop offset="0.045" stop-color="#555149"/><stop offset="0.48" stop-color="#48453f"/><stop offset="0.82" stop-color="#403d37"/><stop offset="1" stop-color="#302e2a"/></linearGradient>
                 <linearGradient id="tnBevel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b2afa7"/><stop offset="0.5" stop-color="#918e86"/><stop offset="1" stop-color="#63605a"/></linearGradient>
@@ -188,7 +192,7 @@ const TUNER_SKINS = {
             <g stroke="#d9d7dc" stroke-width="1.7" fill="none" stroke-linecap="round">
                 <path d="M129 30 L129 42"/><path d="M135 27 L135 42"/><path d="M141 30 L141 42"/><path d="M129 42 Q135 47 141 42"/><path d="M135 42 L135 47"/>
             </g>
-            <text x="160" y="43" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" letter-spacing="1.5" fill="#e6e5e8">YAHAMA</text>
+            <text x="160" y="43" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" letter-spacing="1.5" fill="#e6e5e8">YAMAHA</text>
             <text x="298" y="41" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="2" fill="#b3b1b8">NATURAL SOUND<tspan dx="18">FM STEREO TUNER</tspan><tspan dx="18" font-weight="700" fill="#c8c6cd">T-2</tspan></text>
             <rect x="128" y="58" width="1272" height="64" rx="4" fill="url(#tnDialWin)" stroke="#0a0b06" stroke-width="2"/>
             <ellipse class="lampGlow" cx="764" cy="92" rx="560" ry="52" fill="url(#lzLampGreen)" opacity="0.4"/>
@@ -289,7 +293,7 @@ const TUNER_SKINS = {
         </svg>`
     },
     mr78: {
-        label: "McIntoch MR-78",
+        label: "McIntosh MR-78",
         cfg: {
             freq: { x88: 430, px: 54, drawX: 970 },
             mark: { y: 182, h: 10, hOn: 16, color: "#7fd8cf", colorOn: "#ff5a3a" },
@@ -301,7 +305,7 @@ const TUNER_SKINS = {
             digit: { lit: "#57b0ff", glow: "#2a6fd0", dim: "#16324d", dimGlow: "#0d1f30" },
             hits: { power: [65, 520, 80, 80], dial: [430, 95, 1080, 170], rec: [310, 470, 140, 130], if: [550, 470, 140, 130], blend: [790, 470, 140, 130], mute: [1030, 470, 140, 130], mode: [1270, 470, 140, 130], rf: [1510, 470, 140, 130], knob: [1755, 215, 132] }
         },
-        svg: `<svg class="tuner-svg" viewBox="0 0 2000 700" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="McIntoch MR-78 FM Tuner">
+        svg: `<svg class="tuner-svg" viewBox="0 0 2000 700" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="McIntosh MR-78 FM Tuner">
             <defs>
                 <linearGradient id="mrPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#222328"/><stop offset="0.055" stop-color="#15161a"/><stop offset="0.5" stop-color="#0d0e12"/><stop offset="0.88" stop-color="#08090c"/><stop offset="1" stop-color="#050608"/></linearGradient>
                 <linearGradient id="mrRail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#474c55"/><stop offset="0.18" stop-color="#eef0f5"/><stop offset="0.42" stop-color="#9ca2ad"/><stop offset="0.7" stop-color="#f2f3f5"/><stop offset="1" stop-color="#444952"/></linearGradient>
@@ -338,16 +342,19 @@ const TUNER_SKINS = {
             <text id="tsLedStereo" data-on="#ff4a3a" data-off="#3a1512" x="190" y="126" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#3a1512" text-anchor="middle">STEREO</text>
             <text id="tsLedLock" data-on="#ffd24a" data-off="#3a3012" x="190" y="158" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#3a3012" text-anchor="middle">LOCKED</text>
             <text id="tsLedBlend" data-on="#ff9a3a" data-off="#3a2312" x="190" y="190" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#3a2312" text-anchor="middle">FILTER</text>
-            <!-- STATION 표시창 -->
+            <!-- MR78의 고유 기능인 MULTIPATH 아날로그 미터. 이전의 가상 디지털 주파수창을 제거했다. -->
             <rect x="70" y="225" width="240" height="145" rx="4" fill="#050506" stroke="#555c65" stroke-width="1.6"/>
             <rect x="66" y="221" width="248" height="153" rx="6" fill="none" stroke="url(#mrChrome)" stroke-width="2" opacity=".76"/>
-            <g opacity=".46"><rect class="lampGlow" x="72" y="227" width="236" height="141" rx="3" fill="url(#lzMcBlue)" opacity="0.4" style="mix-blend-mode:screen"/></g>
+            <g opacity=".46"><rect class="lampGlow" data-lz-off=".025" data-lz-on=".32" x="72" y="227" width="236" height="141" rx="3" fill="url(#lzMcBlue)" opacity=".025" style="mix-blend-mode:screen"/></g>
             <polygon points="74,229 230,229 174,366 74,366" fill="url(#lzGlassSweep)" opacity=".4"/>
             <rect x="72" y="227" width="236" height="141" rx="3" fill="url(#mrEdgeFade)" opacity=".6" pointer-events="none"/>
             <path d="M80 234H300" stroke="#dff6ff" stroke-width="1.6" opacity=".08" pointer-events="none"/>
-            <text x="190" y="253" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="2.5" fill="#7ee08a" text-anchor="middle">STATION</text>
-            <text id="tsFreqGlow" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#0d1f30" text-anchor="middle" filter="url(#mrGlow)">--.-</text>
-            <text id="tsFreq" x="190" y="330" font-family="'Courier New', monospace" font-size="54" font-weight="700" fill="#16324d" text-anchor="middle">--.-</text>
+            <text x="190" y="253" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="2.5" fill="#7ee08a" text-anchor="middle">MULTIPATH</text>
+            <path d="M106 327 A94 94 0 0 1 274 327" fill="none" stroke="#77cfc8" stroke-width="2" opacity=".72"/>
+            <g stroke="#8edbd2" stroke-linecap="round" opacity=".68"><path d="M112 315l-10 -5 M128 287l-8 -8 M155 268l-4 -11 M190 262v-13 M225 268l4 -11 M252 287l8 -8 M268 315l10 -5"/></g>
+            <g font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#83c9c2" text-anchor="middle"><text x="104" y="340">0</text><text x="190" y="279">50</text><text x="276" y="340">100</text></g>
+            <line id="tsMultipathPtr" x1="190" y1="347" x2="190" y2="270" stroke="#17252a" stroke-width="4" data-cx="190" data-cy="347" transform="rotate(-35 190 347)"/>
+            <circle cx="190" cy="347" r="8" fill="#11151a" stroke="#81aaa8" stroke-width="1.5"/>
             <rect x="70" y="225" width="240" height="31.9" fill="url(#lzInset)" opacity="0.62"/>
             <rect x="70" y="225" width="12" height="145" fill="url(#lzInL)" opacity="0.5"/>
             <rect x="298" y="225" width="12" height="145" fill="url(#lzInR)" opacity="0.5"/>
@@ -416,8 +423,8 @@ const TUNER_SKINS = {
             <path d="M1224 283 C1296 273 1392 275 1476 286" fill="none" stroke="#e9ffff" stroke-width="1.6" opacity=".11" pointer-events="none"/>
             <rect class="meterDark" x="1210" y="276" width="280" height="60" rx="3" fill="#0d0a06" opacity="0.5"/>
             <!-- 브랜드 -->
-            <text x="955" y="310" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#5ff18a" opacity=".2" filter="url(#mrGlow)" text-anchor="middle">McIntoch</text>
-            <text x="955" y="310" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#61e987" stroke="#183e28" stroke-width="1" text-anchor="middle">McIntoch</text>
+            <text x="955" y="310" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#5ff18a" opacity=".2" filter="url(#mrGlow)" text-anchor="middle">McIntosh</text>
+            <text x="955" y="310" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="46" font-weight="700" fill="#61e987" stroke="#183e28" stroke-width="1" text-anchor="middle">McIntosh</text>
             <text x="955" y="345" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="7" fill="#e8e8ea" text-anchor="middle">MR 78 FM TUNER</text>
             <!-- 튜닝 노브 (우상단, 다이얼 높이) -->
             <circle cx="1768" cy="238" r="139" fill="#000" opacity=".48" filter="url(#lzSoft)"/>
@@ -458,12 +465,12 @@ const TUNER_SKINS = {
             <text x="1895" y="608" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.7" fill="#7ee08a" text-anchor="middle">PANLOC</text>
             <!-- 하단 로고 -->
             <path d="M250 628H1660" stroke="url(#mrChrome)" stroke-width="1.2" opacity=".36"/>
-            <text x="955" y="655" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="24" font-weight="700" fill="#555860" text-anchor="middle">McIntoch</text>
+            <text x="955" y="655" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="24" font-weight="700" fill="#555860" text-anchor="middle">McIntosh</text>
             <text x="1645" y="653" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600" letter-spacing="2.2" fill="#5d6068" text-anchor="end">LABORATORY REFERENCE · SERIAL 078-2105</text>
         </svg>`
     },
     m10b: {
-        label: "Maranz 10B",
+        label: "Marantz 10B",
         cfg: {
             freq: { x88: 430, px: 57.5, drawX: 1005 },
             mark: { y: 340, h: 7, hOn: 12, color: "#4ac8c8", colorOn: "#ff7a2a" },
@@ -475,7 +482,7 @@ const TUNER_SKINS = {
             digit: { lit: "#ff4a2a", glow: "#d02a12", dim: "#3a1410", dimGlow: "#200c08" },
             hits: { power: [1450, 450, 140, 140], dial: [430, 292, 1150, 92], rec: [300, 225, 60, 60], blend: [410, 450, 140, 140], mode: [610, 450, 140, 140], mute: [1650, 450, 140, 140], if: [1250, 450, 140, 140], rf: [1640, 225, 60, 60], knob: [1000, 515, 100] }
         },
-        svg: `<svg class="tuner-svg" viewBox="0 0 2000 730" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Maranz Model 10B Stereo FM Tuner">
+        svg: `<svg class="tuner-svg" viewBox="0 0 2000 730" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Marantz Model 10B Stereo FM Tuner">
             <defs>
                 <linearGradient id="mzWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4a2c"/><stop offset="0.5" stop-color="#5d3620"/><stop offset="1" stop-color="#402414"/></linearGradient>
                 <linearGradient id="mzPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfd6bd"/><stop offset="0.5" stop-color="#cfc6aa"/><stop offset="1" stop-color="#b8ae90"/></linearGradient>
@@ -503,12 +510,12 @@ const TUNER_SKINS = {
             <!-- 블랙 윈도우 -->
             <rect x="360" y="120" width="1280" height="270" rx="6" fill="#070707" stroke="#1c1a16" stroke-width="3"/>
             <rect x="354" y="114" width="1292" height="282" rx="9" fill="none" stroke="url(#mzBevel)" stroke-width="4"/>
-            <ellipse class="lampGlow" cx="1050" cy="330" rx="600" ry="58" fill="url(#lzLamp)" opacity="0.4"/>
+            <ellipse class="lampGlow" data-lz-off=".018" data-lz-on=".22" cx="1050" cy="338" rx="560" ry="44" fill="url(#lzLamp)" opacity=".018"/>
             <rect x="360" y="120" width="1280" height="18" fill="url(#lzInset)" opacity="0.8"/>
             <!-- 오실로스코프 -->
             <rect x="390" y="140" width="370" height="230" rx="4" fill="url(#mzScope)" stroke="#0d2a16" stroke-width="2"/>
             <rect x="382" y="132" width="386" height="246" rx="8" fill="none" stroke="url(#mzBevel)" stroke-width="4"/>
-            <ellipse class="lampGlow" cx="575" cy="260" rx="132" ry="88" fill="#21d06a" opacity=".035" filter="url(#mzScopeBloom)"/>
+            <ellipse class="lampGlow" data-lz-off=".012" data-lz-on=".18" cx="575" cy="260" rx="126" ry="82" fill="#21d06a" opacity=".012" filter="url(#mzScopeBloom)"/>
             <text x="575" y="168" font-family="Arial, Helvetica, sans-serif" font-size="12" letter-spacing="3" fill="#3fd06a" text-anchor="middle" opacity="0.9">TUNE TO CENTER</text>
             <g stroke="#1f7a3c" stroke-width="1.2" opacity="0.8">
                 <line x1="575" y1="185" x2="575" y2="350"/>
@@ -523,15 +530,12 @@ const TUNER_SKINS = {
                 <rect x="574" y="185" width="2.5" height="165" fill="#ffd98a"/>
             </g>
             <!-- 브랜드 -->
-            <text x="1130" y="230" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="1" fill="#e8e2cf" text-anchor="middle">maranz<tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="400" fill="#4ac8c8" dx="14">Stereo</tspan><tspan dx="14" font-size="28">fm tuner</tspan><tspan dx="18" font-size="15" fill="#ff8a3a" letter-spacing="2">MODEL 10 B</tspan></text>
+            <text x="1130" y="230" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="1" fill="#e8e2cf" text-anchor="middle">marantz<tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="400" fill="#4ac8c8" dx="14">Stereo</tspan><tspan dx="14" font-size="28">fm tuner</tspan><tspan dx="18" font-size="15" fill="#ff8a3a" letter-spacing="2">MODEL 10 B</tspan></text>
             <!-- STEREO 표시창 + LOCK/BLEND 램프 -->
             <rect x="1450" y="196" width="130" height="44" rx="3" fill="#0d0808" stroke="#2a2a2e" stroke-width="1.5"/>
             <text id="tsLedStereo" data-on="#ff4a3a" data-off="#241012" x="1515" y="225" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="2.5" fill="#241012" text-anchor="middle">STEREO</text>
             <circle id="tsLedLock" data-on="#62e07a" data-off="#12300f" cx="1608" cy="207" r="6" fill="#12300f"/>
             <circle id="tsLedBlend" data-on="#ffb03a" data-off="#3a2a10" cx="1608" cy="230" r="6" fill="#3a2a10"/>
-            <!-- STATION 디지트 (윈도우 내 우측) -->
-            <text id="tsFreqGlow" x="1595" y="290" font-family="'Courier New', monospace" font-size="32" font-weight="700" fill="#200c08" text-anchor="end" filter="url(#mzGlow)">--.-</text>
-            <text id="tsFreq" x="1595" y="290" font-family="'Courier New', monospace" font-size="32" font-weight="700" fill="#3a1410" text-anchor="end">--.-</text>
             <!-- 주파수 스케일 -->
             <g class="dialScale" font-family="Georgia, 'Times New Roman', serif" font-size="30" fill="#e6dfc6" text-anchor="middle">
                 <text x="430" y="332">88</text><text x="545" y="332">90</text><text x="660" y="332">92</text><text x="775" y="332">94</text><text x="890" y="332">96</text><text x="1005" y="332">98</text><text x="1120" y="332">100</text><text x="1235" y="332">102</text><text x="1350" y="332">104</text><text x="1465" y="332">106</text><text x="1580" y="332">108</text>
@@ -587,7 +591,7 @@ const TUNER_SKINS = {
         </svg>`
     },
     tu9900: {
-        label: "Sansul TU-9900",
+        label: "Sansui TU-9900",
         cfg: {
             freq: { x88: 440, px: 56, drawX: 1000 },
             mark: { y: 186, h: 9, hOn: 15, color: "#9fd8ff", colorOn: "#ff5a3a" },
@@ -599,7 +603,7 @@ const TUNER_SKINS = {
             digit: { lit: "#ff3a26", glow: "#c8200f", dim: "#441410", dimGlow: "#280c08" },
             hits: { power: [40, 545, 270, 64], dial: [440, 74, 1130, 150], rec: [40, 116, 270, 48], blend: [40, 172, 270, 48], mode: [40, 228, 270, 48], mute: [40, 284, 270, 48], if: [40, 340, 270, 48], rf: [40, 396, 270, 48], knob: [1815, 310, 150] }
         },
-        svg: `<svg class="tuner-svg" viewBox="0 0 2000 660" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Sansul TU-9900 AM/FM Stereo Tuner">
+        svg: `<svg class="tuner-svg" viewBox="0 0 2000 660" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Sansui TU-9900 AM/FM Stereo Tuner">
             <defs>
                 <linearGradient id="suPanel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1b1f"/><stop offset="0.5" stop-color="#121215"/><stop offset="1" stop-color="#0b0b0d"/></linearGradient>
                 <linearGradient id="suDial" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16283c"/><stop offset="0.35" stop-color="#0c1626"/><stop offset="1" stop-color="#05070c"/></linearGradient>
@@ -619,7 +623,7 @@ const TUNER_SKINS = {
             <rect x="0" y="646" width="2000" height="14" fill="#000000" opacity="0.4"/>
             <!-- 상단 브랜드 스트립 -->
             <text x="310" y="34" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" letter-spacing="1.4" fill="#e8e8ec">TU-9900</text>
-            <text x="460" y="35" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="24" font-weight="700" fill="#f0f0f2">Sansul</text>
+            <text x="460" y="35" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="24" font-weight="700" fill="#f0f0f2">Sansui</text>
             <text x="1530" y="33" font-family="Arial, Helvetica, sans-serif" font-size="16" letter-spacing="1.5" fill="#c8c8d0">AM/FM Stereo Tuner</text>
             <!-- 좌측 레버 컬럼 -->
             <rect x="56" y="76" width="36" height="24" rx="3" fill="#26262c" stroke="#3a3a42"/><rect x="62" y="80" width="24" height="9" rx="2" fill="#55555c"/>
@@ -742,7 +746,8 @@ const TUNER_SKINS = {
     }
 };
 
-const SKIN_ORDER = ["t2", "mr78", "m10b", "tu9900"];
+// 실제 사진과 고유 조작계가 충분히 대응되는 세 모델만 공개한다.
+const SKIN_ORDER = ["t2", "mr78", "m10b"];
 
 // ----- 진공관 렌더러 — 클래식 관의 실물 구조를 그린다 -----
 // 유리 실루엣(직관형/벌룬형) + 내부 플레이트(양극)·마이카 디스크·게터 플래시(돔의 은거울면)
@@ -860,14 +865,14 @@ const AMP_MODELS = {
         drive: 1.05, k: 0.18, asym: 0.02, bass: [65, 1.2], lowMid: [220, 0.6, 0.75], mid: [900, 0.1, 1], presence: [3200, -0.3, 0.9], treble: [11000, 0.2], out: 0.94
     },
     el34: {
-        pill: "EL34 · 8B",
+        pill: "EL34 · 8B TRIBUTE",
         desc: "EL34 울트라리니어 푸시풀 — 3차 배음, 완만한 AB 클리핑과 중간 새그 (Marantz 8B 오마주)",
         vol: { cx: 690, cy: 406, r: 34 },
         drive: 2.2, k: 1.7, asym: 0.12, bass: [100, .4], lowMid: [320, .6, 0.8], mid: [1600, .7, 0.9], presence: [4000, -0.2, 1], treble: [8500, -.35], out: .92,
         circuit: AMP_CIRCUITS.el34PushPull
     },
     "300b": {
-        pill: "300B · 91E",
+        pill: "300B · 91E TRIBUTE",
         desc: "300B 싱글엔디드 클래스 A — 우세한 2차 배음, 비대칭 소프트 포화와 낮은 댐핑 (WE 91E 오마주)",
         vol: { cx: 880, cy: 420, r: 112 },
         drive: 2.8, k: 1.15, asym: 0.38, bass: [100, .3], lowMid: [300, .45, 0.72], mid: [800, .25, 0.8], presence: [3200, -.25, 0.9], treble: [7000, -.65], out: .90,
@@ -882,7 +887,7 @@ const AMP_MODELS = {
     }
 };
 
-AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="YAHAMA CA-100 솔리드스테이트 앰프">
+AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="YAMAHA CA-100 솔리드스테이트 앰프">
     <defs>
         <linearGradient id="caWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a32"/><stop offset="0.5" stop-color="#66401f"/><stop offset="1" stop-color="#472a15"/></linearGradient>
         <linearGradient id="caFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f4"/><stop offset="0.12" stop-color="#dcdee4"/><stop offset="0.5" stop-color="#c6c8d0"/><stop offset="0.82" stop-color="#b2b4bc"/><stop offset="1" stop-color="#9a9ca6"/></linearGradient>
@@ -906,7 +911,7 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
     <path d="M48 119H1952 M48 506H1952" stroke="url(#caEtch)" stroke-width="2" opacity=".58"/>
     <circle cx="92" cy="96" r="16" fill="none" stroke="#3a3a42" stroke-width="2"/>
     <path d="M86 89 L86 100 M92 86 L92 100 M98 89 L98 100 M86 100 Q92 106 98 100" stroke="#3a3a42" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-    <text x="124" y="105" font-family="Arial" font-size="26" font-weight="700" letter-spacing="1.5" fill="#26262c">YAHAMA</text>
+    <text x="124" y="105" font-family="Arial" font-size="26" font-weight="700" letter-spacing="1.5" fill="#26262c">YAMAHA</text>
     <text x="296" y="103" font-family="Arial" font-size="16.5" font-weight="650" letter-spacing="2.35" fill="#41454e">NATURAL SOUND STEREO AMPLIFIER CA-100</text>
     <g>
         <ellipse cx="268" cy="392" rx="180" ry="22" fill="url(#caShadow)"/>
@@ -1018,7 +1023,7 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
     <text x="1500" y="510" font-family="Arial" font-size="13.5" font-weight="650" letter-spacing="2" fill="#4f535d" text-anchor="middle">CLASS A / AB · DIRECT COUPLED · S/N CA100-0724</text>
 </svg>`;
 
-        AMP_MODELS.mc2105.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="McIntoch MC 2105 솔리드스테이트 앰프">
+        AMP_MODELS.mc2105.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="McIntosh MC 2105 솔리드스테이트 앰프">
     <defs>
         <linearGradient id="m5Glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22252b"/><stop offset="0.055" stop-color="#111318"/><stop offset="0.48" stop-color="#0a0c10"/><stop offset="0.86" stop-color="#050609"/><stop offset="1" stop-color="#020304"/></linearGradient>
         <linearGradient id="m5Rail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#454b55"/><stop offset="0.17" stop-color="#f2f4f8"/><stop offset="0.39" stop-color="#939aa6"/><stop offset="0.66" stop-color="#eff1f5"/><stop offset="1" stop-color="#4b515b"/></linearGradient>
@@ -1119,7 +1124,7 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
     <rect x="848" y="88" width="304" height="146" rx="6" fill="none" stroke="#3fe373" stroke-width="1" opacity=".22"/>
     <ellipse cx="1000" cy="164" rx="120" ry="58" fill="#35d96b" opacity=".055" filter="url(#m5GreenBloom)" pointer-events="none"/>
     <path d="M884 110H1116 M884 226H1116" stroke="#3fe373" stroke-width="1.2" opacity=".28"/>
-    <text class="ampLegend" x="1000" y="146" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="47" font-weight="700" fill="#4aee80" text-anchor="middle">McIntoch</text>
+    <text class="ampLegend" x="1000" y="146" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="47" font-weight="700" fill="#4aee80" text-anchor="middle">McIntosh</text>
     <text class="ampLegend" x="1000" y="188" font-family="Arial" font-size="20.5" font-weight="700" letter-spacing="7" fill="#43e979" text-anchor="middle">MC 2105</text>
     <text class="ampLegend" x="1000" y="215" font-family="Arial" font-size="12.5" font-weight="650" letter-spacing="2" fill="#35c865" text-anchor="middle">SOLID STATE POWER AMPLIFIER</text>
     <!-- 하단 컨트롤 행 -->
@@ -1155,7 +1160,7 @@ AMP_MODELS.tr.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://w
     <path d="M230 516H820 M1180 516H1770" stroke="#343a42" stroke-width="1.4"/><text class="ampLegend" x="1000" y="548" font-family="Arial" font-size="14" font-weight="650" letter-spacing="2.4" fill="#35c865" text-anchor="middle">105 WATTS PER CHANNEL · AUTOFORMER COUPLED · S/N 21-05-7841</text>
 </svg>`;
 
-AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Maranz 8B EL34 진공관 앰프">
+AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Marantz 8B Tribute EL34 진공관 앰프">
     <defs>
         <linearGradient id="m8Face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0e7cd"/><stop offset=".08" stop-color="#ded4b9"/><stop offset="0.5" stop-color="#c9bea0"/><stop offset=".84" stop-color="#aba185"/><stop offset="1" stop-color="#8f866f"/></linearGradient>
         <linearGradient id="m8Win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c1812"/><stop offset="1" stop-color="#0b0906"/></linearGradient>
@@ -1240,7 +1245,7 @@ AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http:/
     <path d="M662 400 A30 30 0 0 1 718 400" fill="none" stroke="#746b58" stroke-width="2.5" stroke-dasharray="1.4 4.5" opacity=".75"/>
     <rect x="866" y="368" width="268" height="76" rx="8" fill="#14120e"/>
     <rect x="869" y="371" width="262" height="70" rx="6" fill="none" stroke="#3a362c" stroke-width="1.4"/>
-    <text x="1000" y="418" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="34" font-weight="700" fill="#f0ecd8" text-anchor="middle">maranz</text>
+    <text x="1000" y="418" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="34" font-weight="700" fill="#f0ecd8" text-anchor="middle">marantz</text>
     <rect x="1190" y="354" width="506" height="94" rx="7" fill="url(#m8Plaque)" stroke="#8d8068" stroke-width="1.2" opacity=".72"/>
     <rect x="1196" y="360" width="494" height="82" rx="5" fill="none" stroke="#fff8e2" stroke-width="1" opacity=".34"/>
     <text x="1660" y="396" font-family="Arial" font-size="18.5" font-weight="700" letter-spacing="2.6" fill="#3f392f" text-anchor="end">MODEL 8B &#183; STEREO POWER AMPLIFIER</text>
@@ -1255,7 +1260,7 @@ AMP_MODELS.el34.svg = `<svg class="amp-svg" viewBox="0 0 2000 540" xmlns="http:/
     <text x="1540" y="514" font-family="Arial" font-size="13.5" font-weight="650" letter-spacing="2" fill="#554e42" text-anchor="middle">HAND-WIRED · SERIAL 8B-34018</text>
 </svg>`;
 
-AMP_MODELS["300b"].svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Western Eletric 91E 300B 앰프">
+AMP_MODELS["300b"].svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Western Electric 91E Tribute 300B 앰프">
     <defs>
         <linearGradient id="weFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eee8d8"/><stop offset=".08" stop-color="#dcd5c2"/><stop offset="0.5" stop-color="#c7bea7"/><stop offset=".84" stop-color="#a79e87"/><stop offset="1" stop-color="#8b826e"/></linearGradient>
         <linearGradient id="weWin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#191510"/><stop offset="1" stop-color="#0a0805"/></linearGradient>
@@ -1289,7 +1294,7 @@ AMP_MODELS["300b"].svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="htt
     <rect x="700" y="58" width="240" height="188" rx="5" fill="url(#weBrush)"/>
     <rect x="700" y="58" width="240" height="10" fill="#ffffff" opacity="0.25"/>
     <rect x="694" y="52" width="252" height="200" rx="8" fill="none" stroke="url(#weEdge)" stroke-width="3"/>
-    <text x="820" y="140" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="25" font-weight="700" fill="#4a4436" text-anchor="middle">Western Eletric</text>
+    <text x="820" y="140" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="25" font-weight="700" fill="#4a4436" text-anchor="middle">Western Electric</text>
     <text x="820" y="188" font-family="Arial" font-size="30" letter-spacing="7" fill="#847c66" text-anchor="middle">91E</text>
     ${tubeSvg(1300, 240, 96, 195, "balloon")}
     ${tubeSvg(1500, 240, 96, 195, "balloon")}
@@ -1337,7 +1342,7 @@ AMP_MODELS["300b"].svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="htt
     <rect x="426" y="327" width="188" height="3" fill="#04050a" opacity="0.55"/>
     <rect x="426" y="515" width="188" height="2.5" fill="#ffffff" opacity="0.09"/>
     <rect class="meterDark" x="428" y="330" width="184" height="184" rx="3" fill="#0d0a06" opacity="0.55"/>
-    <text x="520" y="510" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="12" fill="#8a2020" text-anchor="middle">Western Eletric</text>
+    <text x="520" y="510" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="12" fill="#8a2020" text-anchor="middle">Western Electric</text>
     <ellipse cx="880" cy="530" rx="120" ry="20" fill="url(#weShadow)"/>
     <circle cx="880" cy="424" r="108" fill="#7e765f"/>
     <circle cx="890.4" cy="438.7" r="106.1" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/><circle cx="880" cy="420" r="104" fill="url(#weKnob)" stroke="#a49d87" stroke-width="2"/><path d="M 805.1 368.0 A 91.5 91.5 0 0 1 892.5 330.6" stroke="#ffffff" stroke-width="6.2" opacity="0.3" fill="none" stroke-linecap="round" pointer-events="none"/>
@@ -1373,7 +1378,7 @@ AMP_MODELS["300b"].svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="htt
     <text x="1390" y="518" font-family="Arial" font-size="12" font-weight="650" letter-spacing="1.8" fill="#6d6454" text-anchor="middle">8 Ω OUTPUT · S/N 91E-0300B</text>
 </svg>`;
 
-AMP_MODELS.kt88.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="McIntoch 275 KT88 진공관 파워앰프">
+AMP_MODELS.kt88.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="McIntosh 275 KT88 진공관 파워앰프">
     <defs>
         <linearGradient id="mcChrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f7fa"/><stop offset="0.16" stop-color="#d2d6de"/><stop offset="0.34" stop-color="#9aa0ac"/><stop offset="0.5" stop-color="#6e7480"/><stop offset="0.6" stop-color="#9aa0ac"/><stop offset="0.82" stop-color="#d8dbe2"/><stop offset="1" stop-color="#848a96"/></linearGradient>
         <radialGradient id="mcChromeTop" cx=".34" cy=".28" r=".9"><stop offset="0" stop-color="#ffffff"/><stop offset=".32" stop-color="#d7dbe2"/><stop offset=".68" stop-color="#9197a2"/><stop offset="1" stop-color="#525762"/></radialGradient>
@@ -1414,7 +1419,7 @@ AMP_MODELS.kt88.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http:/
         <rect x="1478" y="352" width="384" height="150" rx="12" fill="#000000" opacity="0.3" transform="translate(6,8)"/>
         <rect x="1478" y="352" width="384" height="150" rx="12" fill="url(#mcGold)" stroke="#6e5420" stroke-width="2.5"/>
         <rect x="1484" y="358" width="372" height="138" rx="9" fill="none" stroke="#f6e2a8" stroke-width="1.5" opacity="0.8"/>
-        <text x="1670" y="418" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="44" font-weight="700" fill="#1a1206" text-anchor="middle">McIntoch</text>
+        <text x="1670" y="418" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="44" font-weight="700" fill="#1a1206" text-anchor="middle">McIntosh</text>
         <text x="1670" y="472" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="700" letter-spacing="12" fill="#1a1206" text-anchor="middle">275</text>
         <path d="M1510 380H1830 M1510 482H1830" stroke="#fff1b8" stroke-width="1" opacity=".45"/>
     </g>
@@ -1440,4 +1445,4 @@ AMP_MODELS.kt88.svg = `<svg class="amp-svg" viewBox="0 0 2000 560" xmlns="http:/
     </g>
     <text x="980" y="512" font-family="Arial" font-size="12" font-weight="650" letter-spacing="2" fill="#555b65" text-anchor="middle">BIAS MONITOR · S/N MC275-2188</text>
 </svg>`;
-const AMP_ORDER = ["tr", "mc2105", "el34", "300b", "kt88"];
+const AMP_ORDER = ["mc2105", "el34", "300b"];

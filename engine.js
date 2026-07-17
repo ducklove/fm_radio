@@ -132,15 +132,9 @@ let tsSelectivity = 0;
 const TUNER_VOICE = {
     t2: { low: 0, high: 0 },              // 기준기 — 무색
     mr78: { low: 0.5, high: -0.6 },       // 어두운 정숙
-    m10b: { low: 1.2, high: -0.9 },       // 진공관 온기
-    tu9900: { low: -0.4, high: 0.8 },     // 차고 깨끗한 상단
-    tx9500: { low: 0.4, high: 0.3 },      // 씩씩한 중저역
-    t110: { low: 0.8, high: -0.3 },       // 부드러운 중역
-    t100: { low: 0, high: 0.6 },          // 빠르고 개방적
-    b760: { low: 0, high: 0 }             // 신시사이저식 무결점
+    m10b: { low: 1.2, high: -0.9 }        // 진공관 온기
 };
 const TT_VOICE = {
-    pl12: { low: 0.4, high: -0.4 },       // 입문 벨트의 순함
     sl1200: { low: 0, high: 0 },          // 쿼츠 DD — 중립
     td124: { low: 1.0, high: -0.6 },      // 아이들러의 도톰함
     g301: { low: 1.4, high: -0.4 },       // 방송국 모터의 박력
@@ -171,7 +165,7 @@ function applySourceVoice() {
 
 function applyBlend() {
     // 하이블렌드: 고음을 깎아 약전계 잡음을 줄이는 효과 (MSE 경로에서만 실제 적용)
-    // 선택도(MR-78)와 블렌드 중 더 좁은 쪽이 이긴다 — 같은 로우패스 필터를 공유한다
+    // MR78의 NORMAL/NARROW/SUPER NARROW와 블렌드 중 더 좁은 쪽이 이긴다.
     if (!blendFilter) return;
     const selCap = tsSelectivity === 2 ? 10500 : tsSelectivity === 1 ? 15000 : 20000;
     blendFilter.frequency.value = Math.min(blendOn ? 5000 : 20000, selCap);
@@ -231,15 +225,7 @@ function buildEqChain() {
     });
     let head = monoGain;
     eqNodes.forEach((b) => { head = head.connect(b); });
-    // GE-10C SIGNATURE — 출력단 버퍼 새추레이션: 통과만 해도 미세한 배음 윤기 (DEFEAT 시 무색)
-    if (eqModelId === "ge10chrome") {
-        eqBufferShaper = audioCtx.createWaveShaper();
-        eqBufferShaper.oversample = "2x";
-        eqBufferShaper.curve = eqState.on ? eqBufferCurve() : null;
-        head = head.connect(eqBufferShaper);
-    } else {
-        eqBufferShaper = null;
-    }
+    eqBufferShaper = null;
     head.connect(ampDrive);
     if (crackleGain) crackleGain.connect(eqNodes[0]);
     if (scratchGain) scratchGain.connect(eqNodes[0]);

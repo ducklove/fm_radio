@@ -4,14 +4,15 @@ const { chromium } = require("playwright");
 
 const BASE = process.env.MFA_CAPTURE_BASE || "http://127.0.0.1:8147/";
 const runtimeScale = process.argv.includes("--runtime");
-const OUT = runtimeScale ? "/tmp/mfa-svg-eval-runtime" : "/tmp/mfa-svg-eval";
+const OUT = process.env.MFA_CAPTURE_OUT || (runtimeScale ? "/tmp/mfa-svg-eval-runtime" : "/tmp/mfa-svg-eval");
+const ONLY_GROUP = process.env.MFA_CAPTURE_GROUP || "";
 
 const groups = {
-    tuner: ["t2", "mr78", "m10b", "tu9900", "tx9500", "t110", "t100", "b760"],
-    eq: ["ge5", "ge10", "ge10silver", "ge10chrome"],
-    amp: ["tr", "mc2105", "el34", "300b", "kt88", "sa9900", "au111", "l550", "e303", "ma2375"],
-    deck: ["dragon", "b215", "tcd3014", "tcka7es", "ctf1250", "w990"],
-    turntable: ["pl12", "sl1200", "td124", "g301", "lp12"],
+    tuner: ["t2", "mr78", "m10b"],
+    eq: ["ge5", "se9"],
+    amp: ["mc2105", "el34", "300b", "e303", "ma2375"],
+    deck: ["dragon", "b215", "tcd3014", "ctf1250", "w990"],
+    turntable: ["sl1200", "td124", "g301", "lp12"],
 };
 
 const selectors = {
@@ -40,7 +41,10 @@ async function forcePoweredAppearance(page, selector) {
         const svg = document.querySelector(sel);
         if (!svg) return;
         svg.querySelectorAll(".lzPowerDim, .meterDark").forEach((el) => { el.style.opacity = "0"; });
-        svg.querySelectorAll(".lampGlow, .ampLamp, .ampLegend, .dialScale").forEach((el) => { el.style.opacity = "1"; });
+        svg.querySelectorAll(".lampGlow").forEach((el) => { el.style.opacity = el.dataset.lzOn || ".44"; });
+        svg.querySelectorAll(".ampLamp").forEach((el) => { el.style.opacity = el.dataset.lzOn || ".68"; });
+        svg.querySelectorAll(".ampLegend").forEach((el) => { el.style.opacity = el.dataset.lzOn || ".92"; });
+        svg.querySelectorAll(".dialScale").forEach((el) => { el.style.opacity = ".95"; });
         svg.querySelectorAll("#tsFreq, #tsFreqGlow").forEach((el) => { el.style.opacity = "1"; });
     }, selector);
 }
@@ -62,7 +66,7 @@ async function forcePoweredAppearance(page, selector) {
         localStorage.setItem("fmRadio.coachDone", "true");
         localStorage.setItem("fmRadio.lastStation", JSON.stringify("kbs1fm"));
         localStorage.setItem("fmRadio.units", JSON.stringify({ tuner: true, eq: true, amp: true, deck: true, tt: true }));
-        localStorage.setItem("fmRadio.eq", JSON.stringify({ on: true, model: "ge10", gains: {} }));
+        localStorage.setItem("fmRadio.eq", JSON.stringify({ on: true, model: "ge5", gains: {} }));
         localStorage.setItem("fmRadio.record", JSON.stringify(0));
     });
     await page.goto(BASE + "index.html", { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -82,6 +86,7 @@ async function forcePoweredAppearance(page, selector) {
     }, !runtimeScale);
 
     for (const [group, ids] of Object.entries(groups)) {
+        if (ONLY_GROUP && group !== ONLY_GROUP) continue;
         for (let index = 0; index < ids.length; index += 1) {
             const id = ids[index];
             if (group === "tuner") {

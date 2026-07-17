@@ -134,7 +134,7 @@ function tsFreqToX(f) {
 }
 
 function tunerSetStation(station) {
-    if (!tsFreq) return;
+    if (!tunerCfg || !tsDialPtr) return;
     // 슬라이더 역할(다이얼·노브)의 현재값을 주파수로 노출
     ["tsDialHit", "tsKnobHit"].forEach((id) => {
         const el = document.getElementById(id);
@@ -143,18 +143,22 @@ function tunerSetStation(station) {
     const d = tunerCfg.digit;
     if (station) {
         const txt = station.freq.toFixed(1);
-        tsFreq.textContent = txt;
-        tsFreqGlow.textContent = txt;
-        tsFreq.style.fill = d.lit;
-        tsFreqGlow.style.fill = d.glow;
+        if (tsFreq && tsFreqGlow) {
+            tsFreq.textContent = txt;
+            tsFreqGlow.textContent = txt;
+            tsFreq.style.fill = d.lit;
+            tsFreqGlow.style.fill = d.glow;
+        }
         tsDialPtr.setAttribute("transform", "translate(" + (tsFreqToX(station.freq) - tunerCfg.freq.drawX).toFixed(1) + ",0)");
         tunerKnobAngle(station.freq);
         highlightStationMark(station.id);
     } else {
-        tsFreq.textContent = "--.-";
-        tsFreqGlow.textContent = "--.-";
-        tsFreq.style.fill = d.dim;
-        tsFreqGlow.style.fill = d.dimGlow;
+        if (tsFreq && tsFreqGlow) {
+            tsFreq.textContent = "--.-";
+            tsFreqGlow.textContent = "--.-";
+            tsFreq.style.fill = d.dim;
+            tsFreqGlow.style.fill = d.dimGlow;
+        }
         tsDialPtr.setAttribute("transform", "translate(" + (tsFreqToX(88) - tunerCfg.freq.drawX).toFixed(1) + ",0)");
         tunerKnobAngle(98);
         highlightStationMark(null);
@@ -210,10 +214,12 @@ function tunerPreview(freq) {
     const d = tunerCfg.digit;
     tsDialPtr.setAttribute("transform", "translate(" + (tsFreqToX(freq) - tunerCfg.freq.drawX).toFixed(1) + ",0)");
     const txt = freq.toFixed(1);
-    tsFreq.textContent = txt;
-    tsFreqGlow.textContent = txt;
-    tsFreq.style.fill = d.lit;
-    tsFreqGlow.style.fill = d.glow;
+    if (tsFreq && tsFreqGlow) {
+        tsFreq.textContent = txt;
+        tsFreqGlow.textContent = txt;
+        tsFreq.style.fill = d.lit;
+        tsFreqGlow.style.fill = d.glow;
+    }
     tunerKnobAngle(freq);
     // 105.2 부근(이스터에그 창)에서는 근접국을 발설하지 않는다 — 잡음뿐인 척
     if (Math.abs(freq - 105.2) < 0.25) {
@@ -276,12 +282,17 @@ function tunerLoop(now) {
     } else {
         tsTunePtr.setAttribute("transform", "translate(" + (tsTune * tunerCfg.tune.travel).toFixed(1) + ",0)");
     }
+    // MR78 MULTIPATH 미터: 정확히 동조되면 왼쪽, 이탈·다중경로가 커지면 오른쪽으로 움직인다.
+    if (tsMultipathPtr) {
+        const amount = Math.max(0, Math.min(1, Math.abs(tsTune)));
+        tsMultipathPtr.setAttribute("transform", "rotate(" + (-35 + amount * 70).toFixed(1) + " 190 347)");
+    }
     tsSyncPanel();
 }
 
 
 function tsSyncPanel() {
-    if (!tunerCfg || !tsFreq) return;
+    if (!tunerCfg) return;
     const recOn = !!recorder;
     const timerOn = sleepIndex > 0;
     const listOpen = !document.getElementById("stationMain").classList.contains("collapsed");
@@ -321,91 +332,18 @@ function tsSyncPanel() {
     setLed("tsLedBlend", blendOn);
 }
 
-// ----- 조작 바인딩 (스킨 마운트마다 다시 연결) -----
-// REVOX B760 — 방송국 프리셋 1–8. 신시사이저 튜너의 존재 이유.
-// 짧게 누르면 호출, 길게(0.6초) 누르면 현재 국 저장. localStorage 영속.
-let tunerPresets = loadJson("fmRadio.tunerPresets", {});
-
-function mountB760Presets() {
-    if (tunerSkinId !== "b760" || !tunerSvgEl || tunerSvgEl.querySelector("#tsPresetG")) return;
-    const g = document.createElementNS(SVG_NS, "g");
-    g.setAttribute("id", "tsPresetG");
-    let html = '<text x="1484" y="242" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.4" fill="#75a98c">STATION MEMORY &#183; HOLD</text>';
-    for (let i = 1; i <= 8; i++) {
-        const x = 1484 + ((i - 1) % 2) * 92;
-        const y = 250 + Math.floor((i - 1) / 2) * 34;
-        html += '<g id="tsPreset' + i + '" role="button" tabindex="0" aria-label="프리셋 ' + i + ' — 짧게 호출, 길게 저장" style="cursor:pointer">' +
-            '<title>프리셋 ' + i + ' — 짧게 누르면 호출, 길게 누르면 현재 채널 저장</title>' +
-            '<rect x="' + x + '" y="' + y + '" width="82" height="28" rx="3" fill="#111519" stroke="#41584b" stroke-width="1.3"/>' +
-            '<path d="M' + (x + 4) + ' ' + (y + 4) + ' H' + (x + 78) + '" stroke="#fff" stroke-width="1" opacity=".13" pointer-events="none"/>' +
-            '<circle id="tsPresetLed' + i + '" cx="' + (x + 10) + '" cy="' + (y + 9) + '" r="3" fill="#1c3527" pointer-events="none"/>' +
-            '<text x="' + (x + 27) + '" y="' + (y + 20) + '" font-family="Arial" font-size="14" font-weight="700" fill="#9fe8bd" text-anchor="middle" pointer-events="none">' + i + '</text>' +
-            '<text id="tsPresetFreq' + i + '" x="' + (x + 58) + '" y="' + (y + 19) + '" font-family="Arial" font-size="10" font-weight="700" fill="#75a98c" text-anchor="middle" pointer-events="none"></text></g>';
-    }
-    g.innerHTML = html;
-    tunerSvgEl.appendChild(g);
-    const paint = () => {
-        for (let i = 1; i <= 8; i++) {
-            const st = stations.find((x) => x.id === tunerPresets[i]);
-            const led = document.getElementById("tsPresetLed" + i);
-            const fq = document.getElementById("tsPresetFreq" + i);
-            if (led) led.style.fill = st ? "#54d18a" : "#1c3527";
-            if (fq) fq.textContent = st ? st.freq.toFixed(1) : "";
-        }
-    };
-    for (let i = 1; i <= 8; i++) {
-        const key = document.getElementById("tsPreset" + i);
-        let downAt = 0, timer = 0;
-        const store = () => {
-            if (!currentStation) {
-                playerSubtext.textContent = "저장할 채널이 없습니다 — 먼저 선국하세요.";
-                return;
-            }
-            tunerPresets[i] = currentStation.id;
-            saveJson("fmRadio.tunerPresets", tunerPresets);
-            paint();
-            playerSubtext.textContent = "프리셋 " + i + " ← " + currentStation.name + " (" + currentStation.freq.toFixed(1) + "MHz) 저장";
-        };
-        const recall = () => {
-            const st = stations.find((x) => x.id === tunerPresets[i]);
-            if (!st) {
-                playerSubtext.textContent = "프리셋 " + i + "은 비어 있습니다 — 길게 누르면 현재 채널이 저장됩니다.";
-                return;
-            }
-            selectStation(st.id);
-            playerSubtext.textContent = "프리셋 " + i + " — " + st.name + " (" + st.freq.toFixed(1) + "MHz)";
-        };
-        key.addEventListener("pointerdown", (e) => {
-            downAt = Date.now();
-            timer = setTimeout(store, 600);
-            try { key.setPointerCapture(e.pointerId); } catch (err) {}
-            e.preventDefault();
-        });
-        key.addEventListener("pointerup", () => {
-            clearTimeout(timer);
-            if (Date.now() - downAt < 600) recall();
-        });
-        key.addEventListener("pointercancel", () => clearTimeout(timer));
-        key.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); recall(); }
-            if (e.key.toLowerCase() === "s") { e.preventDefault(); store(); }
-        });
-    }
-    paint();
-}
-
-// MR-78 가변 선택도 — SELECTIVITY 노브 아래 3단 세그먼트 (WIDE/NORM/NARROW).
-// NARROW는 고역을 접는 대신 정숙해진다 (약전계·이스터에그에서 진가). DSP는 Chromium 한정.
+// MR78 실기의 3단 SELECTIVITY: NORMAL / NARROW / SUPER NARROW.
+// 단계가 좁아질수록 고역 대역폭을 접는 대신 약전계·인접국 잡음을 줄인다. DSP는 Chromium 한정.
 function mountMr78Selectivity() {
     if (tunerSkinId !== "mr78" || !tunerSvgEl || tunerSvgEl.querySelector("#tsSelG")) return;
     const g = document.createElementNS(SVG_NS, "g");
     g.setAttribute("id", "tsSelG");
     g.setAttribute("role", "button");
     g.setAttribute("tabindex", "0");
-    g.setAttribute("aria-label", "가변 선택도 — WIDE / NORMAL / NARROW");
+    g.setAttribute("aria-label", "가변 선택도 — NORMAL / NARROW / SUPER NARROW");
     g.setAttribute("style", "cursor:pointer");
-    const SEL_LBL = ["WIDE", "NORM", "NARROW"];
-    g.innerHTML = '<title>SELECTIVITY — 누를 때마다 WIDE · NORMAL · NARROW</title>' +
+    const SEL_LBL = ["NORM", "NAR", "SUPER"];
+    g.innerHTML = '<title>SELECTIVITY — 누를 때마다 NORMAL · NARROW · SUPER NARROW</title>' +
         '<rect x="312" y="556" width="136" height="26" rx="5" fill="#0d1210" stroke="#31473b" stroke-width="1.4"/>' +
         SEL_LBL.map((t, i) =>
             '<rect id="tsSelSeg' + i + '" x="' + (315 + i * 44.5) + '" y="559" width="41.5" height="20" rx="3" fill="#14201a"/>' +
@@ -422,7 +360,7 @@ function mountMr78Selectivity() {
         tsSelectivity = (tsSelectivity + 1) % 3;
         applyBlend();
         paint();
-        playerSubtext.textContent = "선택도: " + ["WIDE — 개방적, 히스도 그대로", "NORMAL — 균형", "NARROW — 어둡지만 정숙 (약전계 유리)"][tsSelectivity];
+        playerSubtext.textContent = "선택도: " + ["NORMAL — 저왜율·넓은 대역", "NARROW — 인접국 간섭 저감", "SUPER NARROW — 가장 높은 선택도 (약전계 유리)"][tsSelectivity];
     };
     g.addEventListener("click", cycle);
     g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); cycle(); } });
@@ -522,7 +460,7 @@ function bindTunerControls() {
 }
 
 function initTunerSkin(id) {
-    if (!TUNER_SKINS[id]) id = "t2";
+    if (!SKIN_ORDER.includes(id)) id = "mr78";
     tunerSkinId = id;
     const skin = TUNER_SKINS[id];
     tunerCfg = skin.cfg;
@@ -537,6 +475,7 @@ function initTunerSkin(id) {
     tsTunePtr = document.getElementById("tsTunePtr");
     tsKnob = document.getElementById("tsKnob");
     tsStationMarks = document.getElementById("tsStationMarks");
+    tsMultipathPtr = document.getElementById("tsMultipathPtr");
     if (tsStationMarks) tsStationMarks.setAttribute("class", "dialScale");
 
     // 히트 영역 생성 (cfg 좌표 기반, 투명)
@@ -583,7 +522,6 @@ function initTunerSkin(id) {
     kc.appendChild(kt);
     tunerSvgEl.appendChild(kc);
     mountMr78Selectivity();
-    mountB760Presets();
 
     // 방송국 마커 생성
     const m = tunerCfg.mark;
@@ -656,29 +594,20 @@ const EQ_THEMES = {
     chrome: { top: "#fff9e9", mid: "#ccb985", bot: "#6d5a38", ear: "#796640", fieldA: "#17140e", fieldB: "#2a2418", edge: "#ead8a5", grid: "#897b5d", fieldInk: "#f8e9be", fieldMuted: "#bba978", ink: "#201b12", sub: "#423721", muted: "#615336", slot: "#070604", cap: "url(#eqCapGold)", capTop: "#fff5d4", mark: "#403318", ledOff: "#27251b" }
 };
 const EQ_MODELS = {
-    ge5: { pill: "GE-5 · 5밴드", name: "GE-5", theme: "black", series: "WIDE RANGE", architecture: "wide", q: 1.0, capW: 64,
-        freqs: [60, 250, 1000, 4000, 12000],
-        labels: ["60", "250", "1k", "4k", "12k"],
-        xs: [800, 1030, 1260, 1490, 1720] },
-    ge10: { pill: "GE-10 · 10밴드", name: "GE-10", theme: "black", series: "STUDIO MONITOR", architecture: "studio", q: 1.4, capW: 46,
-        freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
-        labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
+    // GE-5 실기는 30Hz–16kHz 10밴드, ±10dB다. 이전의 가상 GE-10/S/C와
+    // 5밴드 변형을 이 실제 구조 하나로 통합한다.
+    ge5: { pill: "YAMAHA GE-5 · 10밴드", name: "GE-5", theme: "black", series: "NATURAL SOUND", architecture: "yamaha", q: 1.35, capW: 46, range: 10,
+        freqs: [30, 60, 120, 250, 500, 1000, 2000, 4000, 8000, 16000],
+        labels: ["30", "60", "120", "250", "500", "1k", "2k", "4k", "8k", "16k"],
         xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] },
-    ge10silver: { pill: "SILVER · 10밴드", name: "GE-10S", theme: "silver", series: "PRECISION SERIES", architecture: "precision", q: 1.4, capW: 46,
-        freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
-        labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
-        xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] },
-    ge10chrome: { pill: "CHAMPAGNE · 10밴드", name: "GE-10C", theme: "chrome", series: "SIGNATURE SERIES", architecture: "signature", q: 1.4, capW: 46,
-        freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
-        labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
-        xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] },
-    // 메모리 EQ — 팩토리 프리셋·유저 슬롯·A/B 비교가 존재 이유 (Sansui SE-9/Technics SH-8058 오마주)
-    se9: { pill: "SE-9 · 메모리", name: "SE-9", brand: "SANSUI", theme: "black", series: "COMPUTER MEMORY", architecture: "memory", q: 1.4, capW: 46,
-        freqs: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
-        labels: ["31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"],
-        xs: [755, 880, 1005, 1130, 1255, 1380, 1505, 1630, 1755, 1880] }
+    // SE-9 실기: 8밴드×L/R, 모터 구동, 4메모리, 측정 마이크 기반 자동 보정.
+    // 오디오 체인은 L/R 링크로 동작하지만 전면에는 쌍 슬라이더를 그대로 묘사한다.
+    se9: { pill: "SANSUI SE-9 · COMPU EQ", name: "SE-9", brand: "SANSUI", theme: "black", series: "COMPU-EQUALIZER", architecture: "memory", q: 1.25, capW: 31, range: 12, dualChannel: true,
+        freqs: [80, 160, 315, 630, 1250, 2500, 5000, 10000],
+        labels: ["80", "160", "315", "630", "1.25k", "2.5k", "5k", "10k"],
+        xs: [780, 935, 1090, 1245, 1400, 1555, 1710, 1865] }
 };
-const EQ_ORDER = ["ge5", "ge10", "ge10silver", "ge10chrome", "se9"];
+const EQ_ORDER = ["ge5", "se9"];
 
 // ----- EQ 프리셋 — 커브는 (Hz, dB) 포인트로 선언하고 현재 모델 밴드로 리샘플한다 -----
 // 5밴드(GE-5)에서도 10밴드에서도 같은 프리셋이 동작하고, 슬롯도 모델을 넘나든다.
@@ -709,7 +638,8 @@ function eqCurveSample(pts, f) {
 }
 
 function eqResample(pts) {
-    return EQ_FREQS.map((f) => Math.max(-12, Math.min(12, Math.round(eqCurveSample(pts, f) * 2) / 2)));
+    const range = (EQ_MODELS[eqModelId] && EQ_MODELS[eqModelId].range) || 12;
+    return EQ_FREQS.map((f) => Math.max(-range, Math.min(range, Math.round(eqCurveSample(pts, f) * 2) / 2)));
 }
 
 function eqCurPts() {
@@ -721,15 +651,39 @@ const EQ_VB_H = 400;
 let EQ_FREQS = [], EQ_LABELS = [], EQ_X = [], EQ_CAPW = 60;
 
 const eqSaved = loadJson("fmRadio.eq", null);
-let eqModelId = (eqSaved && EQ_MODELS[eqSaved.model]) ? eqSaved.model : "ge10";
+const EQ_MODEL_MIGRATION = { ge10: "ge5", ge10silver: "ge5", ge10chrome: "ge5" };
+const eqSavedModel = eqSaved && (EQ_MODEL_MIGRATION[eqSaved.model] || eqSaved.model);
+let eqModelId = EQ_ORDER.includes(eqSavedModel) ? eqSavedModel : "ge5";
 let eqState = { on: !eqSaved || eqSaved.on !== false, gains: {} };
+const EQ_LEGACY_FREQS = {
+    ge5: [60, 250, 1000, 4000, 12000],
+    ge10: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    ge10silver: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    ge10chrome: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    se9: [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+};
+function eqSavedGainsFor(id) {
+    if (!eqSaved || !eqSaved.gains) return null;
+    const sources = id === "ge5" ? ["ge5", "ge10", "ge10silver", "ge10chrome"] : [id];
+    const target = EQ_MODELS[id].freqs;
+    for (const source of sources) {
+        const values = Array.isArray(eqSaved.gains[source]) ? eqSaved.gains[source]
+            : (source === "ge5" && Array.isArray(eqSaved.gains) ? eqSaved.gains : null);
+        if (!values || !values.length) continue;
+        if (values.length === target.length) return values.slice();
+        const legacyFreqs = EQ_LEGACY_FREQS[source];
+        if (legacyFreqs && legacyFreqs.length === values.length) {
+            const pts = legacyFreqs.map((f, i) => [f, Number(values[i]) || 0]);
+            return target.map((f) => Math.round(eqCurveSample(pts, f) * 2) / 2);
+        }
+    }
+    return null;
+}
 EQ_ORDER.forEach((k) => {
     const n = EQ_MODELS[k].freqs.length;
-    const saved = eqSaved && eqSaved.gains && Array.isArray(eqSaved.gains[k]) && eqSaved.gains[k].length === n ? eqSaved.gains[k] : null;
+    const saved = eqSavedGainsFor(k);
     eqState.gains[k] = saved || new Array(n).fill(0);
 });
-// 구버전(단일 배열) 마이그레이션
-if (eqSaved && Array.isArray(eqSaved.gains) && eqSaved.gains.length === 5) eqState.gains.ge5 = eqSaved.gains;
 
 function eqApplyModelCfg() {
     const m = EQ_MODELS[eqModelId];
@@ -819,7 +773,7 @@ function eqSlotPress(slot) {
 
 
 function setEqModel(id) {
-    if (!EQ_MODELS[id] || id === eqModelId) return;
+    if (!EQ_ORDER.includes(id) || id === eqModelId) return;
     eqModelId = id;
     eqApplyModelCfg();
     buildEqChain();
@@ -900,8 +854,11 @@ function renderSinglePicker(elId, key, label) {
     el.appendChild(hidePill(key));
 }
 
-let ttModelId = loadJson("fmRadio.turntable", "pl12");
-if (!TT_MODELS[ttModelId]) ttModelId = "pl12";
+const TT_MODEL_MIGRATION = { pl12: "sl1200" };
+let ttModelId = loadJson("fmRadio.turntable", "sl1200");
+ttModelId = TT_MODEL_MIGRATION[ttModelId] || ttModelId;
+if (!TT_ORDER.includes(ttModelId)) ttModelId = "sl1200";
+saveJson("fmRadio.turntable", ttModelId);
 
 function renderDeckPicker() {
     const el = document.getElementById("deckPicker");
@@ -1077,7 +1034,8 @@ function timerPaint() {
 }
 
 function eqGainToY(g) {
-    return EQ_TOP + (12 - g) / 24 * (EQ_BOT - EQ_TOP);
+    const range = (EQ_MODELS[eqModelId] && EQ_MODELS[eqModelId].range) || 12;
+    return EQ_TOP + (range - g) / (range * 2) * (EQ_BOT - EQ_TOP);
 }
 
 function mountEq() {
@@ -1086,6 +1044,9 @@ function mountEq() {
     const chrome = model.theme === "chrome";
     const silver = model.theme === "silver";
     const isFive = model.architecture === "wide";
+    const dualChannel = !!model.dualChannel;
+    const range = model.range || 12;
+    const halfRange = range / 2;
     const fieldX = isFive ? 620 : 650;
     const fieldW = isFive ? 1320 : 1290;
     const fieldR = fieldX + fieldW;
@@ -1093,11 +1054,11 @@ function mountEq() {
 
     // 눈금은 실제 랙 폭에서도 읽히도록 주요 값의 대비와 굵기를 높인다.
     let grid = "";
-    [-12, -9, -6, -3, 0, 3, 6, 9, 12].forEach((g) => {
+    Array.from({ length: 9 }, (_, i) => -range + i * range / 4).forEach((g) => {
         const y = eqGainToY(g);
         grid += '<line x1="' + (fieldX + 58) + '" y1="' + y + '" x2="' + (fieldR - 24) + '" y2="' + y + '" stroke="' + (g === 0 ? theme.fieldInk : theme.grid) + '" stroke-width="' + (g === 0 ? 2.4 : 1) + '" opacity="' + (g === 0 ? 0.78 : 0.34) + '"/>';
     });
-    const bandW = isFive ? 170 : 92;
+    const bandW = isFive ? 170 : dualChannel ? 132 : 92;
     const wideBandNames = ["SUB BASS", "LOW", "MID", "PRESENCE", "AIR"];
     const wideBandRanges = ["20–120", "120–500", "0.5–2k", "2–8k", "8–20k"];
     const bandFrames = EQ_X.map((x, i) => {
@@ -1118,22 +1079,26 @@ function mountEq() {
         const ledW = isFive ? 11 : 8;
         const spectrum = Array.from({ length: 8 }, (_, j) => {
             const on = j >= 6 ? "#f05a3a" : j >= 4 ? "#e4b33f" : "#54d18a";
-            return '<rect id="eqBandLvl' + i + '_' + j + '" data-on="' + on + '" data-off="' + theme.ledOff + '" x="' + (x + hw + 10) + '" y="' + (292 - j * 23) + '" width="' + ledW + '" height="15" rx="2.5" fill="' + theme.ledOff + '" stroke="#000" stroke-opacity=".38"/>';
+            return '<rect id="eqBandLvl' + i + '_' + j + '" data-on="' + on + '" data-off="' + theme.ledOff + '" x="' + (x + (dualChannel ? 49 : hw + 10)) + '" y="' + (292 - j * 23) + '" width="' + ledW + '" height="15" rx="2.5" fill="' + theme.ledOff + '" stroke="#000" stroke-opacity=".38"/>';
         }).join("");
-        return '<rect x="' + (x - 13) + '" y="' + (EQ_TOP - 11) + '" width="26" height="' + (EQ_BOT - EQ_TOP + 22) + '" rx="13" fill="#000" opacity=".42" filter="url(#eqSlotShadow)"/>' +
-            '<rect x="' + (x - 7) + '" y="' + (EQ_TOP - 8) + '" width="14" height="' + (EQ_BOT - EQ_TOP + 16) + '" rx="7" fill="url(#eqSlot)" stroke="' + theme.edge + '" stroke-width="1.3"/>' +
-            '<line x1="' + x + '" y1="' + (EQ_TOP - 2) + '" x2="' + x + '" y2="' + (EQ_BOT + 2) + '" stroke="#000" stroke-width="2" opacity=".75"/>' +
+        const slotXs = dualChannel ? [x - 20, x + 20] : [x];
+        const slots = slotXs.map((sx) => '<rect x="' + (sx - 10) + '" y="' + (EQ_TOP - 11) + '" width="20" height="' + (EQ_BOT - EQ_TOP + 22) + '" rx="10" fill="#000" opacity=".46" filter="url(#eqSlotShadow)"/>' +
+            '<rect x="' + (sx - 5) + '" y="' + (EQ_TOP - 8) + '" width="10" height="' + (EQ_BOT - EQ_TOP + 16) + '" rx="5" fill="url(#eqSlot)" stroke="' + theme.edge + '" stroke-width="1.1"/>' +
+            '<line x1="' + sx + '" y1="' + (EQ_TOP - 2) + '" x2="' + sx + '" y2="' + (EQ_BOT + 2) + '" stroke="#000" stroke-width="1.6" opacity=".78"/>').join("");
+        const capAt = (cx, channel) => '<rect x="' + (cx - hw) + '" y="-19" width="' + EQ_CAPW + '" height="38" rx="5" fill="' + theme.cap + '" stroke="#08090b" stroke-width="1.6"/>' +
+            '<rect x="' + (cx - hw + 3) + '" y="-16" width="' + (EQ_CAPW - 6) + '" height="9" rx="3" fill="' + theme.capTop + '" opacity=".72"/>' +
+            '<path d="M' + (cx - hw + 4) + ' -12 H' + (cx + hw - 4) + '" stroke="#fff" stroke-width="1.2" opacity=".35"/>' +
+            '<rect x="' + (cx - hw + 3) + '" y="-3" width="' + (EQ_CAPW - 6) + '" height="6" rx="2" fill="' + theme.mark + '"/>' +
+            (dualChannel ? '<text x="' + cx + '" y="14" font-family="Arial" font-size="7" font-weight="700" fill="' + theme.fieldInk + '" text-anchor="middle">' + channel + '</text>' : '');
+        const caps = dualChannel ? capAt(x - 20, 'L') + capAt(x + 20, 'R') : capAt(x, '');
+        return slots +
             spectrum +
             '<g id="eqH' + i + '" filter="url(#eqHandleShadow)">' +
-            '<rect x="' + (x - hw) + '" y="-19" width="' + EQ_CAPW + '" height="38" rx="6" fill="' + theme.cap + '" stroke="' + (chrome ? '#5f4e2e' : '#08090b') + '" stroke-width="1.8"/>' +
-            '<rect x="' + (x - hw + 3) + '" y="-16" width="' + (EQ_CAPW - 6) + '" height="9" rx="3" fill="' + theme.capTop + '" opacity=".72"/>' +
-            '<path d="M' + (x - hw + 5) + ' -12 H' + (x + hw - 5) + '" stroke="#fff" stroke-width="1.4" opacity=".35"/>' +
-            '<rect x="' + (x - hw + 3) + '" y="-3" width="' + (EQ_CAPW - 6) + '" height="6" rx="2" fill="' + theme.mark + '"/>' +
-            '<rect x="' + (x - hw + 4) + '" y="11" width="' + (EQ_CAPW - 8) + '" height="4" rx="2" fill="#000" opacity=".35"/>' +
+            caps +
             '</g>' +
             '<text id="eqV' + i + '" x="' + x + '" y="80" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="' + theme.fieldInk + '" text-anchor="middle">0</text>' +
             '<text x="' + x + '" y="358" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing=".4" fill="' + theme.fieldInk + '" text-anchor="middle">' + EQ_LABELS[i] + '</text>' +
-            '<rect id="eqHit' + i + '" x="' + (x - hitHw) + '" y="66" width="' + (hitHw * 2) + '" height="300" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none" tabindex="0" role="slider" aria-label="' + EQ_LABELS[i] + 'Hz 게인" aria-valuemin="-12" aria-valuemax="12"><title>' + EQ_LABELS[i] + 'Hz &#177;12dB</title></rect>';
+            '<rect id="eqHit' + i + '" x="' + (x - hitHw) + '" y="66" width="' + (hitHw * 2) + '" height="300" fill="#000" fill-opacity="0" style="cursor:ns-resize;touch-action:none" tabindex="0" role="slider" aria-label="' + EQ_LABELS[i] + 'Hz 게인" aria-valuemin="-' + range + '" aria-valuemax="' + range + '"><title>' + EQ_LABELS[i] + 'Hz &#177;' + range + 'dB</title></rect>';
     }).join("");
     let lvl = "";
     for (let i = 0; i < 12; i++) {
@@ -1165,7 +1130,9 @@ function mountEq() {
             }).join("");
     }
     let modelTrim = "";
-    if (model.architecture === "wide") {
+    if (model.architecture === "yamaha") {
+        modelTrim = '<rect x="336" y="70" width="46" height="258" rx="7" fill="#090a0d" stroke="#434750"/><path d="M359 94 V286" stroke="#c6c9cf" stroke-width="2" opacity=".5"/><rect x="345" y="190" width="28" height="42" rx="4" fill="url(#eqCapBlack)" stroke="#08090b"/><text x="359" y="349" font-family="Arial" font-size="9.5" font-weight="700" letter-spacing="1.5" fill="' + theme.muted + '" text-anchor="middle">SPATIAL</text>';
+    } else if (model.architecture === "wide") {
         modelTrim = '<rect x="336" y="78" width="44" height="244" rx="8" fill="#090a0d" stroke="#434750"/><path d="M358 98 V302" stroke="#b9bdc5" stroke-width="2" opacity=".45"/><text x="358" y="344" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2" fill="' + theme.muted + '" text-anchor="middle">WIDE</text>';
     } else if (model.architecture === "precision") {
         modelTrim = '<path d="M62 34 H1938 M62 374 H1938" stroke="#fff" stroke-width="2" opacity=".5"/><rect x="344" y="38" width="250" height="25" rx="3" fill="#9b9d9e" stroke="#f7f7f3"/><text x="469" y="55" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2.4" fill="#282b2e" text-anchor="middle">LABORATORY CALIBRATED</text>';
@@ -1230,11 +1197,11 @@ function mountEq() {
         '<path d="M' + (fieldX + 10) + ' 64 H' + (fieldR - 10) + '" stroke="#fff" stroke-width="2" opacity=".15"/>' +
         bandFrames +
         grid +
-        '<text x="' + (fieldX + 15) + '" y="' + (EQ_TOP + 6) + '" font-family="Arial" font-size="15" font-weight="700" fill="' + theme.fieldInk + '">+12</text>' +
-        '<text x="' + (fieldX + 24) + '" y="' + (eqGainToY(6) + 5) + '" font-family="Arial" font-size="12" fill="' + theme.fieldMuted + '">+6</text>' +
+        '<text x="' + (fieldX + 15) + '" y="' + (EQ_TOP + 6) + '" font-family="Arial" font-size="15" font-weight="700" fill="' + theme.fieldInk + '">+' + range + '</text>' +
+        '<text x="' + (fieldX + 24) + '" y="' + (eqGainToY(halfRange) + 5) + '" font-family="Arial" font-size="12" fill="' + theme.fieldMuted + '">+' + halfRange + '</text>' +
         '<text x="' + (fieldX + 30) + '" y="' + (eqGainToY(0) + 5) + '" font-family="Arial" font-size="15" font-weight="700" fill="' + theme.fieldInk + '">0</text>' +
-        '<text x="' + (fieldX + 28) + '" y="' + (eqGainToY(-6) + 5) + '" font-family="Arial" font-size="12" fill="' + theme.fieldMuted + '">-6</text>' +
-        '<text x="' + (fieldX + 14) + '" y="' + (EQ_BOT + 6) + '" font-family="Arial" font-size="15" font-weight="700" fill="' + theme.fieldInk + '">-12</text>' +
+        '<text x="' + (fieldX + 28) + '" y="' + (eqGainToY(-halfRange) + 5) + '" font-family="Arial" font-size="12" fill="' + theme.fieldMuted + '">-' + halfRange + '</text>' +
+        '<text x="' + (fieldX + 14) + '" y="' + (EQ_BOT + 6) + '" font-family="Arial" font-size="15" font-weight="700" fill="' + theme.fieldInk + '">-' + range + '</text>' +
         sliders + spectrumLabel +
         '<text x="' + (fieldR - 20) + '" y="359" font-family="Arial" font-size="14" font-weight="700" letter-spacing="1.5" fill="' + theme.fieldInk + '" text-anchor="end">Hz</text>' +
         '</svg>';
@@ -1247,8 +1214,8 @@ function mountEq() {
         const setFromY = (clientY) => {
             const r = svg.getBoundingClientRect();
             const y = (clientY - r.top) / r.height * EQ_VB_H;
-            let g = 12 - (y - EQ_TOP) / (EQ_BOT - EQ_TOP) * 24;
-            g = Math.max(-12, Math.min(12, g));
+            let g = range - (y - EQ_TOP) / (EQ_BOT - EQ_TOP) * range * 2;
+            g = Math.max(-range, Math.min(range, g));
             if (Math.abs(g) < 0.7) g = 0;      // 센터 디텐트
             eqState.gains[eqModelId][i] = Math.round(g * 2) / 2;
             applyEq();
@@ -1262,7 +1229,7 @@ function mountEq() {
             const step = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0;
             if (!step) return;
             e.preventDefault();
-            eqState.gains[eqModelId][i] = Math.max(-12, Math.min(12, eqState.gains[eqModelId][i] + step));
+            eqState.gains[eqModelId][i] = Math.max(-range, Math.min(range, eqState.gains[eqModelId][i] + step));
             eqActivePreset = null;
             eqPaintKeys();
             applyEq();
@@ -1347,8 +1314,11 @@ function updateEqVisuals() {
 let ampBiasMode = 0;
 // 91E 정류관 지연 — 콜드 스타트 시 이 시각까지 출력 무음 (마지막 0.7초 페이드인)
 let ampRectUntil = 0;
+const AMP_MODEL_MIGRATION = { tr: "e303", kt88: "ma2375", sa9900: "e303", au111: "el34", l550: "e303" };
 let ampModelId = loadJson("fmRadio.amp", "mc2105");
-if (!AMP_MODELS[ampModelId]) ampModelId = "mc2105";
+ampModelId = AMP_MODEL_MIGRATION[ampModelId] || ampModelId;
+if (!AMP_ORDER.includes(ampModelId)) ampModelId = "mc2105";
+saveJson("fmRadio.amp", ampModelId);
 
 
 function updateVolKnob() {
@@ -1363,7 +1333,7 @@ function updateVolKnob() {
 }
 
 function updateMa2375Display() {
-    const source = phonoActive ? "Phone" : deckMode === "play" ? "CAS" : "Tuner";
+    const source = phonoActive ? "Phono" : deckMode === "play" ? "Tape" : "Tuner";
     const volume = Math.round(volumeLevel * 100) + "%";
     [["ma2375SourceText", source], ["ma2375SourceGlow", source],
         ["ma2375VolumeText", volume], ["ma2375VolumeGlow", volume]].forEach(([id, value]) => {
@@ -1533,7 +1503,7 @@ function renderAmpPicker() {
     el.appendChild(hidePill("amp"));
 }
 
-// ----- 턴테이블 (YAHAMA PL-12) — 아날로그 감성 재현 -----
+// ----- 턴테이블 — 실물 고유 구동계와 조작계 재현 -----
 const PHONO_BASE = "https://upload.wikimedia.org/wikipedia/commons/";
 // 클래식 녹음은 방송 스트림보다 레벨이 낮아 포노 재생 시 체인 게인을 보정한다 (Web Audio 경로에서만)
 const PHONO_GAIN = 2.0;
@@ -1871,15 +1841,6 @@ function ttVisualSpec(id, skin) {
     const modelScrew = (x, y, light) => '<g transform="translate(' + x + ' ' + y + ')" pointer-events="none"><circle r="9" fill="' + (light ? 'url(#ttChrome)' : '#202126') + '" stroke="' + (light ? '#4e5054' : '#666970') + '" stroke-width="1.5"/><path d="M-4 -1 L4 1" stroke="' + (light ? '#323438' : '#c8c9cc') + '" stroke-width="1.5"/></g>';
     const hit = '<circle id="ttArmHit" cx="768" cy="428" r="58" fill="#000" fill-opacity="0" style="cursor:grab"><title>톤암 — 잡아서 원하는 트랙 위에 내려놓으세요</title></circle>';
     const specs = {
-        pl12: {
-            body: '<rect x="34" y="-10" width="1126" height="654" rx="14" fill="url(#ttWalnut)" stroke="#21150e" stroke-width="5"/><rect x="58" y="16" width="1078" height="602" rx="8" fill="url(#ttBlackPlate)" stroke="#706252" stroke-width="2"/><path d="M48 4 H1144 M48 630 H1144" stroke="#bd8657" stroke-width="3" opacity=".35"/><rect x="48" y="-2" width="1096" height="638" rx="11" fill="url(#ttWoodLines)" opacity=".55" pointer-events="none"/>',
-            brand: '<text x="72" y="72" font-family="Arial" font-size="28" font-weight="800" letter-spacing="2.5" fill="#e5ddd0">YAHAMA</text><text x="72" y="101" font-family="Arial" font-size="15" font-weight="700" letter-spacing="3" fill="#a99d8d">PL-12 · BELT DRIVE</text>',
-            platterBase: '<ellipse cx="570" cy="348" rx="289" ry="282" fill="#000" opacity=".58" filter="url(#ttShadow)"/><circle cx="560" cy="330" r="281" fill="#111216" stroke="#707179" stroke-width="3"/><circle cx="560" cy="330" r="273" fill="url(#ttRubber)"/><circle cx="560" cy="330" r="266" fill="#17181c" stroke="#050607" stroke-width="2"/>',
-            spinTrim: '<circle cx="560" cy="330" r="263" fill="none" stroke="#a8a9ad" stroke-width="3" stroke-dasharray="2 10" opacity=".6"/>',
-            armBase: '<ellipse cx="1070" cy="130" rx="58" ry="54" fill="#000" opacity=".55" filter="url(#ttShadow)"/><circle cx="1065" cy="120" r="49" fill="#17181c" stroke="#777982" stroke-width="2"/><circle cx="1065" cy="120" r="35" fill="url(#ttMetal)"/><circle cx="1065" cy="120" r="17" fill="#22242a" stroke="#c4c5c8"/><rect x="916" y="478" width="29" height="47" rx="6" fill="#18191d" stroke="#5b5e64"/><rect x="911" y="477" width="39" height="11" rx="4" fill="url(#ttChrome)"/>',
-            arm: '<g id="ttArmG"><circle cx="1134" cy="77" r="27" fill="url(#ttDarkMetal)" stroke="#8b8d94" stroke-width="2"/><rect x="1124" y="61" width="46" height="31" rx="13" fill="url(#ttDarkMetal)"/><line x1="1122" y1="89" x2="1065" y2="120" stroke="#45474d" stroke-width="13" stroke-linecap="round"/><line x1="1065" y1="120" x2="768" y2="428" stroke="#33353a" stroke-width="12" stroke-linecap="round"/><line x1="1065" y1="120" x2="768" y2="428" stroke="url(#ttArmSilver)" stroke-width="7" stroke-linecap="round"/><g transform="rotate(-46 762 434)"><rect x="732" y="418" width="62" height="28" rx="5" fill="#17191e" stroke="#7b7e84"/><rect x="740" y="444" width="16" height="9" rx="2" fill="#b33128"/></g>' + hit + '</g>',
-            detail: '<g pointer-events="none"><text x="72" y="294" font-family="Arial" font-size="11" font-weight="700" letter-spacing="2" fill="#988d7e">SPEED SELECTOR</text><circle cx="118" cy="342" r="37" fill="#090a0c" stroke="#777982" stroke-width="2"/><circle cx="118" cy="342" r="27" fill="url(#ttDarkMetal)"/><path d="M118 342 L104 320" stroke="#e8e5dc" stroke-width="4" stroke-linecap="round"/><text x="75" y="398" font-family="Arial" font-size="12" fill="#b6aa99">33</text><text x="143" y="398" font-family="Arial" font-size="12" fill="#b6aa99">45</text><rect x="60" y="430" width="174" height="46" rx="6" fill="#0c0d10" stroke="#454851"/><text x="147" y="459" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1.8" fill="#c4baab" text-anchor="middle">BELT / MANUAL</text></g>' + modelScrew(76, 568, false) + modelScrew(1114, 568, false)
-        },
         sl1200: {
             body: '<path d="M48 18 Q48 0 68 0 H1118 Q1144 0 1144 28 V596 Q1144 622 1118 622 H68 Q44 622 44 596 Z" fill="url(#ttCastSilver)" stroke="#5a5d61" stroke-width="4"/><path d="M68 28 H1118 V590 H68 Z" fill="none" stroke="#fff" stroke-width="2" opacity=".45"/><path d="M84 44 H1098" stroke="#fff" stroke-width="4" opacity=".28"/><rect x="48" y="2" width="1094" height="618" rx="18" fill="url(#ttMetalGrain)" opacity=".46" pointer-events="none"/>',
             brand: '<text x="70" y="68" font-family="Arial" font-size="28" font-style="italic" font-weight="800" letter-spacing="-1" fill="#25272a">Technics</text><text x="72" y="98" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2.3" fill="#45484c">SL-1200MK2 · QUARTZ DIRECT DRIVE</text>',
@@ -1922,7 +1883,7 @@ function ttVisualSpec(id, skin) {
             detail: '<g pointer-events="none"><circle cx="196" cy="550" r="24" fill="url(#ttChrome)" stroke="#282a2e" stroke-width="2"/><circle cx="196" cy="550" r="8" fill="#111216"/><text x="240" y="556" font-family="Arial" font-size="12" font-weight="700" letter-spacing="2.4" fill="#c8c5bc">33 / 45</text><path d="M71 282 H239" stroke="#47494e" stroke-width="1"/><text x="72" y="310" font-family="Arial" font-size="11" letter-spacing="2" fill="#787a7e">SINGLE POINT BEARING</text><text x="72" y="334" font-family="Arial" font-size="10" letter-spacing="1.6" fill="#65676b">LOW NOISE · HIGH TORQUE</text></g>' + modelScrew(78, 572, false) + modelScrew(1104, 572, false)
         }
     };
-    return specs[id] || specs.pl12;
+    return specs[id] || specs.sl1200;
 }
 
 function mountTurntable() {
@@ -2033,7 +1994,7 @@ function mountTurntable() {
         '<circle cx="560" cy="330" r="86" fill="none" stroke="' + RECORD.accent + '" stroke-width="3"/>' +
         '<circle cx="560" cy="330" r="79" fill="none" stroke="' + RECORD.accent + '" stroke-width="0.6" opacity="0.5"/>' +
         // 브랜드는 실물처럼 라벨 상단 원호를 따라 인쇄한다
-        '<text font-family="Arial" font-size="7" letter-spacing="1.5" fill="' + RECORD.accent + '"><textPath href="#ttLabelArc" startOffset="50%" text-anchor="middle">YAHAMA RECORDS · STEREO · 33&#8531; RPM</textPath></text>' +
+        '<text font-family="Arial" font-size="7" letter-spacing="1.5" fill="' + RECORD.accent + '"><textPath href="#ttLabelArc" startOffset="50%" text-anchor="middle">MAD FOR AUDIO RECORDS · STEREO · 33&#8531; RPM</textPath></text>' +
         '<text x="560" y="281" font-family="Georgia, serif" font-size="' + (RECORD.labelBig.length > 9 ? 14 : RECORD.labelBig.length > 6 ? 17 : 20) + '" font-weight="700" fill="' + RECORD.accent + '" text-anchor="middle">' + RECORD.labelBig + '</text>' +
         '<text x="560" y="295" font-family="Arial" font-size="9.5" fill="#3a2b1e" text-anchor="middle">' + RECORD.labelTitle + '</text>' +
         '<text x="560" y="307" font-family="Arial" font-size="7.5" fill="#6b5d4a" text-anchor="middle">' + RECORD.labelArtist + '</text>' +
@@ -2067,7 +2028,7 @@ function mountTurntable() {
               '<text x="1424" y="510" font-family="Georgia, serif" font-size="' + (RECORD.jTitle.length > 16 ? 20 : RECORD.jTitle.length > 11 ? 24 : 28) + '" font-weight="700" fill="' + jc.title + '" text-anchor="middle">' + RECORD.jTitle + '</text>' +
               '<text x="1424" y="535" font-family="Arial" font-size="13" fill="' + jc.sub + '" text-anchor="middle">' + RECORD.jSub1 + ' · ' + RECORD.jSub2 + '</text>' +
               '<text x="1424" y="558" font-family="Georgia, serif" font-style="italic" font-size="13" fill="' + jc.perf + '" text-anchor="middle">' + RECORD.performer + '</text>' +
-              '<text x="1424" y="577" font-family="Arial" font-size="9" letter-spacing="2" fill="' + jc.sub + '" text-anchor="middle" opacity="0.8">YAHAMA RECORDS &#183; STEREO</text>'
+              '<text x="1424" y="577" font-family="Arial" font-size="9" letter-spacing="2" fill="' + jc.sub + '" text-anchor="middle" opacity="0.8">MAD FOR AUDIO RECORDS &#183; STEREO</text>'
             // 커버가 없는 음반 — 활자 중심의 인쇄 재킷
             : '<rect x="1186" y="92" width="476" height="476" fill="none" stroke="' + jc.inner + '" stroke-width="1" opacity="0.6"/>' +
               '<text x="1424" y="230" font-family="Georgia, serif" font-size="' + (RECORD.jTitle.length > 16 ? 32 : RECORD.jTitle.length > 11 ? 40 : RECORD.jTitle.length > 6 ? 58 : 84) + '" font-weight="700" fill="' + jc.title + '" text-anchor="middle">' + RECORD.jTitle + '</text>' +
@@ -2076,7 +2037,7 @@ function mountTurntable() {
               '<line x1="1280" y1="352" x2="1568" y2="352" stroke="' + jc.line + '" stroke-width="1"/>' +
               '<text x="1424" y="392" font-family="Georgia, serif" font-style="italic" font-size="21" fill="' + jc.perf + '" text-anchor="middle">' + RECORD.performer + '</text>' +
               '<rect x="1186" y="500" width="476" height="56" fill="' + RECORD.accent + '"/>' +
-              '<text x="1424" y="536" font-family="Arial" font-size="17" letter-spacing="2" fill="#f0e8d0" text-anchor="middle">YAHAMA RECORDS &#183; STEREO</text>') +
+              '<text x="1424" y="536" font-family="Arial" font-size="17" letter-spacing="2" fill="#f0e8d0" text-anchor="middle">MAD FOR AUDIO RECORDS &#183; STEREO</text>') +
         '<rect x="1170" y="76" width="508" height="508" rx="4" fill="none" stroke="' + jc.frame + '" stroke-width="2"/>' +
         // 트랙 리스트
         '<text x="1690" y="86" font-family="Arial" font-size="14" font-weight="700" letter-spacing="2" fill="' + (ttSkin.muted || "#8a7d70") + '">SIDE ' + (RECORD.side || 'A') + '</text>' +
@@ -2241,7 +2202,7 @@ function ttFrame(now) {
         }
     }
 
-    const ttSpec = TT_MODELS[ttModelId] || TT_MODELS.pl12;
+    const ttSpec = TT_MODELS[ttModelId] || TT_MODELS.sl1200;
     const rpm = (ttRpm45 ? 45 : 100 / 3) * ttSpeedTrim;
     const spinTarget = (phonoActive && isPlaying && !ttBraking) ? 1 : 0;
     // 브레이크(GARRARD)는 기계식 즉정지 — 런다운을 기다리지 않는다
@@ -2352,7 +2313,10 @@ function ttFrame(now) {
     // 앰프: 진공관 글로우(웜업 연동)·갤러리 어둠·VU 바늘·전원 LED
     // 유리 할로·주변광은 은은하게, 필라멘트는 백열로 뜨겁게 (실제 진공관의 빛 분포)
     document.querySelectorAll(".ampGlow").forEach((el) => {
-        el.style.opacity = (0.012 + ampWarm * (0.32 + tsSignal * 0.34)).toFixed(3);
+        const off = Number(el.dataset.lzOff || 0.008);
+        const on = Number(el.dataset.lzOn || 0.22);
+        const signalBreath = 0.9 + Math.max(0, Math.min(1, tsSignal)) * 0.1;
+        el.style.opacity = (off + (on - off) * ampWarm * signalBreath).toFixed(3);
     });
     const filBloom = ampWarm > 0.04
         ? "drop-shadow(0 0 5px rgba(255,150,50," + ampWarm.toFixed(2) + ")) drop-shadow(0 0 14px rgba(255,110,35," + (0.6 * ampWarm).toFixed(2) + "))"
@@ -2678,23 +2642,29 @@ function ttFrame(now) {
 
     // 다이얼 백라이트·눈금·주파수 디지트 — 튜너 램프에 연동
     document.querySelectorAll(".lampGlow").forEach((el) => {
-        el.style.opacity = (0.06 + tunerLight * 0.69).toFixed(3);
+        const off = Number(el.dataset.lzOff || 0.035);
+        const on = Number(el.dataset.lzOn || 0.44);
+        el.style.opacity = (off + (on - off) * tunerLight).toFixed(3);
     });
     // 미터 백라이트 라이트박스 — 켜지면 면 전체가 발광한다.
     // 튜너 유닛의 미터는 튜너 램프에, 나머지는 시스템 웜업에 연동된다.
     document.querySelectorAll(".ampLamp").forEach((el) => {
         const w = el.closest("#tunerStage") ? tunerLight : el.closest("#deckStage") ? tubeWarm : ampWarm;
-        el.style.opacity = (0.03 + w * 0.97).toFixed(3);
+        const off = Number(el.dataset.lzOff || 0.025);
+        const on = Number(el.dataset.lzOn || 0.68);
+        el.style.opacity = (off + (on - off) * w).toFixed(3);
     });
     // 그린 레전드(맥킨토시 패널 문자) — 백라이트 연동 (앰프 전원 기준)
     document.querySelectorAll(".ampLegend").forEach((el) => {
-        el.style.opacity = (0.2 + ampWarm * 0.8).toFixed(3);
+        const off = Number(el.dataset.lzOff || 0.18);
+        const on = Number(el.dataset.lzOn || 0.92);
+        el.style.opacity = (off + (on - off) * ampWarm).toFixed(3);
     });
     document.querySelectorAll(".dialScale").forEach((el) => {
         el.style.opacity = (0.32 + tunerLight * 0.68).toFixed(2);
     });
     const digitOp = Math.max(0.08 + tunerWarm * 0.92, previewOn ? 1 : 0).toFixed(2);
-    if (tsFreq) { tsFreq.style.opacity = digitOp; tsFreqGlow.style.opacity = digitOp; }
+    if (tsFreq && tsFreqGlow) { tsFreq.style.opacity = digitOp; tsFreqGlow.style.opacity = digitOp; }
 
     // 전원 연동 조명: 튜너는 수신 램프를, 나머지 유닛은 시스템 웜업을 따른다.
     // 타이머는 시계라 항상 통전 상태 — 어두워지지 않는다.

@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=103">
+    <link rel="stylesheet" href="styles.css?v=104">
 </head>
 <body>
     <div class="page-shell">
@@ -254,15 +254,15 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=103"></script>
-    <script src="player-core.js?v=103"></script>
-    <script src="store.js?v=103"></script>
-    <script src="schedule.js?v=103"></script>
-    <script src="skins.js?v=103"></script>
-    <script src="component-skins.js?v=103"></script>
-    <script src="engine.js?v=103"></script>
-    <script src="deck.js?v=103"></script>
-    <script src="bootstrap.js?v=103"></script>
+    <script src="stations.js?v=104"></script>
+    <script src="player-core.js?v=104"></script>
+    <script src="store.js?v=104"></script>
+    <script src="schedule.js?v=104"></script>
+    <script src="skins.js?v=104"></script>
+    <script src="component-skins.js?v=104"></script>
+    <script src="engine.js?v=104"></script>
+    <script src="deck.js?v=104"></script>
+    <script src="bootstrap.js?v=104"></script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {
@@ -277,20 +277,31 @@
                     console.warn("서비스워커 등록 실패:", error);
                 });
                 // 새 워커가 제어권을 잡으면 구버전 셸로 계속 도는 일이 없도록 즉시 재시작.
-                // 단 녹음·재생 중에는 끊지 않고 다음 실행 때 적용한다.
+                // 단 녹음·재생·예약 진행 중에는 끊지 않는다. 항상 켜 두는 라디오 탭에는
+                // '다음 실행'이 오지 않으므로, 미룬 재시작은 한가해질 때까지 재시도한다 —
+                // 이 재시도가 없으면 장기 탭이 몇 주 전 셸로 돌며 이미 고친 버그를 다시 보여준다.
                 let reloaded = false;
+                let idleRetry = null;
                 navigator.serviceWorker.addEventListener("controllerchange", () => {
                     if (reloaded || !hadController) return;   // 최초 설치는 재시작 불필요
-                    const busy = (typeof recorder !== "undefined" && recorder)
+                    const busy = () => (typeof recorder !== "undefined" && recorder)
                         || (typeof isPlaying !== "undefined" && isPlaying)
-                        || (typeof deckMode !== "undefined" && deckMode !== "stop");
-                    if (busy) {
-                        const st = document.getElementById("playerSubtext");
-                        if (st) st.textContent = "새 버전이 준비되었습니다 — 다음 실행 때 적용됩니다.";
+                        || (typeof deckMode !== "undefined" && deckMode !== "stop")
+                        || (typeof activeResRec !== "undefined" && activeResRec);
+                    if (!busy()) {
+                        reloaded = true;
+                        location.reload();
                         return;
                     }
-                    reloaded = true;
-                    location.reload();
+                    const st = document.getElementById("playerSubtext");
+                    if (st) st.textContent = "새 버전이 준비되었습니다 — 재생을 멈추면 잠시 후 적용됩니다.";
+                    if (idleRetry) return;
+                    idleRetry = setInterval(() => {
+                        if (reloaded || busy()) return;
+                        reloaded = true;
+                        clearInterval(idleRetry);
+                        location.reload();
+                    }, 20000);
                 });
             });
         }

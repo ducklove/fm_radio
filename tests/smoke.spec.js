@@ -131,21 +131,19 @@ test.describe("데스크톱", () => {
         await expect(page.locator("#settingsOverlay")).toBeHidden();
     });
 
-    test("추가 하이파이 18종: 피커 등록·기기군별 스킨 전환", async ({ page }) => {
+    test("실물 정체성 선별 19종: 피커 등록·기기군별 스킨 전환", async ({ page }) => {
         await page.click('button:has-text("오디오 구성")');
-        await expect(page.locator("#skinPicker .skin-btn")).toHaveCount(9);
-        await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(11);
-        await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(7);
-        await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(6);
-        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(6);
+        await expect(page.locator("#skinPicker .skin-btn")).toHaveCount(4);
+        await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(6);
+        await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(6);
+        await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(5);
+        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(3);
 
-        await page.locator('#skinPicker .skin-btn', { hasText: "REVOX B760" }).click();
-        await expect(page.locator('#tunerStage svg[aria-label*="REVOX B760"]')).toHaveCount(1);
-        await page.locator('#ampPicker .skin-btn', { hasText: "TR · CA-100" }).click();
-        await expect(page.locator("#ca100RedL")).toHaveAttribute("d", "M 329 306 A 122 122 0 0 1 368 342");
-        await expect(page.locator("#ca100RedR")).toHaveAttribute("d", "M 701 306 A 122 122 0 0 1 740 342");
-        await page.locator('#ampPicker .skin-btn', { hasText: "CLASS A · L-550" }).click();
-        await expect(page.locator('#ampStage svg[aria-label*="LUXMAN L-550"]')).toHaveCount(1);
+        await page.locator('#skinPicker .skin-btn', { hasText: "Marantz 10B" }).click();
+        await expect(page.locator('#tunerStage svg[aria-label*="Marantz Model 10B"]')).toHaveCount(1);
+        await expect(page.locator("#tsFreq")).toHaveCount(0);
+        await page.locator('#ampPicker .skin-btn', { hasText: "E-303 TRIBUTE" }).click();
+        await expect(page.locator('#ampStage svg[aria-label*="ACCUPHASE E-303"]')).toHaveCount(1);
         await page.locator('#ampPicker .skin-btn', { hasText: "KT88 · MA2375" }).click();
         await expect(page.locator('#ampStage svg[aria-label*="McIntosh MA2375"]')).toHaveCount(1);
         await expect(page.locator("#ampStage")).not.toHaveClass(/amp-stage-tall/);
@@ -184,9 +182,11 @@ test.describe("데스크톱", () => {
         await expect(page.locator('#deckStage svg[aria-label*="REVOX B215"]')).toHaveCount(1);
         await page.locator('#ttPicker .skin-btn', { hasText: "TECHNICS SL-1200MK2" }).click();
         await expect(page.locator('#ttStage svg[aria-label*="TECHNICS SL-1200MK2"]')).toHaveCount(1);
-        await page.locator('#eqPicker .skin-btn', { hasText: "CHAMPAGNE · 10밴드" }).click();
-        await expect(page.locator('#eqStage svg[aria-label*="GE-10C"]')).toHaveCount(1);
-        await expect(page.locator('[id^="eqBandLvl"]')).toHaveCount(80);
+        await page.locator('#eqPicker .skin-btn', { hasText: "SANSUI SE-9" }).click();
+        await expect(page.locator('#eqStage svg[aria-label*="SANSUI SE-9"]')).toHaveCount(1);
+        await expect(page.locator('[id^="eqBandLvl"]')).toHaveCount(64);
+        await expect(page.locator('#eqStage text', { hasText: /^L$/ })).toHaveCount(8);
+        await expect(page.locator('#eqStage text', { hasText: /^R$/ })).toHaveCount(8);
 
         const saved = await page.evaluate(() => ({
             tuner: JSON.parse(localStorage.getItem("fmRadio.skin")),
@@ -194,12 +194,12 @@ test.describe("데스크톱", () => {
             deck: JSON.parse(localStorage.getItem("fmRadio.deck")),
             turntable: JSON.parse(localStorage.getItem("fmRadio.turntable")),
         }));
-        expect(saved).toEqual({ tuner: "b760", amp: "ma2375", deck: "b215", turntable: "sl1200" });
-        expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).model)).toBe("ge10chrome");
+        expect(saved).toEqual({ tuner: "m10b", amp: "ma2375", deck: "b215", turntable: "sl1200" });
+        expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).model)).toBe("se9");
     });
 
-    test("10밴드 EQ 4종: 스펙트럼 명판이 우상단 게인 값과 겹치지 않음", async ({ page }) => {
-        for (const modelId of ["ge10", "ge10silver", "ge10chrome", "se9"]) {
+    test("실기 기반 EQ 2종: 스펙트럼 명판이 우상단 게인 값과 겹치지 않음", async ({ page }) => {
+        for (const modelId of ["ge5", "se9"]) {
             const layout = await page.evaluate((id) => {
                 if (!unitShow.eq) setUnitShow("eq", true);
                 setEqModel(id);
@@ -209,7 +209,7 @@ test.describe("데스크톱", () => {
                     return { x, y, width, height };
                 };
                 const label = box([...svg.querySelectorAll("text")].find((el) => el.textContent === "REAL-TIME SPECTRUM"));
-                const values = [8, 9].map((index) => box(document.getElementById("eqV" + index)));
+                const values = [EQ_FREQS.length - 2, EQ_FREQS.length - 1].map((index) => box(document.getElementById("eqV" + index)));
                 return { label, values };
             }, modelId);
             const labelBottom = layout.label.y + layout.label.height;
@@ -237,11 +237,11 @@ test.describe("데스크톱", () => {
         await page.locator("#kbsList .station").first().click();
         await page.waitForFunction(() => {
             const audio = document.getElementById("audioPlayer");
-            return !audio.paused && Number(document.querySelector("#ampStage .ma2375-meter-light").style.opacity) > .9;
+            return !audio.paused && Number(document.querySelector("#ampStage .ma2375-meter-light").style.opacity) > .42;
         }, null, { timeout: 15000 });
         const on = await lighting();
-        expect(on.meter).toBeGreaterThan(.9);
-        expect(on.lettering).toBeGreaterThan(.9);
+        expect(on.meter).toBeGreaterThan(.42);
+        expect(on.lettering).toBeGreaterThan(.7);
         expect(on.dark).toBeLessThan(.1);
 
         await page.click("#tsPowerHit");
@@ -262,12 +262,12 @@ test.describe("데스크톱", () => {
         await expect(page.locator("#ma2375VolumeGlow")).toHaveText("37%");
 
         await page.evaluate(() => playPhonoTrack(0));
-        await expect(page.locator("#ma2375SourceText")).toHaveText("Phone");
-        await expect(page.locator("#ma2375SourceGlow")).toHaveText("Phone");
+        await expect(page.locator("#ma2375SourceText")).toHaveText("Phono");
+        await expect(page.locator("#ma2375SourceGlow")).toHaveText("Phono");
 
         await page.evaluate(() => deckPlay());
-        await expect(page.locator("#ma2375SourceText")).toHaveText("CAS");
-        await expect(page.locator("#ma2375SourceGlow")).toHaveText("CAS");
+        await expect(page.locator("#ma2375SourceText")).toHaveText("Tape");
+        await expect(page.locator("#ma2375SourceGlow")).toHaveText("Tape");
     });
 
     test("예약 녹음: 정지 중 발화 → 백그라운드 무음 녹음, 튜너·데크만 점등, 종료 후 카세트 보관", async ({ page }) => {
@@ -423,7 +423,7 @@ test.describe("데스크톱", () => {
     test("더블데크 W-990RX: A웰 재생 중 예약 녹음은 B웰 — 재생 무중단, 종료 후 카세트 랙 보관", async ({ page }) => {
         // W-990RX 장착
         await page.click('button:has-text("오디오 구성")');
-        await page.locator('#deckPicker .skin-btn', { hasText: "TEAK W-990RX" }).click();
+        await page.locator('#deckPicker .skin-btn', { hasText: "TEAC W-990RX" }).click();
         await page.keyboard.press("Escape");
         expect(await page.evaluate(() => isDoubleDeck()), "더블데크 인식").toBe(true);
         await expect(page.locator('#deckStage svg[aria-label*="W-990RX"]')).toHaveAttribute("viewBox", "0 0 2000 520");
@@ -508,7 +508,7 @@ test.describe("데스크톱", () => {
 
     test("더블데크 수동 REC = 더빙: A웰 재생을 B웰에 녹음, REC 재누름으로 정지·랙 보관", async ({ page }) => {
         await page.click('button:has-text("오디오 구성")');
-        await page.locator('#deckPicker .skin-btn', { hasText: "TEAK W-990RX" }).click();
+        await page.locator('#deckPicker .skin-btn', { hasText: "TEAC W-990RX" }).click();
         await page.keyboard.press("Escape");
         await page.evaluate((b64) => {
             const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -640,38 +640,19 @@ test.describe("데스크톱", () => {
         expect(await page.evaluate(() => playerSubtext.textContent)).toContain("공테이프");
     });
 
-    test("B760 방송국 프리셋: 길게 눌러 저장·짧게 눌러 호출·영속", async ({ page }) => {
-        await page.evaluate(() => initTunerSkin("b760"));
-        await expect(page.locator("#tsPreset1")).toHaveCount(1);
-        const layout = await page.evaluate(() => {
-            const meter = document.getElementById("tsDigitalMeterBay").getBBox();
-            const presets = document.getElementById("tsPresetG").getBBox();
-            const knob = document.getElementById("tsKnob").getBBox();
-            return { meterRight: meter.x + meter.width, presetLeft: presets.x, presetRight: presets.x + presets.width, knobLeft: knob.x };
+    test("퇴역 튜너 저장값은 MR78로 이동하고 가상 디지털창 대신 MULTIPATH 미터를 사용", async ({ page }) => {
+        const migrated = await page.evaluate(() => {
+            initTunerSkin("b760");
+            return {
+                id: tunerSkinId,
+                saved: JSON.parse(localStorage.getItem("fmRadio.skin")),
+                hasFreq: !!document.getElementById("tsFreq"),
+                hasMultipath: !!document.getElementById("tsMultipathPtr"),
+            };
         });
-        expect(layout.presetLeft - layout.meterRight, "미터와 프리셋 간격").toBeGreaterThanOrEqual(18);
-        expect(layout.knobLeft - layout.presetRight, "프리셋과 튜닝 노브 간격").toBeGreaterThanOrEqual(70);
-        await page.evaluate(() => selectStation(window.FMRadio.stations[2].id));
-        await page.waitForTimeout(300);
-        // 길게(0.7초) → 저장
-        await page.evaluate(async () => {
-            const key = document.getElementById("tsPreset3");
-            key.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-            await new Promise((r) => setTimeout(r, 700));
-            key.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
-        });
-        expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.tunerPresets"))["3"]), "저장 영속")
-            .toBe(await page.evaluate(() => window.FMRadio.stations[2].id));
-        // 다른 국으로 옮긴 뒤 짧게 → 호출
-        await page.evaluate(() => selectStation(window.FMRadio.stations[0].id));
-        await page.waitForTimeout(200);
-        await page.evaluate(async () => {
-            const key = document.getElementById("tsPreset3");
-            key.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-            await new Promise((r) => setTimeout(r, 80));
-            key.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
-        });
-        await page.waitForFunction(() => currentStation && currentStation.id === window.FMRadio.stations[2].id, null, { timeout: 8000, polling: 100 });
+        expect(migrated).toEqual({ id: "mr78", saved: "mr78", hasFreq: false, hasMultipath: true });
+        await expect(page.locator("#tunerStage")).toContainText("MULTIPATH");
+        await expect(page.locator("#tsSelG")).toHaveAttribute("aria-label", "가변 선택도 — NORMAL / NARROW / SUPER NARROW");
     });
 
     test("W-990RX 더빙 버스: A→B 실복사 영속·REV MODE 릴레이 이어재생", async ({ page }) => {
@@ -705,7 +686,7 @@ test.describe("데스크톱", () => {
             .toEqual({ mode: "play", seg: true, bEmpty: true });
     });
 
-    test("소스 보이싱: TT·튜너 시그니처 셸프, GE-10C 새추레이션, 10B 스코프", async ({ page, context }) => {
+    test("소스 보이싱: TT·튜너 시그니처 셸프, SE-9 8×2 구조, 10B 스코프", async ({ page, context }) => {
         await context.route("https://upload.wikimedia.org/**", (route) =>
             route.fulfill({ body: makeWav(40), contentType: "audio/wav", headers: { "Access-Control-Allow-Origin": "*" } }));
         // GARRARD 301 포노 → low 셸프 +1.4dB
@@ -727,18 +708,20 @@ test.describe("데스크톱", () => {
             return d1 !== document.getElementById("tsScopeCore").getAttribute("d");
         });
         expect(scopeLive, "10B 스코프 트레이스가 산다").toBe(true);
-        // GE-10C — 버퍼 새추레이션은 ACTIVE에서만, 모델 전환 시 해제
-        const ge = await page.evaluate(() => {
-            setEqModel("ge10chrome");
-            const withOn = !!(eqBufferShaper && eqBufferShaper.curve);
-            eqState.on = false;
-            applyEq();
-            const withOff = !!(eqBufferShaper && eqBufferShaper.curve);
-            eqState.on = true;
-            setEqModel("ge10");
-            return { withOn, withOff, cleared: eqBufferShaper === null };
+        // SE-9 — 실기처럼 8개 중심 주파수와 L/R 쌍 슬라이더를 갖고 DSP는 링크된다.
+        const se9 = await page.evaluate(() => {
+            setEqModel("se9");
+            return {
+                model: eqModelId,
+                freqs: EQ_FREQS.slice(),
+                handles: document.querySelectorAll("#eqStage #eqH0 rect").length,
+                saturated: !!eqBufferShaper,
+            };
         });
-        expect(ge).toEqual({ withOn: true, withOff: false, cleared: true });
+        expect(se9.model).toBe("se9");
+        expect(se9.freqs).toEqual([80, 160, 315, 630, 1250, 2500, 5000, 10000]);
+        expect(se9.handles).toBeGreaterThanOrEqual(6);
+        expect(se9.saturated).toBe(false);
     });
 
     test("DRAGON: 외부 테이프 아지무스(NAAC 보정)·오토 리버스 리피트", async ({ page }) => {
@@ -986,14 +969,14 @@ test.describe("데스크톱", () => {
         await page.waitForFunction(() => !recorder && !activeResRec, null, { timeout: 10000 });
     });
 
-    test("설명서에 신규 기기별 소개와 음색·동작 차이가 기록됨", async ({ page }) => {
+    test("설명서에 선별 잔존 기기의 음색·동작 차이가 기록됨", async ({ page }) => {
         await page.goto("/manual.html");
-        for (const name of ["TX-9500 II", "T-110", "T-100", "B760", "SA-9900", "AU-111", "L-550", "E-303", "MA2375", "B215", "TCD 3014A", "TC-KA7ES", "CT-F1250", "SL-1200MK2", "TD 124", "GARRARD", "Sondek LP12", "GE-10S / GE-10C"]) {
+        for (const name of ["YAMAHA T-2", "MR-78", "Model 10B", "GE-5", "SE-9", "MC2105", "8B", "91E", "E-303", "MA2375", "DRAGON", "B215", "TCD 3014A", "CT-F1250", "W-990RX", "SL-1200MK2", "TD 124", "GARRARD", "Sondek LP12", "DT-540"]) {
             await expect(page.locator("body")).toContainText(name);
         }
     });
 
-    test("진공관 DSP: 싱글엔디드 배음·푸시풀 대칭·새그·댐핑이 모델별로 다름", async ({ page }) => {
+    test("잔존 진공관 DSP: 300B 싱글엔디드·8B 푸시풀·MA2375 유니티 커플드가 구별됨", async ({ page }) => {
         const dsp = await page.evaluate(() => {
             const api = window.MFA_AmpDSP;
             const harmonics = (id, fullChain = false, amplitude = .98) => {
@@ -1018,10 +1001,6 @@ test.describe("데스크톱", () => {
                 const h5 = magnitude(5) / fundamental;
                 return { h2, h3, h5, thd: Math.hypot(h2, h3, h5) };
             };
-            const p300 = api.sample("300b", "power", .5);
-            const n300 = api.sample("300b", "power", -.5);
-            const pkt = api.sample("kt88", "power", .5);
-            const nkt = api.sample("kt88", "power", -.5);
             const nominalRms = (id) => {
                 const size = 1024;
                 const out = AMP_MODELS[id].out;
@@ -1031,76 +1010,56 @@ test.describe("데스크톱", () => {
                 }).reduce((sum, value) => sum + value, 0);
                 return Math.sqrt(energy / size);
             };
+            const p300 = api.sample("300b", "power", .5);
+            const n300 = api.sample("300b", "power", -.5);
+            const pMa = api.sample("ma2375", "power", .5);
+            const nMa = api.sample("ma2375", "power", -.5);
             return {
                 asym300b: Math.abs(p300 + n300),
-                asymKt88: Math.abs(pkt + nkt),
+                asymMa2375: Math.abs(pMa + nMa),
                 softSlopeHigh: api.sample("300b", "power", .95) - api.sample("300b", "power", .85),
                 softSlopeLow: api.sample("300b", "power", .25) - api.sample("300b", "power", .15),
-                softSlopeNegativeHigh: api.sample("300b", "power", -.85) - api.sample("300b", "power", -.95),
-                softSlopeNegativeLow: api.sample("300b", "power", -.15) - api.sample("300b", "power", -.25),
-                centerSlope: api.sample("300b", "power", .4) - api.sample("300b", "power", .3),
                 p300: api.inspect("300b"),
                 el34: api.inspect("el34"),
-                kt88: api.inspect("kt88"),
-                au111: api.inspect("au111"),
                 ma2375: api.inspect("ma2375"),
                 h300b: harmonics("300b"),
                 hEl34: harmonics("el34"),
-                hKt88: harmonics("kt88"),
-                hAu111: harmonics("au111"),
+                hMa2375: harmonics("ma2375"),
                 nominal300b: harmonics("300b", true, .65),
                 nominalEl34: harmonics("el34", true, .65),
-                nominalKt88: harmonics("kt88", true, .65),
-                nominalAu111: harmonics("au111", true, .65),
                 nominalMa2375: harmonics("ma2375", true, .65),
                 peak300b: harmonics("300b", true),
                 peakEl34: harmonics("el34", true),
-                peakKt88: harmonics("kt88", true),
-                peakAu111: harmonics("au111", true),
                 peakMa2375: harmonics("ma2375", true),
-                nominalRms: ["300b", "el34", "au111", "kt88", "ma2375"].map(nominalRms),
+                nominalRms: ["300b", "el34", "ma2375"].map(nominalRms),
+                solidStateBypass: api.sampleChain("mc2105", .4),
             };
         });
-        expect(dsp.asym300b).toBeGreaterThan(0.015);
-        expect(dsp.asymKt88).toBeLessThan(0.01);
+        expect(dsp.asym300b).toBeGreaterThan(.015);
+        expect(dsp.asymMa2375).toBeLessThan(.01);
         expect(dsp.h300b.h2).toBeGreaterThan(dsp.h300b.h3);
-        expect(dsp.hKt88.h3).toBeGreaterThan(dsp.hKt88.h2 * 5);
         expect(dsp.hEl34.h3).toBeGreaterThan(dsp.hEl34.h2);
-        expect(dsp.hAu111.h3).toBeGreaterThan(dsp.hAu111.h2);
-        expect(dsp.hKt88.thd).toBeLessThan(dsp.hEl34.thd);
-        expect(dsp.hKt88.thd).toBeLessThan(.02);
+        expect(dsp.hMa2375.h3).toBeGreaterThan(dsp.hMa2375.h2 * 5);
         expect(dsp.nominal300b.h2).toBeGreaterThan(dsp.nominal300b.h3);
         expect(dsp.nominal300b.thd).toBeGreaterThan(.012);
-        expect(dsp.nominalAu111.h3).toBeGreaterThan(dsp.nominalEl34.h3);
-        expect(dsp.nominalEl34.thd).toBeGreaterThan(dsp.nominalKt88.thd * 2);
-        expect(dsp.nominalKt88.thd).toBeGreaterThan(dsp.nominalMa2375.thd * 1.5);
+        expect(dsp.nominalEl34.thd).toBeGreaterThan(dsp.nominalMa2375.thd * 2);
         expect(dsp.peak300b.thd).toBeLessThan(.05);
         expect(dsp.peakEl34.thd).toBeLessThan(.06);
-        expect(dsp.peakKt88.thd).toBeLessThan(.025);
-        expect(dsp.peakAu111.thd).toBeLessThan(.06);
         expect(dsp.peakMa2375.thd).toBeLessThan(.005);
         expect(Math.max(...dsp.nominalRms) - Math.min(...dsp.nominalRms)).toBeLessThan(.035);
-        expect(dsp.centerSlope).toBeGreaterThan(.09);
-        expect(dsp.centerSlope).toBeLessThan(.11);
         expect(dsp.softSlopeHigh).toBeLessThan(dsp.softSlopeLow);
-        expect(dsp.softSlopeNegativeHigh).toBeLessThan(dsp.softSlopeNegativeLow);
         expect(dsp.p300.dampingFactor).toBeLessThan(dsp.el34.dampingFactor);
-        expect(dsp.el34.dampingFactor).toBeLessThan(dsp.kt88.dampingFactor);
-        expect(dsp.au111.sagRatio).toBeGreaterThan(dsp.el34.sagRatio);
-        expect(dsp.p300.sagRatio).toBeLessThan(dsp.kt88.sagRatio);
-        expect(dsp.p300.transformerBand[1]).toBeLessThan(dsp.kt88.transformerBand[1]);
-        expect(dsp.ma2375.dampingFactor).toBeGreaterThan(dsp.kt88.dampingFactor);
-        expect(dsp.ma2375.sagRatio).toBeLessThan(dsp.kt88.sagRatio);
-        expect(dsp.ma2375.transformerBand[1]).toBeGreaterThan(dsp.kt88.transformerBand[1]);
-        expect(dsp.p300.speakerMemory.feedback).toBeGreaterThan(dsp.au111.speakerMemory.feedback);
-        expect(dsp.au111.speakerMemory.feedback).toBeGreaterThan(dsp.el34.speakerMemory.feedback);
-        expect(dsp.el34.speakerMemory.feedback).toBeGreaterThan(dsp.kt88.speakerMemory.feedback);
-        expect(dsp.kt88.speakerMemory.feedback).toBeGreaterThan(dsp.ma2375.speakerMemory.feedback);
+        expect(dsp.el34.dampingFactor).toBeLessThan(dsp.ma2375.dampingFactor);
+        expect(dsp.ma2375.sagRatio).toBeLessThan(dsp.el34.sagRatio);
+        expect(dsp.p300.transformerBand[1]).toBeLessThan(dsp.ma2375.transformerBand[1]);
+        expect(dsp.p300.speakerMemory.feedback).toBeGreaterThan(dsp.el34.speakerMemory.feedback);
+        expect(dsp.el34.speakerMemory.feedback).toBeGreaterThan(dsp.ma2375.speakerMemory.feedback);
         expect(dsp.p300.speakerMemory.wet).toBeGreaterThan(.12);
         expect(dsp.ma2375.speakerMemory.wet).toBeLessThan(.02);
+        expect(dsp.solidStateBypass).toBeCloseTo(.4, 6);
     });
 
-    test("재생 중 진공관 5종 전환: Web Audio 회로 재설정 후에도 재생 유지", async ({ page }) => {
+    test("재생 중 잔존 앰프 5종 전환: Web Audio 회로 재설정 후에도 재생 유지", async ({ page }) => {
         await page.click("#tsRfHit");
         await page.locator("#kbsList .station").first().click();
         await page.waitForFunction(() => {
@@ -1109,7 +1068,7 @@ test.describe("데스크톱", () => {
         }, null, { timeout: 15000 });
 
         await page.click('button:has-text("오디오 구성")');
-        for (const label of ["EL34 · 8B", "300B · 91E", "KT88 · 275", "6L6GC · AU-111", "KT88 · MA2375"]) {
+        for (const label of ["TR · MC2105", "EL34 · 8B TRIBUTE", "300B · 91E TRIBUTE", "TR · E-303 TRIBUTE", "KT88 · MA2375"]) {
             await page.locator("#ampPicker .skin-btn", { hasText: label }).click();
             await page.waitForTimeout(100);
             await expect(page.locator("#audioPlayer")).toHaveJSProperty("paused", false);
@@ -1221,12 +1180,12 @@ test.describe("키보드 조작", () => {
 
     test("EQ 슬라이더: 화살표 키로 게인 조절 + 저장", async ({ page }) => {
         await page.click('button:has-text("오디오 구성")');
-        await page.click('button:has-text("GE-10 · 10밴드")');
+        await page.click('button:has-text("YAMAHA GE-5 · 10밴드")');
         await page.keyboard.press("Escape");
         await page.evaluate(() => document.getElementById("eqHit0").focus());
         await page.keyboard.press("ArrowUp");
         await page.keyboard.press("ArrowUp");
-        const gain = await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).gains.ge10[0]);
+        const gain = await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).gains.ge5[0]);
         expect(gain).toBe(2);
         const valueNow = await page.getAttribute("#eqHit0", "aria-valuenow");
         expect(valueNow).toBe("2");

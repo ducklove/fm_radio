@@ -4,11 +4,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/mfa-svg-eval")
 GROUPS = {
-    "tuner": (4, ["t2", "mr78", "m10b", "tu9900", "tx9500", "t110", "t100", "b760"]),
-    "eq": (2, ["ge5", "ge10", "ge10silver", "ge10chrome"]),
-    "amp": (2, ["tr", "mc2105", "el34", "300b", "kt88", "sa9900", "au111", "l550", "e303", "ma2375"]),
-    "deck": (2, ["dragon", "b215", "tcd3014", "tcka7es", "ctf1250", "w990"]),
-    "turntable": (2, ["pl12", "sl1200", "td124", "g301", "lp12"]),
+    "tuner": (3, ["t2", "mr78", "m10b"]),
+    "eq": (2, ["ge5", "se9"]),
+    "amp": (2, ["mc2105", "el34", "300b", "e303", "ma2375"]),
+    "deck": (2, ["dragon", "b215", "tcd3014", "ctf1250", "w990"]),
+    "turntable": (2, ["sl1200", "td124", "g301", "lp12"]),
 }
 
 try:
