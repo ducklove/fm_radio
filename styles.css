@@ -897,6 +897,8 @@ body.mode-simple #stationMain.collapsed {
 }
 
 .rack-unit {
+    /* 단독 확대(⤢) 버튼의 앵커 */
+    position: relative;
     margin-top: 10px;
     line-height: 0;
 }
@@ -2397,6 +2399,58 @@ body.mode-focus .focus-exit {
     border-color: rgba(229, 72, 77, 0.85);
     background: rgba(229, 72, 77, 0.25);
     color: #ffe2e2;
+}
+
+/* ----- 컴포넌트 단독 확대 ----- */
+/* 각 유닛 우상단의 ⤢ 버튼 — 그 컴포넌트만 전체 화면에 꽉 차게 확대한다 (app.js setFocusUnit) */
+.unit-zoom {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 40;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: rgba(15, 13, 11, 0.65);
+    color: #cfc5b6;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.tuner-stage:hover .unit-zoom,
+.rack-unit:hover .unit-zoom {
+    opacity: 0.85;
+}
+
+.unit-zoom:hover {
+    opacity: 1;
+    color: #fff;
+}
+
+/* 단독 화면에서는 복귀 버튼이 항상 살짝 보인다 */
+body.unit-solo .unit-zoom {
+    opacity: 0.45;
+}
+
+body.mode-simple .unit-zoom,
+body.mode-bar .unit-zoom {
+    display: none;
+}
+
+/* 단독 확대 중에는 나머지 유닛과 장식 스피커를 감춘다 */
+body.unit-solo .solo-hidden {
+    display: none !important;
+}
+
+body.unit-solo .side-speaker {
+    display: none !important;
 }
 
 /* ----- 장식 사이드 스피커 — 전체 화면(몰입) 모드 전용 ----- */

@@ -66,6 +66,11 @@ function setPopupBarMode(on) {
 // 클래스만 적용해 창 안에서 크롬을 걷어낸다.
 function applyFocusMode(on) {
     document.body.classList.toggle("mode-focus", on);
+    // 전체 화면을 떠나면 컴포넌트 단독 확대 상태도 함께 푼다
+    if (!on && focusUnit) {
+        setFocusUnit(null);
+        return;
+    }
     if (on) window.scrollTo(0, 0);
     fitFocusRack();
 }
@@ -141,12 +146,73 @@ function fitFocusRack() {
     const natural = shell.getBoundingClientRect();
     if (natural.height <= 0 || natural.width <= 0) return;
 
-    const reference = Math.max(focusMaxRackHeight(shell), natural.height);
-    const scale = Math.min(window.innerHeight / reference, (window.innerWidth - 64) / natural.width);
-    // 현재 구성이 기준보다 낮은 만큼 아래로 내려 바닥에 붙인다 (위쪽이 비워진다)
-    const lift = Math.max(0, window.innerHeight - natural.height * scale);
+    let scale;
+    let lift;
+    if (focusUnit) {
+        // 단독 확대: 남은 한 컴포넌트가 화면에 꽉 차게 — 세로 가운데 정렬
+        scale = Math.min(window.innerHeight / natural.height, (window.innerWidth - 48) / natural.width);
+        lift = Math.max(0, (window.innerHeight - natural.height * scale) / 2);
+    } else {
+        const reference = Math.max(focusMaxRackHeight(shell), natural.height);
+        scale = Math.min(window.innerHeight / reference, (window.innerWidth - 64) / natural.width);
+        // 현재 구성이 기준보다 낮은 만큼 아래로 내려 바닥에 붙인다 (위쪽이 비워진다)
+        lift = Math.max(0, window.innerHeight - natural.height * scale);
+    }
     shell.style.transform = `translateY(${lift.toFixed(1)}px) scale(${scale.toFixed(4)})`;
     document.documentElement.style.setProperty("--rack-w", (natural.width * scale).toFixed(1) + "px");
+}
+
+// ----- 컴포넌트 단독 확대 — 유닛 하나만 전체 화면에 꽉 채워 본다 -----
+let focusUnit = null;
+
+function setFocusUnit(key) {
+    focusUnit = key && UNIT_STAGES[key] ? key : null;
+    document.body.classList.toggle("unit-solo", !!focusUnit);
+    Object.keys(UNIT_STAGES).forEach((k) => {
+        const stage = document.getElementById(UNIT_STAGES[k]);
+        if (stage) stage.classList.toggle("solo-hidden", !!focusUnit && k !== focusUnit);
+    });
+    updateZoomButtons();
+    if (focusUnit && !document.body.classList.contains("mode-focus")) {
+        toggleFocusMode();   // 전체 화면 진입 (applyFocusMode → fitFocusRack)
+    } else {
+        fitFocusRack();
+    }
+}
+
+function updateZoomButtons() {
+    Object.keys(UNIT_STAGES).forEach((k) => {
+        const stage = document.getElementById(UNIT_STAGES[k]);
+        const btn = stage && stage.querySelector(".unit-zoom");
+        if (!btn) return;
+        const solo = focusUnit === k;
+        btn.textContent = solo ? "⤡" : "⤢";
+        btn.title = solo ? "랙 전체 보기로 돌아가기" : "이 컴포넌트만 전체 화면으로";
+    });
+}
+
+// 각 스테이지 위에 단독 확대 버튼을 붙인다. 모델을 바꾸면 스테이지 innerHTML이
+// 통째로 갈리므로 MutationObserver로 버튼을 다시 붙인다.
+function mountZoomButtons() {
+    Object.keys(UNIT_STAGES).forEach((key) => {
+        const stage = document.getElementById(UNIT_STAGES[key]);
+        if (!stage) return;
+        const ensure = () => {
+            if (stage.querySelector(".unit-zoom")) return;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "unit-zoom";
+            btn.setAttribute("aria-label", "컴포넌트 단독 전체 화면");
+            btn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                setFocusUnit(focusUnit === key ? null : key);
+            });
+            stage.appendChild(btn);
+            updateZoomButtons();
+        };
+        ensure();
+        new MutationObserver(ensure).observe(stage, { childList: true });
+    });
 }
 
 window.addEventListener("resize", () => {
@@ -5480,3 +5546,5 @@ setInterval(updateNowProgram, 30000);
 updateResChip();
 reservationTick();
 updateNowProgram();
+
+mountZoomButtons();
