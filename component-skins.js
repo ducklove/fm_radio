@@ -796,80 +796,195 @@ function mfaCtf1250Svg() {
 
 // TEAK W-990RX — 더블 카세트 데크. A웰(좌)은 재생 트랜스포트, B웰(우)은 녹음 전담.
 // 예약·수동 녹음이 B웰에서 돌므로 A웰 재생과 충돌하지 않는다 (엔진의 recOnB 참조).
-// A웰의 기능 좌표(라벨·릴 610/850,260·팩)는 공용 레이아웃 그대로, B웰 릴은 data-cx/cy로 구동.
+// A웰 릴은 공용 애니메이션의 610/850,260 회전축을 부모 transform으로 실물 위치에 옮긴다.
+// B웰과 LED 미터는 data 속성으로 독립 구동한다.
 function mfaW990Svg() {
-    const well = (x, w, tag) =>
-        '<rect x="' + x + '" y="96" width="' + w + '" height="288" rx="10" fill="url(#w9Shell)" stroke="#4a4d55" stroke-width="2"/>' +
-        '<path d="M' + (x + 6) + ' 100 H' + (x + w - 6) + '" stroke="#82868f" stroke-width="1.4" opacity=".6"/>' +
-        '<rect x="' + (x + 14) + '" y="118" width="' + (w - 28) + '" height="248" rx="8" fill="url(#w9Well)" stroke="#000" stroke-width="2"/>' +
-        '<rect x="' + (x + 18) + '" y="120" width="' + (w - 36) + '" height="22" rx="6" fill="#000" opacity=".5" filter="url(#w9Blur)"/>' +
-        '<text x="' + (x + w / 2) + '" y="112" font-family="Arial" font-size="11" letter-spacing="3" fill="#9aa0a8" text-anchor="middle">' + tag + '</text>';
-    return `<svg class="deck-svg" viewBox="0 0 2000 540" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="TEAK W-990RX 더블 카세트 데크">
+    const reel = (id, cx, cy, data) => `<g id="${id}" ${data || ""}>
+        <circle cx="${cx}" cy="${cy}" r="21" fill="url(#w9Hub)" stroke="#303236" stroke-width="2"/>
+        <circle cx="${cx}" cy="${cy}" r="15" fill="#e2e0d9" stroke="#666b70"/>
+        <path d="M${cx} ${cy - 13}V${cy + 13} M${cx - 13} ${cy}H${cx + 13} M${cx - 9} ${cy - 9}L${cx + 9} ${cy + 9} M${cx + 9} ${cy - 9}L${cx - 9} ${cy + 9}" stroke="#50545a" stroke-width="4"/>
+        <circle cx="${cx}" cy="${cy}" r="5" fill="#121417" stroke="#74787d"/>
+    </g>`;
+    const ledMeter = (id, y) => `<g id="${id}" data-meter-style="segments">
+        ${Array.from({ length: 14 }, (_, i) => {
+            const x = 1048 + i * 15;
+            const hot = i > 11;
+            const warn = i > 9 && !hot;
+            const on = hot ? "#ff3a35" : warn ? "#f6b64b" : "#e8f3e7";
+            const off = hot ? "#35191a" : warn ? "#362a19" : "#1d2928";
+            return `<rect data-meter-segment="${i}" data-on="${on}" data-off="${off}" x="${x}" y="${y}" width="10" height="9" rx="1.5" fill="${off}"/>`;
+        }).join("")}
+    </g>`;
+    const modeKeys = ["COUNTER", "DOLBY B", "DOLBY C", "REV MODE", "DUBBING", "SYNC", "BLANK SCAN"]
+        .map((label, i) => `<g><rect x="${735 + i * 76}" y="186" width="68" height="30" rx="3" fill="url(#w9MiniBtn)" stroke="#4e5155"/><path d="M${742 + i * 76} 191H${796 + i * 76}" stroke="#fff" opacity=".18"/><text x="${769 + i * 76}" y="232" font-family="Arial" font-size="8.5" font-weight="700" fill="#898d90" text-anchor="middle">${label}</text></g>`).join("");
+    const transport = (id, x, label, symbol, rec) => `<g>
+        <rect id="${id}" x="${x}" y="252" width="86" height="42" rx="3" fill="url(#w9Btn)" stroke="${rec ? "#9b4037" : "#5d6065"}" stroke-width="1.5" style="cursor:pointer;touch-action:none"><title>${label}</title></rect>
+        <text x="${x + 43}" y="279" font-family="Arial" font-size="18" font-weight="700" fill="${rec ? "#ff4a3a" : "#d6d7d6"}" text-anchor="middle" pointer-events="none">${symbol}</text>
+        <text x="${x + 43}" y="311" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.3" fill="#8d9193" text-anchor="middle">${label}</text>
+    </g>`;
+    return `<svg class="deck-svg" viewBox="0 0 2000 520" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="TEAK W-990RX 더블 카세트 데크">
     <defs>
-        <linearGradient id="w9Face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2d33"/><stop offset=".06" stop-color="#1e2025"/><stop offset=".5" stop-color="#141519"/><stop offset="1" stop-color="#0a0b0e"/></linearGradient>
-        <linearGradient id="w9Shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3d45"/><stop offset=".14" stop-color="#2b2e35"/><stop offset="1" stop-color="#15171b"/></linearGradient>
-        <linearGradient id="w9Well" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020304"/><stop offset=".2" stop-color="#0b0d10"/><stop offset="1" stop-color="#181b20"/></linearGradient>
-        <linearGradient id="w9Btn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b4e56"/><stop offset=".12" stop-color="#34373e"/><stop offset=".55" stop-color="#22252b"/><stop offset="1" stop-color="#0e1013"/></linearGradient>
-        <linearGradient id="w9Tray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0f12"/><stop offset=".12" stop-color="#191c21"/><stop offset="1" stop-color="#272a31"/></linearGradient>
-        <linearGradient id="w9Label" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2ecd9"/><stop offset=".6" stop-color="#e4dcc4"/><stop offset="1" stop-color="#c9bea0"/></linearGradient>
-        <linearGradient id="w9Glass" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".14"/><stop offset=".3" stop-color="#fff" stop-opacity=".04"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
-        <radialGradient id="w9Pack"><stop offset="0" stop-color="#332619"/><stop offset=".68" stop-color="#271d12"/><stop offset=".9" stop-color="#181109"/><stop offset="1" stop-color="#0a0704"/></radialGradient>
-        <filter id="w9Blur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/></filter>
+        <linearGradient id="w9Face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8c9c7"/><stop offset=".06" stop-color="#8f9294"/><stop offset=".2" stop-color="#66696d"/><stop offset=".72" stop-color="#494c50"/><stop offset="1" stop-color="#26282c"/></linearGradient>
+        <linearGradient id="w9Apron" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b5e62"/><stop offset=".08" stop-color="#3e4146"/><stop offset=".62" stop-color="#25282d"/><stop offset="1" stop-color="#101216"/></linearGradient>
+        <linearGradient id="w9Frame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17191d"/><stop offset=".08" stop-color="#35383d"/><stop offset=".18" stop-color="#17191d"/><stop offset="1" stop-color="#050608"/></linearGradient>
+        <linearGradient id="w9Well" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#030405"/><stop offset=".35" stop-color="#111419"/><stop offset="1" stop-color="#080a0d"/></linearGradient>
+        <linearGradient id="w9Glass" x1="0" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset=".2" stop-color="#fff" stop-opacity=".06"/><stop offset=".52" stop-color="#9bd6e8" stop-opacity=".015"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+        <linearGradient id="w9Display" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020304"/><stop offset=".55" stop-color="#090e10"/><stop offset="1" stop-color="#11181a"/></linearGradient>
+        <linearGradient id="w9DisplayGlow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dff8ef" stop-opacity=".02"/><stop offset=".55" stop-color="#effff9" stop-opacity=".16"/><stop offset="1" stop-color="#ff473c" stop-opacity=".08"/></linearGradient>
+        <linearGradient id="w9Btn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#55585d"/><stop offset=".12" stop-color="#3e4146"/><stop offset=".55" stop-color="#25282d"/><stop offset="1" stop-color="#101216"/></linearGradient>
+        <linearGradient id="w9MiniBtn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f5257"/><stop offset=".25" stop-color="#35383d"/><stop offset="1" stop-color="#17191d"/></linearGradient>
+        <linearGradient id="w9CassA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eee5c8"/><stop offset=".45" stop-color="#d6cba9"/><stop offset="1" stop-color="#998e73"/></linearGradient>
+        <linearGradient id="w9CassB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ead7d3"/><stop offset=".5" stop-color="#caa6a2"/><stop offset="1" stop-color="#90716f"/></linearGradient>
+        <linearGradient id="w9LabelA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eadfbf"/><stop offset=".55" stop-color="#cfc29d"/><stop offset="1" stop-color="#b2a27d"/></linearGradient>
+        <linearGradient id="w9LabelB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ead4d1"/><stop offset=".58" stop-color="#c9a3a4"/><stop offset="1" stop-color="#aa7f82"/></linearGradient>
+        <linearGradient id="w9Hub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8f7f1"/><stop offset=".28" stop-color="#9da1a4"/><stop offset=".58" stop-color="#ecebe4"/><stop offset="1" stop-color="#5f6368"/></linearGradient>
+        <radialGradient id="w9Tape"><stop offset="0" stop-color="#513924"/><stop offset=".68" stop-color="#332214"/><stop offset=".9" stop-color="#1c120c"/><stop offset="1" stop-color="#090604"/></radialGradient>
+        <radialGradient id="w9Knob"><stop offset="0" stop-color="#7e8185"/><stop offset=".3" stop-color="#303338"/><stop offset=".72" stop-color="#15171a"/><stop offset="1" stop-color="#050608"/></radialGradient>
+        <pattern id="w9Brush" width="12" height="5" patternUnits="userSpaceOnUse"><path d="M0 .5H12 M0 3.5H12" stroke="#fff" stroke-opacity=".045"/><path d="M0 2H12 M0 4.5H12" stroke="#000" stroke-opacity=".045"/></pattern>
+        <clipPath id="w9ALabelClip"><rect x="226" y="104" width="398" height="48" rx="2"/></clipPath>
+        <clipPath id="w9BLabelClip"><rect x="1366" y="104" width="398" height="48" rx="2"/></clipPath>
+        <filter id="w9Blur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+        <filter id="w9Glow" x="-70%" y="-100%" width="240%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
+        <filter id="w9Contact" x="-20%" y="-30%" width="150%" height="180%"><feGaussianBlur in="SourceAlpha" stdDeviation="3" result="b"/><feOffset dy="6" result="o"/><feFlood flood-color="#000" flood-opacity=".65"/><feComposite in2="o" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     </defs>
-    <rect width="2000" height="540" rx="10" fill="url(#w9Face)"/>
-    <rect x="0" y="2" width="2000" height="3" fill="#fff" opacity=".28"/>
-    <text x="76" y="70" font-family="Arial" font-size="30" font-weight="700" letter-spacing="3" fill="#e9e6df">TEAK</text>
-    <text x="196" y="70" font-family="Arial" font-size="22" font-weight="700" letter-spacing="4" fill="#c8a860">W-990RX</text>
-    <text x="76" y="98" font-family="Arial" font-size="12" letter-spacing="2" fill="#8a8e96">DOUBLE CASSETTE DECK &#183; PLAY A / REC B</text>
-    <text x="76" y="150" font-family="Arial" font-size="10" letter-spacing="2" fill="#6c717a">HIGH-SPEED DUBBING</text>
-    <text x="76" y="172" font-family="Arial" font-size="10" letter-spacing="2" fill="#6c717a">SYNC REVERSE &#183; DOLBY B/C</text>
 
-    ${well(400, 580, "DECK A · PLAY")}
-    <rect x="470" y="142" width="390" height="62" rx="4" fill="url(#w9Label)"/>
-    <rect x="470" y="142" width="390" height="14" fill="#fff" opacity=".22"/>
-    <text id="deckLabel" x="665" y="168" font-family="Arial" font-size="16" font-weight="700" fill="#3a2b1e" text-anchor="middle">C-30 공테이프</text>
-    <text id="deckLabelSub" x="665" y="192" font-family="Arial" font-size="11" fill="#6b5d4a" text-anchor="middle">사용 0:00 / 30:00</text>
-    <rect x="520" y="216" width="420" height="92" rx="46" fill="#08090b" stroke="#3f4248" stroke-width="2"/>
-    <rect x="524" y="218" width="412" height="16" rx="8" fill="url(#lzInset)" opacity=".8"/>
-    <circle id="deckPackL" cx="610" cy="260" r="40" fill="url(#w9Pack)" stroke="#070707" stroke-width="2"/>
-    <circle id="deckPackR" cx="850" cy="260" r="24" fill="url(#w9Pack)" stroke="#070707" stroke-width="2"/>
-    <g id="deckReelL"><circle cx="610" cy="260" r="19" fill="#e4e5e6" stroke="#55585d"/><path d="M610 244 V276 M594 260 H626 M599 249 L621 271 M621 249 L599 271" stroke="#55585d" stroke-width="4"/><circle cx="610" cy="260" r="5" fill="#111317"/></g>
-    <g id="deckReelR"><circle cx="850" cy="260" r="19" fill="#e4e5e6" stroke="#55585d"/><path d="M850 244 V276 M834 260 H866 M839 249 L861 271 M861 249 L839 271" stroke="#55585d" stroke-width="4"/><circle cx="850" cy="260" r="5" fill="#111317"/></g>
-    <polygon points="414,118 640,118 520,366 414,366" fill="url(#w9Glass)" pointer-events="none"/>
+    <rect x="16" y="10" width="1968" height="498" rx="10" fill="#08090b" opacity=".75" filter="url(#w9Blur)"/>
+    <rect x="4" y="2" width="1992" height="504" rx="9" fill="url(#w9Face)" stroke="#202226" stroke-width="3"/>
+    <rect x="6" y="4" width="1988" height="502" rx="8" fill="url(#w9Brush)" opacity=".9" pointer-events="none"/>
+    <path d="M14 6H1986" stroke="#fff" stroke-width="3" opacity=".62"/>
+    <path d="M16 43H1984" stroke="#16181b" stroke-width="4"/><path d="M18 47H1982" stroke="#d9d9d4" stroke-width="1" opacity=".38"/>
+    <text x="184" y="32" font-family="Georgia,serif" font-size="18" font-style="italic" font-weight="700" letter-spacing="1.2" fill="#3e3424">W-990RX Stereo Double Reverse Cassette Deck</text>
+    <text x="1818" y="32" font-family="Arial" font-size="10" font-weight="700" letter-spacing="1.6" fill="#393b3d" text-anchor="end">HX PRO &#183; DOLBY NOISE REDUCTION SYSTEM</text>
 
-    ${well(1000, 470, "DECK B · REC")}
-    <rect x="1040" y="142" width="390" height="42" rx="4" fill="url(#w9Label)" opacity=".92"/>
-    <text id="deckBLabel" x="1235" y="169" font-family="Arial" font-size="14" font-weight="700" fill="#3a2b1e" text-anchor="middle">REC STANDBY</text>
-    <rect x="1080" y="204" width="330" height="92" rx="46" fill="#08090b" stroke="#3f4248" stroke-width="2"/>
-    <rect x="1084" y="206" width="322" height="16" rx="8" fill="url(#lzInset)" opacity=".8"/>
-    <circle id="deckBPackL" cx="1160" cy="248" r="40" fill="url(#w9Pack)" stroke="#070707" stroke-width="2"/>
-    <circle id="deckBPackR" cx="1330" cy="248" r="24" fill="url(#w9Pack)" stroke="#070707" stroke-width="2"/>
-    <g id="deckBReelL" data-cx="1160" data-cy="248"><circle cx="1160" cy="248" r="19" fill="#e4e5e6" stroke="#55585d"/><path d="M1160 232 V264 M1144 248 H1176 M1149 237 L1171 259 M1171 237 L1149 259" stroke="#55585d" stroke-width="4"/><circle cx="1160" cy="248" r="5" fill="#111317"/></g>
-    <g id="deckBReelR" data-cx="1330" data-cy="248"><circle cx="1330" cy="248" r="19" fill="#e4e5e6" stroke="#55585d"/><path d="M1330 232 V264 M1314 248 H1346 M1319 237 L1341 259 M1341 237 L1319 259" stroke="#55585d" stroke-width="4"/><circle cx="1330" cy="248" r="5" fill="#111317"/></g>
-    <circle cx="1388" cy="330" r="11" fill="#1c1517" stroke="#565a60" stroke-width="1.6"/><circle id="deckRecLed" cx="1388" cy="330" r="8" fill="#3a1210"/>
-    <text x="1388" y="358" font-family="Arial" font-size="9" letter-spacing="1.5" fill="#8a8e96" text-anchor="middle">REC</text>
-    <circle cx="1338" cy="330" r="8" fill="#1c1517" stroke="#565a60" stroke-width="1.4"/><circle id="deckTimerLed" cx="1338" cy="330" r="6" fill="#3a1210"/>
-    <text x="1338" y="358" font-family="Arial" font-size="9" letter-spacing="1.5" fill="#8a8e96" text-anchor="middle">TIMER</text>
-    <rect x="1050" y="312" width="180" height="44" rx="6" fill="#050608" stroke="#2c3a4c" stroke-width="2"/>
-    <text id="deckBCounter" x="1210" y="342" font-family="Courier New" font-size="24" font-weight="700" fill="#7ec4ff" text-anchor="end">00:00</text>
-    <text x="1140" y="303" font-family="Arial" font-size="9" letter-spacing="2" fill="#6c717a" text-anchor="middle">REC COUNTER</text>
-    <polygon points="1014,118 1210,118 1102,366 1014,366" fill="url(#w9Glass)" pointer-events="none"/>
+    <!-- 좌측 조작 레일 -->
+    <rect x="20" y="56" width="120" height="334" rx="5" fill="#696c70" stroke="#323438" stroke-width="2"/>
+    <rect x="24" y="60" width="112" height="326" rx="4" fill="url(#w9Brush)" opacity=".62"/>
+    <text x="80" y="86" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#242526" stroke="#c9b880" stroke-width=".7" paint-order="stroke">TEAK</text>
+    <text x="80" y="101" font-family="Arial" font-size="8.5" font-weight="700" letter-spacing="2" fill="#3a3c3f" text-anchor="middle">DECK I</text>
+    <rect id="deckBtnEject" x="38" y="112" width="84" height="38" rx="3" fill="url(#w9Btn)" stroke="#222429" stroke-width="2" style="cursor:pointer"><title>EJECT</title></rect>
+    <path d="M60 140H100 M67 132L80 121L93 132" fill="none" stroke="#d5d5d1" stroke-width="3" pointer-events="none"/>
+    <text x="80" y="168" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.4" fill="#343639" text-anchor="middle">EJECT</text>
+    <text x="80" y="205" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.4" fill="#343639" text-anchor="middle">POWER</text>
+    <rect x="38" y="216" width="84" height="42" rx="2" fill="#17191c" stroke="#292c30"/><rect x="45" y="222" width="70" height="15" rx="2" fill="#55585b"/><path d="M48 224H112" stroke="#fff" opacity=".25"/>
+    <circle cx="80" cy="292" r="8" fill="#321814" stroke="#27292c"/><circle cx="80" cy="292" r="4" fill="#7e2d20"/>
+    <text x="80" y="315" font-family="Arial" font-size="8" font-weight="700" letter-spacing="1.1" fill="#343639" text-anchor="middle">TIMER STANDBY</text>
+    <circle cx="43" cy="366" r="5" fill="#34363a" stroke="#b7b8b5"/><circle cx="117" cy="366" r="5" fill="#34363a" stroke="#b7b8b5"/>
 
-    ${mfaMeter(1510, 78, 450, 118, "deckVuL", "LEVEL L", "#efe3b8", false)}
-    ${mfaMeter(1510, 208, 450, 118, "deckVuR", "LEVEL R", "#efe3b8", false)}
-    <text x="1510" y="358" font-family="Arial" font-size="10" letter-spacing="2" fill="#6c717a">TAPE COUNTER (A)</text>
-    <rect x="1510" y="364" width="200" height="40" rx="6" fill="#050608" stroke="#36393e"/>
-    <text id="deckCounter" x="1635" y="392" font-family="Courier New" font-size="22" font-weight="700" fill="#8ce9b6" text-anchor="end">00:00</text>
-    <text id="deckCounterMax" x="1644" y="392" font-family="Arial" font-size="10" fill="#686b70">/ 30:00</text>
+    <!-- DECK A 도어와 카세트 -->
+    <g filter="url(#w9Contact)">
+        <rect x="154" y="56" width="540" height="276" rx="5" fill="url(#w9Frame)" stroke="#25272b" stroke-width="3"/>
+        <rect x="166" y="68" width="516" height="240" rx="3" fill="url(#w9Well)" stroke="#050607" stroke-width="3"/>
+        <path d="M176 78H672" stroke="#fff" opacity=".14"/>
+        <path d="M198 92H650L666 108V272L650 288H198L182 272V108Z" fill="url(#w9CassA)" stroke="#8d836b" stroke-width="2"/>
+        <rect x="216" y="100" width="416" height="58" rx="3" fill="url(#w9LabelA)" stroke="#776b51"/>
+        <path d="M224 109H624" stroke="#f7f0dc" stroke-width="4" opacity=".7"/><path d="M224 150H624" stroke="#af3d2d" stroke-width="5" opacity=".72"/>
+        <rect x="230" y="111" width="84" height="35" rx="2" fill="#203b46" opacity=".36"/><path d="M240 141L266 114L292 141Z" fill="#c37445" opacity=".7"/>
+        <text id="deckLabel" x="430" y="128" font-family="Arial" font-size="14" font-weight="700" letter-spacing=".4" fill="#362e21" text-anchor="middle" clip-path="url(#w9ALabelClip)">C-30 공테이프</text>
+        <text id="deckLabelSub" x="430" y="146" font-family="Arial" font-size="10" font-weight="700" fill="#6b5c43" text-anchor="middle" clip-path="url(#w9ALabelClip)">사용 0:00 / 30:00</text>
+        <text x="606" y="145" font-family="Arial" font-size="20" font-weight="700" fill="#7b2f25">A</text>
+        <rect x="320" y="166" width="220" height="72" rx="31" fill="#171719" stroke="#746b5c" stroke-width="2"/>
+        <circle id="deckPackL" cx="370" cy="202" r="40" fill="url(#w9Tape)" stroke="#17100b" stroke-width="2"/>
+        <circle id="deckPackR" cx="610" cy="202" r="24" fill="url(#w9Tape)" stroke="#17100b" stroke-width="2"/>
+        <g transform="translate(-240 -58)">${reel("deckReelL", 610, 260)}${reel("deckReelR", 850, 260)}</g>
+        <path d="M302 249H558L536 284H324Z" fill="#c5b998" stroke="#675e4f"/><rect x="389" y="257" width="82" height="17" rx="4" fill="#313236" stroke="#6c6b67"/><circle cx="346" cy="266" r="7" fill="#232528"/><circle cx="514" cy="266" r="7" fill="#232528"/>
+        <g fill="#504b42" stroke="#d8ccb0" stroke-width="1.2"><circle cx="206" cy="112" r="4"/><circle cx="644" cy="112" r="4"/><circle cx="206" cy="270" r="4"/><circle cx="644" cy="270" r="4"/></g>
+        <path d="M170 72H410L286 304H170Z" fill="url(#w9Glass)" pointer-events="none"/>
+    </g>
+    <rect x="154" y="338" width="540" height="50" rx="3" fill="#303338" stroke="#1d1f22"/>
+    <path d="M166 345H682" stroke="#fff" opacity=".13"/>
+    <g font-family="Arial" font-size="10" font-weight="700" letter-spacing="1.2"><text x="180" y="361" fill="#55a87c">&#9664;</text><text x="212" y="361" fill="#b54b42">REC</text><text x="254" y="361" fill="#8e9297">PAUSE</text><text x="634" y="361" fill="#d1b747">&#9654;</text></g>
+    <text x="424" y="379" font-family="Arial" font-size="9.5" font-weight="700" letter-spacing="1.5" fill="#8d9093" text-anchor="middle">COMPU AUTO REVERSE CASSETTE DECK &#183; PLAY I</text>
 
-    <rect x="404" y="416" width="668" height="104" rx="12" fill="#08090b" opacity=".5" filter="url(#w9Blur)"/>
-    <rect x="408" y="412" width="660" height="104" rx="10" fill="url(#w9Tray)" stroke="#3c4046" stroke-width="2"/>
-    <rect x="410" y="413" width="656" height="14" rx="7" fill="#000" opacity=".5"/>
-    ${mfaTransportButtons(430, "url(#w9Btn)")}
-    <rect x="1102" y="420" width="862" height="96" rx="10" fill="#08090b" opacity=".35" filter="url(#w9Blur)"/>
-    <rect x="1106" y="424" width="854" height="88" rx="8" fill="url(#w9Tray)" opacity=".85" stroke="#3a3e44" stroke-width="1.5"/>
-    <text x="1120" y="443" font-family="Arial" font-size="9" letter-spacing="2" fill="#7c8085">TAPE RACK</text>
-    <g id="deckShelf"></g></svg>`;
+    <!-- 중앙 표시창과 조작부 -->
+    <rect x="708" y="56" width="584" height="332" rx="5" fill="#272a2f" stroke="#1a1c20" stroke-width="3"/>
+    <rect x="720" y="68" width="560" height="106" rx="4" fill="url(#w9Display)" stroke="#050607" stroke-width="3"/>
+    <rect class="ampLamp" x="723" y="71" width="554" height="100" rx="3" fill="url(#w9DisplayGlow)" opacity=".03"/>
+    <path d="M726 74H1274" stroke="#d7ffff" stroke-width="1.5" opacity=".12"/>
+    <text x="742" y="91" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.5" fill="#7b8584">A COUNTER</text>
+    <text id="deckCounter" x="844" y="125" font-family="Courier New,monospace" font-size="28" font-weight="700" letter-spacing="2" fill="#edf8ee" text-anchor="end">00:00</text>
+    <text id="deckCounterMax" x="748" y="151" font-family="Arial" font-size="9" font-weight="700" fill="#87908e">/ 30:00</text>
+    <path d="M865 104H897 M889 96L899 104L889 112" fill="none" stroke="#edf8ee" stroke-width="3"/>
+    <text x="914" y="91" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.5" fill="#7b8584">B REC</text>
+    <text id="deckBCounter" x="1022" y="125" font-family="Courier New,monospace" font-size="28" font-weight="700" letter-spacing="2" fill="#edf8ee" text-anchor="end">00:00</text>
+    <text x="1048" y="88" font-family="Arial" font-size="8" font-weight="700" fill="#828a88">L</text>${ledMeter("deckVuL", 81)}
+    <text x="1048" y="105" font-family="Arial" font-size="8" font-weight="700" fill="#828a88">R</text>${ledMeter("deckVuR", 98)}
+    <g fill="#eef5ed" font-family="Arial" font-size="7.5" font-weight="700"><text x="1048" y="124">-30</text><text x="1120" y="124">-10</text><text x="1195" y="124">0</text><text x="1241" y="124" fill="#d05a48">+6</text></g>
+    <circle cx="1196" cy="149" r="7" fill="#251313" stroke="#5c3a36"/><circle id="deckTimerLed" cx="1196" cy="149" r="4.5" fill="#3a1210"/>
+    <circle cx="1242" cy="149" r="9" fill="#251313" stroke="#633c37"/><circle id="deckRecLed" cx="1242" cy="149" r="6" fill="#3a1210"/>
+    <text x="1170" y="152" font-family="Arial" font-size="7.5" font-weight="700" fill="#8c8f8e" text-anchor="end">TIMER</text><text x="1228" y="152" font-family="Arial" font-size="7.5" font-weight="700" fill="#8c8f8e" text-anchor="end">REC</text>
+    <rect class="meterDark" x="722" y="70" width="556" height="102" rx="3" fill="#030506" opacity=".55" pointer-events="none"/>
+    ${modeKeys}
+    <path d="M724 240H1276" stroke="#16181b" stroke-width="2"/><path d="M726 242H1274" stroke="#fff" opacity=".14"/>
+    <g id="deckTransport">
+    ${transport("deckBtnRew", 750, "REW", "◀◀", false)}
+    ${transport("deckBtnPlay", 842, "PLAY", "▶", false)}
+    ${transport("deckBtnFf", 934, "FF", "▶▶", false)}
+    ${transport("deckBtnStop", 1026, "STOP", "■", false)}
+    ${transport("deckBtnRec", 1118, "REC B", "●", true)}
+    <rect x="1210" y="252" width="48" height="42" rx="3" fill="url(#w9Btn)" stroke="#5d6065"/><text x="1234" y="279" font-family="Arial" font-size="18" fill="#d6d7d6" text-anchor="middle">Ⅱ</text><text x="1234" y="311" font-family="Arial" font-size="9" font-weight="700" fill="#8d9193" text-anchor="middle">PAUSE</text>
+    </g>
+    <g font-family="Arial" font-size="9" font-weight="700" fill="#a6a9a8"><text x="732" y="342">DECK I &#183; PLAY / AUTO REVERSE</text><text x="1268" y="342" text-anchor="end">DECK II &#183; RECORD / DUBBING</text></g>
+    <path d="M724 354H1276" stroke="#9c8659" opacity=".46"/><text x="1000" y="375" font-family="Arial" font-size="10" font-weight="700" font-style="italic" letter-spacing="1.4" fill="#b59f70" text-anchor="middle">FULL LOGIC &#183; HIGH SPEED SYNCHRO DUBBING</text>
+
+    <!-- DECK B 도어와 카세트 -->
+    <g filter="url(#w9Contact)">
+        <rect x="1306" y="56" width="540" height="276" rx="5" fill="url(#w9Frame)" stroke="#25272b" stroke-width="3"/>
+        <rect x="1318" y="68" width="516" height="240" rx="3" fill="url(#w9Well)" stroke="#050607" stroke-width="3"/>
+        <path d="M1328 78H1824" stroke="#fff" opacity=".14"/>
+        <path d="M1350 92H1802L1818 108V272L1802 288H1350L1334 272V108Z" fill="url(#w9CassB)" stroke="#896d6e" stroke-width="2"/>
+        <rect x="1368" y="100" width="416" height="58" rx="3" fill="url(#w9LabelB)" stroke="#79585c"/>
+        <path d="M1376 109H1776" stroke="#fff0ec" stroke-width="4" opacity=".62"/><path d="M1376 150H1776" stroke="#4b8b7e" stroke-width="5" opacity=".72"/>
+        <rect x="1382" y="111" width="84" height="35" rx="2" fill="#61343a" opacity=".3"/><path d="M1392 141L1418 114L1444 141Z" fill="#cf8c78" opacity=".72"/>
+        <text id="deckBLabel" x="1582" y="129" font-family="Arial" font-size="14" font-weight="700" letter-spacing=".4" fill="#43292c" text-anchor="middle" clip-path="url(#w9BLabelClip)">REC STANDBY</text>
+        <text x="1582" y="146" font-family="Arial" font-size="10" font-weight="700" fill="#765357" text-anchor="middle">RECORD CASSETTE &#183; SIDE B</text>
+        <text x="1758" y="145" font-family="Arial" font-size="20" font-weight="700" fill="#843d45">B</text>
+        <rect x="1400" y="166" width="320" height="72" rx="31" fill="#171719" stroke="#71595b" stroke-width="2"/>
+        <circle id="deckBPackL" cx="1450" cy="202" r="40" fill="url(#w9Tape)" stroke="#17100b" stroke-width="2"/>
+        <circle id="deckBPackR" cx="1690" cy="202" r="24" fill="url(#w9Tape)" stroke="#17100b" stroke-width="2"/>
+        ${reel("deckBReelL", 1450, 202, 'data-cx="1450" data-cy="202"')}${reel("deckBReelR", 1690, 202, 'data-cx="1690" data-cy="202"')}
+        <path d="M1382 249H1710L1688 284H1404Z" fill="#c0a2a0" stroke="#685052"/><rect x="1519" y="257" width="82" height="17" rx="4" fill="#313236" stroke="#6c6b67"/><circle cx="1426" cy="266" r="7" fill="#232528"/><circle cx="1666" cy="266" r="7" fill="#232528"/>
+        <g fill="#514345" stroke="#e1c5c2" stroke-width="1.2"><circle cx="1358" cy="112" r="4"/><circle cx="1796" cy="112" r="4"/><circle cx="1358" cy="270" r="4"/><circle cx="1796" cy="270" r="4"/></g>
+        <path d="M1322 72H1562L1438 304H1322Z" fill="url(#w9Glass)" pointer-events="none"/>
+    </g>
+    <rect x="1306" y="338" width="540" height="50" rx="3" fill="#303338" stroke="#1d1f22"/>
+    <path d="M1318 345H1834" stroke="#fff" opacity=".13"/>
+    <g font-family="Arial" font-size="10" font-weight="700" letter-spacing="1.2"><text x="1332" y="361" fill="#55a87c">&#9664;</text><text x="1370" y="361" fill="#b54b42">REC</text><text x="1414" y="361" fill="#8e9297">PAUSE</text><text x="1790" y="361" fill="#55a87c">&#9654;</text></g>
+    <text x="1576" y="379" font-family="Arial" font-size="9.5" font-weight="700" letter-spacing="1.5" fill="#8d9093" text-anchor="middle">COMPU AUTO REVERSE CASSETTE DECK &#183; REC II</text>
+
+    <!-- 우측 조작 레일 -->
+    <rect x="1860" y="56" width="120" height="334" rx="5" fill="#696c70" stroke="#323438" stroke-width="2"/>
+    <rect x="1864" y="60" width="112" height="326" rx="4" fill="url(#w9Brush)" opacity=".62"/>
+    <text x="1920" y="96" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.4" fill="#343639" text-anchor="middle">EJECT II</text>
+    <rect x="1878" y="108" width="84" height="38" rx="3" fill="url(#w9Btn)" stroke="#222429" stroke-width="2"/><path d="M1900 136H1940 M1907 128L1920 117L1933 128" fill="none" stroke="#d5d5d1" stroke-width="3"/>
+    <text x="1920" y="180" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.2" fill="#343639" text-anchor="middle">REC LEVEL</text>
+    <circle class="lz-hardware-knob" cx="1920" cy="218" r="32" fill="#111317" stroke="#292b2e" stroke-width="3"/><circle cx="1920" cy="218" r="25" fill="url(#w9Knob)" stroke="#7b7d7e"/><path d="M1920 196V207" stroke="#d5c69f" stroke-width="3"/>
+    <g stroke="#383a3d" stroke-width="2"><path d="M1888 190L1895 197"/><path d="M1952 190L1945 197"/><path d="M1878 218H1888"/><path d="M1962 218H1952"/></g>
+    <text x="1920" y="271" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.3" fill="#343639" text-anchor="middle">PHONES</text>
+    <circle cx="1920" cy="302" r="18" fill="#222529" stroke="#9a9b98" stroke-width="3"/><circle cx="1920" cy="302" r="10" fill="#050607"/><ellipse cx="1914" cy="296" rx="4" ry="3" fill="#fff" opacity=".17"/>
+    <text x="1920" y="350" font-family="Arial" font-size="8" font-weight="700" fill="#3a3c3f" text-anchor="middle">MIN &#183; MAX</text>
+    <circle cx="1883" cy="366" r="5" fill="#34363a" stroke="#b7b8b5"/><circle cx="1957" cy="366" r="5" fill="#34363a" stroke="#b7b8b5"/>
+
+    <!-- 앱 기능용 하단 베이: MIC 입력과 테이프 랙은 mountDeck 이후 이 위에 주입된다. -->
+    <rect x="4" y="404" width="1992" height="102" fill="url(#w9Apron)"/>
+    <path d="M12 406H1988" stroke="#c5c7c6" opacity=".35"/><path d="M12 414H1988" stroke="#08090b" stroke-width="3" opacity=".7"/>
+    <rect x="92" y="420" width="304" height="86" rx="6" fill="#15171b" stroke="#3e4146"/>
+    <rect x="410" y="420" width="680" height="86" rx="6" fill="#17191d" stroke="#3e4146"/>
+    <text x="430" y="443" font-family="Arial" font-size="9" font-weight="700" letter-spacing="2" fill="#7f8387">INDEPENDENT DUBBING BUS</text>
+    <g pointer-events="none">
+        <rect x="438" y="453" width="116" height="38" rx="4" fill="#090b0e" stroke="#41454a"/><text x="496" y="468" font-family="Arial" font-size="8" font-weight="700" letter-spacing="1.2" fill="#8d9295" text-anchor="middle">DECK I</text><text x="496" y="484" font-family="Arial" font-size="11" font-weight="700" fill="#d2d6d4" text-anchor="middle">PLAY</text>
+        <path d="M566 472H638 M626 462L640 472L626 482" fill="none" stroke="#b9a46f" stroke-width="3"/>
+        <rect x="652" y="453" width="116" height="38" rx="4" fill="#090b0e" stroke="#5c3a36"/><text x="710" y="468" font-family="Arial" font-size="8" font-weight="700" letter-spacing="1.2" fill="#8d9295" text-anchor="middle">DECK II</text><text x="710" y="484" font-family="Arial" font-size="11" font-weight="700" fill="#d35a4d" text-anchor="middle">RECORD</text>
+        <g font-family="Arial" font-size="8" font-weight="700" fill="#8d9295"><text x="806" y="460">DUB SPEED</text><text x="806" y="490">MONITOR</text></g>
+        <rect x="892" y="450" width="26" height="18" rx="3" fill="#43464a"/><rect x="898" y="454" width="14" height="10" rx="2" fill="#aaaead"/><text x="928" y="461" font-family="Arial" font-size="8" font-weight="700" fill="#c6c9c7">NORMAL</text>
+        <rect x="892" y="478" width="26" height="18" rx="3" fill="#43464a"/><rect x="898" y="482" width="14" height="10" rx="2" fill="#aaaead"/><text x="928" y="489" font-family="Arial" font-size="8" font-weight="700" fill="#c6c9c7">SOURCE</text>
+        <circle cx="1048" cy="459" r="5" fill="#6f2a22"/><circle cx="1048" cy="487" r="5" fill="#274f3d"/>
+    </g>
+    <rect x="1102" y="420" width="870" height="86" rx="6" fill="#17191d" stroke="#3e4146"/>
+    <text x="1120" y="443" font-family="Arial" font-size="9" font-weight="700" letter-spacing="2" fill="#7f8387">TAPE LIBRARY</text>
+    <g id="deckShelf"></g>
+    <ellipse cx="140" cy="512" rx="80" ry="7" fill="#000" opacity=".55"/><ellipse cx="1860" cy="512" rx="80" ry="7" fill="#000" opacity=".55"/>
+    <rect x="78" y="500" width="124" height="16" rx="4" fill="#111317"/><rect x="1798" y="500" width="124" height="16" rx="4" fill="#111317"/>
+    </svg>`;
 }
 
 const DECK_MODELS = {

@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
 
-const BASE = "http://127.0.0.1:8147/";
+const BASE = process.env.MFA_CAPTURE_BASE || "http://127.0.0.1:8147/";
 const runtimeScale = process.argv.includes("--runtime");
 const OUT = runtimeScale ? "/tmp/mfa-svg-eval-runtime" : "/tmp/mfa-svg-eval";
 
@@ -10,7 +10,7 @@ const groups = {
     tuner: ["t2", "mr78", "m10b", "tu9900", "tx9500", "t110", "t100", "b760"],
     eq: ["ge5", "ge10", "ge10silver", "ge10chrome"],
     amp: ["tr", "mc2105", "el34", "300b", "kt88", "sa9900", "au111", "l550", "e303", "ma2375"],
-    deck: ["dragon", "b215", "tcd3014", "tcka7es", "ctf1250"],
+    deck: ["dragon", "b215", "tcd3014", "tcka7es", "ctf1250", "w990"],
     turntable: ["pl12", "sl1200", "td124", "g301", "lp12"],
 };
 
@@ -93,7 +93,9 @@ async function forcePoweredAppearance(page, selector) {
                     button.click();
                 }, { picker: pickers[group], itemIndex: index });
             }
-            await page.waitForTimeout(240);
+            // W-990RX는 좌우 도어·브러시드 패널·다수 하드웨어 필터를 한 번에 구성한다.
+            // Chromium이 합성 레이어를 완성하기 전에 캡처하면 검은 타일이 섞일 수 있어 한 프레임 더 안정화한다.
+            await page.waitForTimeout(id === "w990" ? 700 : 240);
             await forcePoweredAppearance(page, selectors[group]);
             const target = page.locator(selectors[group]);
             await target.waitFor({ state: "visible" });

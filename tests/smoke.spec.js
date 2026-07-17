@@ -365,6 +365,11 @@ test.describe("데스크톱", () => {
         await page.locator('#deckPicker .skin-btn', { hasText: "TEAK W-990RX" }).click();
         await page.keyboard.press("Escape");
         expect(await page.evaluate(() => isDoubleDeck()), "더블데크 인식").toBe(true);
+        await expect(page.locator('#deckStage svg[aria-label*="W-990RX"]')).toHaveAttribute("viewBox", "0 0 2000 520");
+        await expect(page.locator("#deckVuL [data-meter-segment]")).toHaveCount(14);
+        await expect(page.locator("#deckVuR [data-meter-segment]")).toHaveCount(14);
+        await expect(page.locator("#deckBReelL")).toHaveAttribute("data-cx", "1450");
+        await expect(page.locator("#deckStage .lz-hardware-side")).toHaveCount(6);
         // 수록곡 있는 테이프를 A웰에 장착하고 재생 (합성 WAV 세그먼트)
         await page.evaluate((b64) => {
             const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
