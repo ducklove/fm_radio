@@ -622,7 +622,29 @@ test.describe("데스크톱", () => {
     test("몰입 모드 두 보기: 리스닝 룸 핏·스피커·단일 확대·와이드", async ({ page }) => {
         await page.setViewportSize({ width: 1512, height: 982 });
         await page.evaluate(() => applyFocusMode(true));
-        await expect(page.locator("#speakerL svg")).toBeVisible();
+        await expect(page.locator("#speakerL")).toBeVisible();
+        await expect(page.locator("#speakerR")).toBeVisible();
+        await expect(page.locator("#speakerL")).toHaveAttribute("src", "images/side-speaker.jpg");
+        await expect(page.locator("#speakerR")).toHaveAttribute("src", "images/side-speaker.jpg");
+        await expect(page.locator(".speaker-svg")).toHaveCount(0);
+        const speakers = await page.evaluate(() => {
+            const l = document.getElementById("speakerL");
+            const r = document.getElementById("speakerR");
+            const lr = l.getBoundingClientRect();
+            const rr = r.getBoundingClientRect();
+            return {
+                natural: [l.naturalWidth, l.naturalHeight],
+                left: { x: lr.x, height: lr.height, bottom: lr.bottom },
+                right: { gap: innerWidth - rr.right, height: rr.height, bottom: rr.bottom },
+                viewport: [innerWidth, innerHeight]
+            };
+        });
+        expect(speakers.natural).toEqual([612, 1001]);
+        expect(speakers.left.height, "MacBook 화면에서 스피커가 충분히 커야 한다").toBeGreaterThanOrEqual(speakers.viewport[1] * .8);
+        expect(Math.abs(speakers.left.bottom - speakers.viewport[1]), "왼쪽 스피커 바닥 정렬").toBeLessThanOrEqual(2);
+        expect(Math.abs(speakers.right.bottom - speakers.viewport[1]), "오른쪽 스피커 바닥 정렬").toBeLessThanOrEqual(2);
+        expect(Math.abs(speakers.left.x - speakers.right.gap), "좌우 대칭 배치").toBeLessThanOrEqual(2);
+        expect(Math.abs(speakers.left.height - speakers.right.height), "좌우 동일 크기").toBeLessThanOrEqual(1);
         await page.waitForFunction(() => {
             const r = document.getElementById("rackColumn").getBoundingClientRect();
             return r.height > 0 && r.height <= innerHeight;
@@ -638,15 +660,73 @@ test.describe("데스크톱", () => {
         expect(await page.evaluate(() => getComputedStyle(document.getElementById("speakerL")).display), "와이드 = 스피커 숨김").toBe("none");
         expect(await page.evaluate(() => document.getElementById("rackColumn").getBoundingClientRect().width), "와이드 = 컴포넌트 크게").toBeGreaterThan(1300);
         await page.evaluate(() => { toggleFocusView(); applyFocusMode(false); });
-        // 일반 랙 화면의 단일 확대 = 라이트박스 (조작 가능한 유닛이 그대로 앞으로 나온다)
-        await page.evaluate(() => focusUnitZoom(document.getElementById("deckStage")));
+        // 일반 랙 화면의 단일 확대도 Mac 네이티브 브리지를 거쳐 실제 전체 화면으로 진입한다.
+        await page.evaluate(() => {
+            window.__focusBridgeCalls = [];
+            Object.defineProperty(window, "webkit", {
+                configurable: true,
+                value: { messageHandlers: { focus: { postMessage: (on) => window.__focusBridgeCalls.push(on) } } }
+            });
+        });
+        await page.locator("#deckStage .unit-zoom-btn").click();
         expect(await page.evaluate(() => ({
-            lb: document.body.classList.contains("unit-lightbox"),
-            pos: getComputedStyle(document.getElementById("deckStage")).position,
-            w: Math.round(document.getElementById("deckStage").getBoundingClientRect().width)
-        }))).toEqual(expect.objectContaining({ lb: true, pos: "fixed" }));
+            bridge: window.__focusBridgeCalls,
+            focus: document.body.classList.contains("mode-focus"),
+            room: document.body.classList.contains("focus-room"),
+            zoom: document.body.classList.contains("focus-unit-zoomed"),
+            lightbox: document.body.classList.contains("unit-lightbox"),
+            deck: document.getElementById("deckStage").classList.contains("unit-zoomed")
+        }))).toEqual({ bridge: [true], focus: true, room: true, zoom: true, lightbox: false, deck: true });
         await page.keyboard.press("Escape");
-        expect(await page.evaluate(() => document.body.classList.contains("unit-lightbox")), "ESC = 라이트박스 닫힘").toBe(false);
+        expect(await page.evaluate(() => document.body.classList.contains("focus-unit-zoomed")), "ESC = 개별 확대 해제").toBe(false);
+        await page.evaluate(() => applyFocusMode(false));
+    });
+
+    test("DRAGON 릴 정렬: 카세트·투명 창·회전축 중심 일치", async ({ page }) => {
+        await page.evaluate(() => { deckModelId = "dragon"; mountDeck(); });
+        const geometry = await page.evaluate(() => {
+            const shell = document.getElementById("dragonCassetteShell");
+            const aperture = document.getElementById("dragonReelWindow");
+            const left = document.getElementById("deckReelL");
+            const right = document.getElementById("deckReelR");
+            const center = (el) => Number(el.getAttribute("x")) + Number(el.getAttribute("width")) / 2;
+            return {
+                shell: center(shell),
+                aperture: center(aperture),
+                reels: (Number(left.dataset.cx) + Number(right.dataset.cx)) / 2,
+                ys: [Number(left.dataset.cy), Number(right.dataset.cy)]
+            };
+        });
+        expect(Math.abs(geometry.shell - geometry.aperture), "카세트와 릴 창 중심").toBeLessThanOrEqual(1);
+        expect(Math.abs(geometry.shell - geometry.reels), "카세트와 좌우 릴 중점").toBeLessThanOrEqual(1);
+        expect(geometry.ys[0]).toBe(geometry.ys[1]);
+
+        const rotated = await page.evaluate(() => {
+            deckReelAngle = 37;
+            const now = performance.now();
+            ttLastTs = now;
+            ttFrame(now);
+            const point = (el, x, y) => {
+                const p = el.ownerSVGElement.createSVGPoint();
+                p.x = x; p.y = y;
+                const out = p.matrixTransform(el.getCTM());
+                return { x: out.x, y: out.y };
+            };
+            const check = (side, fallback) => {
+                const reel = document.getElementById("deckReel" + side);
+                const pack = document.getElementById("deckPack" + side);
+                const cx = Number(reel.dataset.cx || fallback);
+                const cy = Number(reel.dataset.cy || 260);
+                const rp = point(reel, cx, cy);
+                const pp = point(pack, Number(pack.getAttribute("cx")), Number(pack.getAttribute("cy")));
+                return { transform: reel.getAttribute("transform"), distance: Math.hypot(rp.x - pp.x, rp.y - pp.y) };
+            };
+            return { left: check("L", 610), right: check("R", 850) };
+        });
+        expect(rotated.left.transform).toContain(" 463 260)");
+        expect(rotated.right.transform).toContain(" 703 260)");
+        expect(rotated.left.distance).toBeLessThan(1);
+        expect(rotated.right.distance).toBeLessThan(1);
     });
 
     test("프런트패널 소생: 앰프 톤 영속·EQ 전원·데크 NR 히스", async ({ page }) => {

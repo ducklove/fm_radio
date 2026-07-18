@@ -21,10 +21,10 @@ module.exports = defineConfig({
             },
         },
         {
-            // Safari 경로 회귀 방지 — 예약 녹음·테이프 흐름만 WebKit으로 한 번 더
+            // Safari 경로 회귀 방지 — 예약·테이프와 Mac 전체 화면/DRAGON 기하를 WebKit으로 한 번 더
             name: "webkit",
             use: { browserName: "webkit" },
-            grep: /예약 녹음|예약 발화|테이프 보관함|테이프 가져오기/,
+            grep: /예약 녹음|예약 발화|테이프 보관함|테이프 가져오기|몰입 모드|DRAGON 릴 정렬/,
         },
     ],
     webServer: {

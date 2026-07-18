@@ -394,30 +394,30 @@ function mountDeck() {
         <path d="M92 130H974" stroke="#8d99a0" stroke-width="2" opacity=".12"/><path d="M92 362H974" stroke="#000" stroke-width="5" opacity=".72"/>
         <rect x="116" y="143" width="836" height="202" rx="7" fill="#0b0e11" stroke="#353a40" stroke-width="2"/>
         <path d="M126 153H942" stroke="#fff" stroke-width="2" opacity=".08"/>
-        <rect x="214" y="153" width="738" height="187" rx="6" fill="url(#dkCassette)" stroke="#817b6e" stroke-width="2"/>
+        <rect id="dragonCassetteShell" x="214" y="153" width="738" height="187" rx="6" fill="url(#dkCassette)" stroke="#817b6e" stroke-width="2"/>
         <path d="M222 162H944" stroke="#fff" stroke-width="2" opacity=".35"/>
-        <rect x="478" y="166" width="470" height="56" rx="3" fill="#e7dfc9" opacity=".92"/>
-        <path d="M486 176H938" stroke="#fff" stroke-width="2" opacity=".72"/>
-        <text id="deckLabel" x="730" y="190" font-family="Arial" font-size="17" font-weight="700" fill="#3a2b1e" text-anchor="middle">C-30 공테이프</text>
-        <text id="deckLabelSub" x="730" y="211" font-family="Arial" font-size="11" font-weight="700" fill="#665a49" text-anchor="middle">사용 0:00 / 30:00</text>
-        <rect x="532" y="226" width="404" height="96" rx="48" fill="#111216" stroke="#514d45" stroke-width="2"/>
-        <rect x="544" y="237" width="380" height="74" rx="37" fill="#08090b" stroke="#272a2f"/>
-        <circle id="deckPackL" cx="610" cy="260" r="40" fill="url(#dkPack)" stroke="#080604" stroke-width="2"/>
-        <circle id="deckPackR" cx="850" cy="260" r="24" fill="url(#dkPack)" stroke="#080604" stroke-width="2"/>
-        <path d="M610 222 C690 211 773 226 850 238 M610 298 C690 309 773 294 850 282" fill="none" stroke="url(#dkTape)" stroke-width="6" opacity=".76"/>
-        <g id="deckReelL">
-            <circle cx="610" cy="260" r="30" fill="url(#dkKnurl)" stroke="#777b82"/>
-            <circle cx="610" cy="260" r="20" fill="url(#dkReel)" stroke="#44484f"/>
-            <path d="M610 243V253 M610 267V277 M593 260H603 M617 260H627 M598 248L605 255 M615 265L622 272 M622 248L615 255 M605 265L598 272" stroke="#484c52" stroke-width="4" stroke-linecap="round"/>
-            <circle cx="610" cy="260" r="5" fill="#101014"/>
+        <rect x="348" y="166" width="470" height="56" rx="3" fill="#e7dfc9" opacity=".92"/>
+        <path d="M356 176H810" stroke="#fff" stroke-width="2" opacity=".72"/>
+        <text id="deckLabel" x="583" y="190" font-family="Arial" font-size="17" font-weight="700" fill="#3a2b1e" text-anchor="middle">C-30 공테이프</text>
+        <text id="deckLabelSub" x="583" y="211" font-family="Arial" font-size="11" font-weight="700" fill="#665a49" text-anchor="middle">사용 0:00 / 30:00</text>
+        <rect id="dragonReelWindow" x="381" y="226" width="404" height="96" rx="48" fill="#111216" stroke="#514d45" stroke-width="2"/>
+        <rect x="393" y="237" width="380" height="74" rx="37" fill="#08090b" stroke="#272a2f"/>
+        <circle id="deckPackL" cx="463" cy="260" r="40" fill="url(#dkPack)" stroke="#080604" stroke-width="2"/>
+        <circle id="deckPackR" cx="703" cy="260" r="24" fill="url(#dkPack)" stroke="#080604" stroke-width="2"/>
+        <path d="M463 222 C543 211 626 226 703 238 M463 298 C543 309 626 294 703 282" fill="none" stroke="url(#dkTape)" stroke-width="6" opacity=".76"/>
+        <g id="deckReelL" data-cx="463" data-cy="260">
+            <circle cx="463" cy="260" r="30" fill="url(#dkKnurl)" stroke="#777b82"/>
+            <circle cx="463" cy="260" r="20" fill="url(#dkReel)" stroke="#44484f"/>
+            <path d="M463 243V253 M463 267V277 M446 260H456 M470 260H480 M451 248L458 255 M468 265L475 272 M475 248L468 255 M458 265L451 272" stroke="#484c52" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="463" cy="260" r="5" fill="#101014"/>
         </g>
-        <g id="deckReelR">
-            <circle cx="850" cy="260" r="28" fill="url(#dkKnurl)" stroke="#777b82"/>
-            <circle cx="850" cy="260" r="20" fill="url(#dkReel)" stroke="#44484f"/>
-            <path d="M850 243V253 M850 267V277 M833 260H843 M857 260H867 M838 248L845 255 M855 265L862 272 M862 248L855 255 M845 265L838 272" stroke="#484c52" stroke-width="4" stroke-linecap="round"/>
-            <circle cx="850" cy="260" r="5" fill="#101014"/>
+        <g id="deckReelR" data-cx="703" data-cy="260">
+            <circle cx="703" cy="260" r="28" fill="url(#dkKnurl)" stroke="#777b82"/>
+            <circle cx="703" cy="260" r="20" fill="url(#dkReel)" stroke="#44484f"/>
+            <path d="M703 243V253 M703 267V277 M686 260H696 M710 260H720 M691 248L698 255 M708 265L715 272 M715 248L708 255 M698 265L691 272" stroke="#484c52" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="703" cy="260" r="5" fill="#101014"/>
         </g>
-        <path d="M652 309H808L788 337H672Z" fill="#24262b" stroke="#6a6d72"/><circle cx="684" cy="321" r="8" fill="#101216" stroke="#a6a7a6"/><circle cx="776" cy="321" r="8" fill="#101216" stroke="#a6a7a6"/><rect x="711" y="311" width="38" height="20" rx="3" fill="#24272c" stroke="#6a6e73"/>
+        <path d="M505 309H661L641 337H525Z" fill="#24262b" stroke="#6a6d72"/><circle cx="537" cy="321" r="8" fill="#101216" stroke="#a6a7a6"/><circle cx="629" cy="321" r="8" fill="#101216" stroke="#a6a7a6"/><rect x="564" y="311" width="38" height="20" rx="3" fill="#24272c" stroke="#6a6e73"/>
         <rect x="86" y="124" width="894" height="246" rx="7" fill="url(#dkSmoke)" pointer-events="none"/>
         <path d="M100 132H462L350 365H100Z" fill="url(#dkGlass)" opacity=".85" pointer-events="none"/><path d="M714 130H964L850 368H600Z" fill="url(#dkGlass)" opacity=".22" pointer-events="none"/>
         <path d="M118 139L416 139 M754 139L950 139" stroke="#d9f3f7" stroke-width="2" opacity=".12" pointer-events="none"/>

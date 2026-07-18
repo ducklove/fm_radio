@@ -77,14 +77,6 @@ function setPopupBarMode(on) {
 // room: 랙 전체가 화면 높이에 들어오고(zoom 스케일) 좌우에 스피커 — 단일 컴포넌트 확대는 여기서만.
 // wide: 예전처럼 컴포넌트를 크게, 세로 스크롤.
 let focusView = loadJson("fmRadio.focusView", "room");
-let focusSpeakersMounted = false;
-
-function mountFocusSpeakers() {
-    if (focusSpeakersMounted || typeof mfaSpeakerSvg !== "function") return;
-    focusSpeakersMounted = true;
-    document.getElementById("speakerL").innerHTML = mfaSpeakerSvg("l");
-    document.getElementById("speakerR").innerHTML = mfaSpeakerSvg("r");
-}
 
 // 유닛마다 확대 버튼(⤢)을 보장한다 — 스킨 재마운트가 stage innerHTML을 갈아치우므로 멱등 주입
 function ensureZoomBtns() {
@@ -101,30 +93,28 @@ function ensureZoomBtns() {
     });
 }
 
-// 룸 모드 = 제자리 확대(다른 유닛 후퇴), 그 외 = 라이트박스(배경 위로 유닛만 크게)
+// 개별 컴포넌트 확대는 항상 실제 전체 화면(브라우저 API / Mac 네이티브 브리지)에서 연다.
 function focusUnitZoom(stage) {
+    if (!stage) return;
     const zoomed = stage.classList.contains("unit-zoomed");
     focusClearZoom();
     if (zoomed) { focusFitRack(); return; }
-    const room = document.body.classList.contains("mode-focus") && focusView === "room";
-    stage.classList.add("unit-zoomed");
-    document.body.classList.add(room ? "focus-unit-zoomed" : "unit-lightbox");
-    if (!room) ensureUnitBackdrop();
-    focusFitRack();
-}
 
-function ensureUnitBackdrop() {
-    if (document.querySelector(".unit-backdrop")) return;
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "unit-backdrop";
-    b.setAttribute("aria-label", "확대 닫기");
-    b.addEventListener("click", () => { focusClearZoom(); focusFitRack(); });
-    document.body.appendChild(b);
+    if (focusView !== "room") {
+        focusView = "room";
+        saveJson("fmRadio.focusView", focusView);
+    }
+    if (!document.body.classList.contains("mode-focus")) toggleFocusMode();
+    else applyFocusView();
+
+    stage.classList.add("unit-zoomed");
+    document.body.classList.add("focus-unit-zoomed");
+    focusFitRack();
 }
 
 function focusClearZoom() {
     document.body.classList.remove("focus-unit-zoomed");
+    // 이전 버전이 남긴 클래스도 함께 청소한다.
     document.body.classList.remove("unit-lightbox");
     document.querySelectorAll(".unit-zoomed").forEach((el) => el.classList.remove("unit-zoomed"));
 }
@@ -151,7 +141,7 @@ function applyFocusView() {
     const on = document.body.classList.contains("mode-focus");
     document.body.classList.toggle("focus-room", on && focusView === "room");
     document.body.classList.toggle("focus-wide", on && focusView === "wide");
-    if (on && focusView === "room") { mountFocusSpeakers(); ensureZoomBtns(); }
+    if (on && focusView === "room") ensureZoomBtns();
     if (focusView !== "room") focusClearZoom();
     focusFitRack();
 }
@@ -199,7 +189,7 @@ function toggleFocusMode() {
 document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     // 단일 컴포넌트 확대 중이면 확대 해제가 먼저다
-    if (document.body.classList.contains("focus-unit-zoomed") || document.body.classList.contains("unit-lightbox")) {
+    if (document.body.classList.contains("focus-unit-zoomed")) {
         focusClearZoom();
         focusFitRack();
         return;
@@ -2893,27 +2883,6 @@ function ttFrame(now) {
         ttScratchEnergy *= Math.exp(-dt * 10);
     }
 
-    // 리스닝 룸 우퍼 호흡 — 재생 레벨에 콘이 밀려 나온다 (Chromium, 룸 모드에서만)
-    const wooferL = document.body.classList.contains("focus-room") ? document.getElementById("focusWooferL") : null;
-    if (wooferL) {
-        let lvl = 0;
-        if (analyser && isPlaying && !audio.muted) {
-            if (!ttFrame.spkTime || ttFrame.spkTime.length !== analyser.fftSize) ttFrame.spkTime = new Uint8Array(analyser.fftSize);
-            analyser.getByteTimeDomainData(ttFrame.spkTime);
-            let s2 = 0;
-            for (let i = 0; i < ttFrame.spkTime.length; i += 4) {
-                const dv = (ttFrame.spkTime[i] - 128) / 128;
-                s2 += dv * dv;
-            }
-            lvl = Math.min(1, Math.sqrt(s2 / (ttFrame.spkTime.length / 4)) * 2.4);
-        }
-        ttFrame.spkLvl = (ttFrame.spkLvl || 0) + (lvl - (ttFrame.spkLvl || 0)) * 0.4;
-        const sc = (1 + ttFrame.spkLvl * 0.045).toFixed(4);
-        wooferL.setAttribute("transform", "scale(" + sc + ")");
-        const wooferR = document.getElementById("focusWooferR");
-        if (wooferR) wooferR.setAttribute("transform", "scale(" + sc + ")");
-    }
-
     // 진공관 웜업: 켜면 ~2초에 걸쳐 달아오르고, 꺼지면 열이 식듯 더 천천히 어두워진다
     // (테이프 트랜스포트가 도는 동안은 빈 구간이라도 시스템이 켜져 있는 것으로 본다)
     const warmTarget = (isPlaying || deckMode === "play" || !!recorder) ? 1 : 0;
@@ -3147,9 +3116,15 @@ function ttFrame(now) {
     if (spinRate) deckReelAngle = (deckReelAngle + dt * spinRate + 360) % 360;
     const rl = document.getElementById("deckReelL");
     if (rl) {
-        rl.setAttribute("transform", "rotate(" + deckReelAngle.toFixed(1) + " 610 260)");
+        const leftCx = Number(rl.dataset.cx || 610);
+        const leftCy = Number(rl.dataset.cy || 260);
+        rl.setAttribute("transform", "rotate(" + deckReelAngle.toFixed(1) + " " + leftCx + " " + leftCy + ")");
         const rr = document.getElementById("deckReelR");
-        if (rr) rr.setAttribute("transform", "rotate(" + (deckReelAngle * 0.82).toFixed(1) + " 850 260)");
+        if (rr) {
+            const rightCx = Number(rr.dataset.cx || 850);
+            const rightCy = Number(rr.dataset.cy || 260);
+            rr.setAttribute("transform", "rotate(" + (deckReelAngle * 0.82).toFixed(1) + " " + rightCx + " " + rightCy + ")");
+        }
         const p = tapePos / tapeLenOf(deckTape);
         const pl = document.getElementById("deckPackL");
         const pr = document.getElementById("deckPackR");

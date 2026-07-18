@@ -1197,52 +1197,6 @@ const TIMER_MODELS = {
     dt540: { label: "PIONEER DT-540", render: mfaDt540Svg }
 };
 
-// 리스닝 룸 플로어 스피커 — 몰입 모드(focus-room) 좌우 장식.
-// 특정 실물의 복제가 아니라 70년대 3웨이 스튜디오 모니터 문법(월넛 인클로저,
-// 12" 우퍼 + 미드 + 혼 트위터, 스탠드)의 창작 재해석. 우퍼 콘(id)은 재생 레벨에 호흡한다.
-function mfaSpeakerSvg(side) {
-    const id = side === "l" ? "focusWooferL" : "focusWooferR";
-    const drv = (cy, r, cone) =>
-        '<circle cx="320" cy="' + cy + '" r="' + (r + 14) + '" fill="#0c0a08" stroke="#2c2620" stroke-width="3"/>' +
-        '<circle cx="320" cy="' + cy + '" r="' + r + '" fill="#14110d" stroke="#3a332a" stroke-width="2"/>' +
-        (cone || '') +
-        '<circle cx="320" cy="' + cy + '" r="' + (r + 8) + '" fill="none" stroke="#000" stroke-width="1.5" opacity=".5"/>' +
-        Array.from({ length: 8 }, (_, i) => {
-            const a = i * Math.PI / 4 + Math.PI / 8;
-            return '<circle cx="' + (320 + Math.cos(a) * (r + 11)).toFixed(1) + '" cy="' + (cy + Math.sin(a) * (r + 11)).toFixed(1) + '" r="3" fill="#1c1914" stroke="#4a4238" stroke-width="1"/>';
-        }).join("");
-    return '<svg class="speaker-svg" viewBox="0 0 640 1440" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-        '<defs>' +
-        '<linearGradient id="spkWood' + side + '" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a3a20"/><stop offset=".12" stop-color="#7a5230"/><stop offset=".5" stop-color="#6a4527"/><stop offset=".88" stop-color="#4f331c"/><stop offset="1" stop-color="#3a2513"/></linearGradient>' +
-        '<linearGradient id="spkBaffle' + side + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#221e18"/><stop offset=".5" stop-color="#181510"/><stop offset="1" stop-color="#0e0c09"/></linearGradient>' +
-        '<radialGradient id="spkCone' + side + '" cx="0.42" cy="0.38" r="0.75"><stop offset="0" stop-color="#efe9da"/><stop offset=".55" stop-color="#d9d0bc"/><stop offset=".92" stop-color="#b3a88f"/><stop offset="1" stop-color="#8f8570"/></radialGradient>' +
-        '<radialGradient id="spkCap' + side + '" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#6a6155"/><stop offset="1" stop-color="#241f18"/></radialGradient>' +
-        '</defs>' +
-        '<ellipse cx="320" cy="1408" rx="300" ry="26" fill="#000" opacity=".5"/>' +
-        '<rect x="40" y="60" width="560" height="1280" rx="14" fill="url(#spkWood' + side + ')" stroke="#241608" stroke-width="4"/>' +
-        '<rect x="40" y="60" width="560" height="16" fill="#fff" opacity=".08"/>' +
-        '<rect x="72" y="96" width="496" height="1160" rx="8" fill="url(#spkBaffle' + side + ')" stroke="#050403" stroke-width="3"/>' +
-        '<rect x="80" y="104" width="480" height="6" fill="#fff" opacity=".05"/>' +
-        '<rect x="196" y="150" width="248" height="104" rx="10" fill="#0a0806" stroke="#2e281f" stroke-width="3"/>' +
-        '<path d="M226 202 L306 172 H334 L414 202 L334 232 H306 Z" fill="#c9bfa8" stroke="#5c5240" stroke-width="2"/>' +
-        '<ellipse cx="320" cy="202" rx="18" ry="26" fill="#141109" stroke="#6a5f4a" stroke-width="2"/>' +
-        drv(400, 96, '<circle cx="320" cy="400" r="84" fill="url(#spkCone' + side + ')"/><circle cx="320" cy="400" r="30" fill="url(#spkCap' + side + ')"/>') +
-        drv(830, 210,
-            '<g id="' + id + '" transform-origin="320 830">' +
-            '<circle cx="320" cy="830" r="196" fill="url(#spkCone' + side + ')"/>' +
-            '<circle cx="320" cy="830" r="150" fill="none" stroke="#9a8f76" stroke-width="2" opacity=".55"/>' +
-            '<circle cx="320" cy="830" r="66" fill="url(#spkCap' + side + ')"/>' +
-            '<ellipse cx="268" cy="762" rx="52" ry="34" fill="#fff" opacity=".2"/>' +
-            '</g>') +
-        '<circle cx="320" cy="1156" r="46" fill="#060504" stroke="#2c2620" stroke-width="3"/>' +
-        '<circle cx="320" cy="1156" r="38" fill="#0d0a07"/>' +
-        '<rect x="238" y="1212" width="164" height="30" rx="5" fill="#1a150f" stroke="#4a3d2c" stroke-width="1.5"/>' +
-        '<text x="320" y="1233" font-family="Arial" font-size="16" font-weight="700" letter-spacing="3" fill="#c9a86a" text-anchor="middle">MA MONITOR</text>' +
-        '<rect x="120" y="1340" width="400" height="26" rx="6" fill="#17130d" stroke="#000" stroke-width="2"/>' +
-        '<rect x="150" y="1366" width="46" height="38" fill="#0e0b08"/><rect x="444" y="1366" width="46" height="38" fill="#0e0b08"/>' +
-        '</svg>';
-}
-
 // 초기 세대 SVG에도 얇은 패널 라이너와 체결 나사 디테일을 더한다.
 // MC2105는 사용자가 다듬은 블랙글라스/백라이트 레이어를 그대로 보존한다.
 function mfaPolishLegacySvg(svg) {
