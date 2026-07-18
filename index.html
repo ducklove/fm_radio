@@ -32,13 +32,9 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=112">
+    <link rel="stylesheet" href="styles.css?v=109">
 </head>
 <body>
-    <!-- 장식용 사이드 스피커 사진 — 좌우 폭이 넉넉할 때만 랙 양옆 바닥에 나타난다
-         (styles.css .side-speaker). 검은 배경 사진은 blend로 페이지 배경에 녹인다. -->
-    <img class="side-speaker left" src="images/side-speaker.jpg" alt="" aria-hidden="true">
-    <img class="side-speaker right" src="images/side-speaker.jpg" alt="" aria-hidden="true">
     <div class="page-shell">
         <header class="site-header">
             <div class="brand">
@@ -61,12 +57,17 @@
         </header>
 
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
-            <div class="tuner-stage" id="tunerStage"></div>
-            <div class="rack-unit" id="timerStage" aria-label="오디오 타이머"></div>
-            <div class="rack-unit" id="eqStage" aria-label="그래픽 이퀄라이저"></div>
-            <div class="rack-unit" id="ampStage" aria-label="앰프"></div>
-            <div class="rack-unit" id="deckStage" aria-label="카세트 데크"></div>
-            <div class="rack-unit" id="ttStage" aria-label="턴테이블"></div>
+            <!-- 몰입 모드 리스닝 룸 — 좌우 스피커는 focus-room에서만 보인다 (SVG는 mountFocusSpeakers가 주입) -->
+            <div class="focus-speaker" id="speakerL" aria-hidden="true"></div>
+            <div class="rack-column" id="rackColumn">
+                <div class="tuner-stage" id="tunerStage"></div>
+                <div class="rack-unit" id="timerStage" aria-label="오디오 타이머"></div>
+                <div class="rack-unit" id="eqStage" aria-label="그래픽 이퀄라이저"></div>
+                <div class="rack-unit" id="ampStage" aria-label="앰프"></div>
+                <div class="rack-unit" id="deckStage" aria-label="카세트 데크"></div>
+                <div class="rack-unit" id="ttStage" aria-label="턴테이블"></div>
+            </div>
+            <div class="focus-speaker" id="speakerR" aria-hidden="true"></div>
             <canvas class="vu-canvas" id="vuCanvas" aria-hidden="true"></canvas>
             <div class="hero-player-wrap">
                 <section class="player-bar" aria-label="현재 재생 플레이어">
@@ -260,18 +261,19 @@
     </div>
 
     <button class="focus-exit" type="button" onclick="toggleFocusMode()" title="전체 화면 나가기" aria-label="전체 화면 나가기">✕</button>
+    <button class="focus-exit focus-view" id="focusViewBtn" type="button" onclick="toggleFocusView()" title="리스닝 룸(스피커) ↔ 와이드(컴포넌트 크게) 전환" aria-label="전체 화면 보기 방식 전환">◫</button>
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=112"></script>
-    <script src="player-core.js?v=112"></script>
-    <script src="store.js?v=112"></script>
-    <script src="schedule.js?v=112"></script>
-    <script src="skins.js?v=112"></script>
-    <script src="component-skins.js?v=112"></script>
-    <script src="engine.js?v=112"></script>
-    <script src="deck.js?v=112"></script>
-    <script src="bootstrap.js?v=112"></script>
+    <script src="stations.js?v=109"></script>
+    <script src="player-core.js?v=109"></script>
+    <script src="store.js?v=109"></script>
+    <script src="schedule.js?v=109"></script>
+    <script src="skins.js?v=109"></script>
+    <script src="component-skins.js?v=109"></script>
+    <script src="engine.js?v=109"></script>
+    <script src="deck.js?v=109"></script>
+    <script src="bootstrap.js?v=109"></script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {

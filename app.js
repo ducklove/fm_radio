@@ -64,177 +64,105 @@ function setPopupBarMode(on) {
 // ----- 전체 화면(몰입) 모드 — 컴포넌트만 남긴다 -----
 // 브라우저 전체 화면 API를 쓰되, 미지원 환경(맥 앱 팝오버 등)에서는
 // 클래스만 적용해 창 안에서 크롬을 걷어낸다.
+// ----- 몰입 모드 두 보기 -----
+// room: 랙 전체가 화면 높이에 들어오고(zoom 스케일) 좌우에 스피커 — 단일 컴포넌트 확대는 여기서만.
+// wide: 예전처럼 컴포넌트를 크게, 세로 스크롤.
+let focusView = loadJson("fmRadio.focusView", "room");
+let focusSpeakersMounted = false;
+
+function mountFocusSpeakers() {
+    if (focusSpeakersMounted || typeof mfaSpeakerSvg !== "function") return;
+    focusSpeakersMounted = true;
+    document.getElementById("speakerL").innerHTML = mfaSpeakerSvg("l");
+    document.getElementById("speakerR").innerHTML = mfaSpeakerSvg("r");
+}
+
+// 유닛마다 확대 버튼(⤢)을 보장한다 — 스킨 재마운트가 stage innerHTML을 갈아치우므로 멱등 주입
+function ensureZoomBtns() {
+    document.querySelectorAll("#rackColumn > div").forEach((stage) => {
+        if (stage.querySelector(".unit-zoom-btn")) return;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "unit-zoom-btn";
+        b.textContent = "⤢";
+        b.title = "이 컴포넌트만 크게 보기 (다시 누르면 복귀)";
+        b.setAttribute("aria-label", "컴포넌트 확대");
+        b.addEventListener("click", (e) => { e.stopPropagation(); focusUnitZoom(stage); });
+        stage.appendChild(b);
+    });
+}
+
+// 룸 모드 = 제자리 확대(다른 유닛 후퇴), 그 외 = 라이트박스(배경 위로 유닛만 크게)
+function focusUnitZoom(stage) {
+    const zoomed = stage.classList.contains("unit-zoomed");
+    focusClearZoom();
+    if (zoomed) { focusFitRack(); return; }
+    const room = document.body.classList.contains("mode-focus") && focusView === "room";
+    stage.classList.add("unit-zoomed");
+    document.body.classList.add(room ? "focus-unit-zoomed" : "unit-lightbox");
+    if (!room) ensureUnitBackdrop();
+    focusFitRack();
+}
+
+function ensureUnitBackdrop() {
+    if (document.querySelector(".unit-backdrop")) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "unit-backdrop";
+    b.setAttribute("aria-label", "확대 닫기");
+    b.addEventListener("click", () => { focusClearZoom(); focusFitRack(); });
+    document.body.appendChild(b);
+}
+
+function focusClearZoom() {
+    document.body.classList.remove("focus-unit-zoomed");
+    document.body.classList.remove("unit-lightbox");
+    document.querySelectorAll(".unit-zoomed").forEach((el) => el.classList.remove("unit-zoomed"));
+}
+
+// 룸 모드: 랙 스택 전체가 화면 높이에 들어오도록 zoom 배율을 맞춘다
+function focusFitRack() {
+    const col = document.getElementById("rackColumn");
+    if (!col) return;
+    const room = document.body.classList.contains("mode-focus") && focusView === "room"
+        && !document.body.classList.contains("focus-unit-zoomed");
+    if (!room) { col.style.flex = ""; return; }
+    // 유닛은 폭 비례 고정비(2000:h) SVG라, 랙 '폭'을 줄이면 스택 높이가 따라 준다.
+    // 화면 높이에 들어오는 폭을 역산해 flex-basis로 고정한다 (한 스텝이면 수렴).
+    const rect = col.getBoundingClientRect();
+    const h = col.scrollHeight;
+    const avail = (window.innerHeight || 800) * 0.94;
+    if (h > avail && rect.width > 0) {
+        const w = Math.max(380, Math.round(rect.width * avail / h));
+        if (Math.abs(w - rect.width) > 8) col.style.flex = "0 0 " + w + "px";
+    }
+}
+
+function applyFocusView() {
+    const on = document.body.classList.contains("mode-focus");
+    document.body.classList.toggle("focus-room", on && focusView === "room");
+    document.body.classList.toggle("focus-wide", on && focusView === "wide");
+    if (on && focusView === "room") { mountFocusSpeakers(); ensureZoomBtns(); }
+    if (focusView !== "room") focusClearZoom();
+    focusFitRack();
+}
+
+function toggleFocusView() {
+    focusView = focusView === "room" ? "wide" : "room";
+    saveJson("fmRadio.focusView", focusView);
+    applyFocusView();
+    playerSubtext.textContent = focusView === "room"
+        ? "리스닝 룸 — 시스템 전체와 스피커. ⤢로 컴포넌트 하나만 크게 볼 수 있습니다."
+        : "와이드 — 컴포넌트를 크게 보고 스크롤로 오갑니다.";
+}
+
+window.addEventListener("resize", focusFitRack);
+setTimeout(ensureZoomBtns, 0);
+
 function applyFocusMode(on) {
     document.body.classList.toggle("mode-focus", on);
-    // 전체 화면을 떠나면 컴포넌트 단독 확대 상태도 함께 푼다
-    if (!on && focusUnit) {
-        setFocusUnit(null);
-        return;
-    }
-    if (on) window.scrollTo(0, 0);
-    fitFocusRack();
-}
-
-// 전체 화면(몰입)에서는 '선택할 수 있는 가장 높은 구성'(모든 유닛 + 각 슬롯에서 가장 높은
-// 모델)이 화면 높이에 꼭 맞도록 스케일(=폭)을 정한다. 유닛을 끄거나 슬림한 모델을 골라
-// 현재 랙이 그보다 낮아지면 확대하지 않고 바닥(스피커와 같은 층)에 정렬해 위를 비워 둔다.
-// 스케일된 실제 랙 폭은 --rack-w 로 내보내 장식 스피커가 옆 공간을 계산하게 한다.
-
-// 슬롯별 '가장 높은 모델'의 높이/너비 비율 — 카탈로그의 svg 문자열에서 viewBox를 읽는다.
-// EQ처럼 svg를 실행 중에 생성하는 슬롯은 아키텍처 템플릿 최대치(2000×540)를 바닥값으로 둔다.
-const FOCUS_SLOT_MIN_RATIO = { eq: 540 / 2000 };
-
-function focusSlotMaxRatio(key) {
-    const parse = (svg) => {
-        const m = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg || "");
-        return m ? parseFloat(m[2]) / parseFloat(m[1]) : 0;
-    };
-    const catalogs = {
-        tuner: [typeof TUNER_SKINS !== "undefined" && TUNER_SKINS, typeof MFA_TUNERS !== "undefined" && MFA_TUNERS],
-        amp: [typeof AMP_MODELS !== "undefined" && AMP_MODELS, typeof MFA_AMPS !== "undefined" && MFA_AMPS],
-        deck: [typeof DECK_MODELS !== "undefined" && DECK_MODELS],
-        tt: [typeof TT_MODELS !== "undefined" && TT_MODELS],
-        eq: [],
-        timer: []
-    }[key] || [];
-
-    let best = FOCUS_SLOT_MIN_RATIO[key] || 0;
-    catalogs.forEach((catalog) => {
-        if (!catalog) return;
-        (Array.isArray(catalog) ? catalog : Object.values(catalog)).forEach((item) => {
-            if (item && typeof item.svg === "string") best = Math.max(best, parse(item.svg));
-        });
-    });
-
-    // 공통 템플릿 슬롯(턴테이블·타이머 등)은 지금 마운트된 SVG 비율이 곧 최대치다
-    const stage = document.getElementById(UNIT_STAGES[key]);
-    const svgEl = stage && stage.querySelector("svg");
-    if (svgEl) {
-        const vb = (svgEl.getAttribute("viewBox") || "").split(/\s+/);
-        if (vb.length === 4 && parseFloat(vb[2]) > 0) {
-            best = Math.max(best, parseFloat(vb[3]) / parseFloat(vb[2]));
-        }
-    }
-    return best;
-}
-
-// '최대 구성' 랙의 자연 높이 — 슬롯 최대 비율 × 폭 + (숨김 여부와 무관한) 유닛 마진 + 셸 패딩
-function focusMaxRackHeight(shell) {
-    const width = shell.clientWidth;
-    let total = 0;
-    Object.keys(UNIT_STAGES).forEach((key) => {
-        const stage = document.getElementById(UNIT_STAGES[key]);
-        if (!stage) return;
-        const cs = getComputedStyle(stage);
-        total += width * focusSlotMaxRatio(key)
-            + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
-    });
-    const shellCs = getComputedStyle(shell);
-    total += (parseFloat(shellCs.paddingTop) || 0) + (parseFloat(shellCs.paddingBottom) || 0);
-    return total;
-}
-
-function fitFocusRack() {
-    const shell = document.querySelector(".page-shell");
-    if (!shell) return;
-    if (!document.body.classList.contains("mode-focus")) {
-        shell.style.transform = "";
-        document.documentElement.style.removeProperty("--rack-w");
-        return;
-    }
-    shell.style.transform = "";
-    const natural = shell.getBoundingClientRect();
-    if (natural.height <= 0 || natural.width <= 0) return;
-
-    let scale;
-    let lift;
-    if (focusUnit) {
-        // 단독 확대: 남은 한 컴포넌트가 화면에 꽉 차게 — 세로 가운데 정렬
-        scale = Math.min(window.innerHeight / natural.height, (window.innerWidth - 48) / natural.width);
-        lift = Math.max(0, (window.innerHeight - natural.height * scale) / 2);
-    } else {
-        const reference = Math.max(focusMaxRackHeight(shell), natural.height);
-        scale = Math.min(window.innerHeight / reference, (window.innerWidth - 64) / natural.width);
-        // 현재 구성이 기준보다 낮은 만큼 아래로 내려 바닥에 붙인다 (위쪽이 비워진다)
-        lift = Math.max(0, window.innerHeight - natural.height * scale);
-    }
-    shell.style.transform = `translateY(${lift.toFixed(1)}px) scale(${scale.toFixed(4)})`;
-    document.documentElement.style.setProperty("--rack-w", (natural.width * scale).toFixed(1) + "px");
-}
-
-// ----- 컴포넌트 단독 확대 — 유닛 하나만 전체 화면에 꽉 채워 본다 -----
-let focusUnit = null;
-
-function setFocusUnit(key) {
-    focusUnit = key && UNIT_STAGES[key] ? key : null;
-    document.body.classList.toggle("unit-solo", !!focusUnit);
-    Object.keys(UNIT_STAGES).forEach((k) => {
-        const stage = document.getElementById(UNIT_STAGES[k]);
-        if (stage) stage.classList.toggle("solo-hidden", !!focusUnit && k !== focusUnit);
-    });
-    updateZoomButtons();
-    if (focusUnit && !document.body.classList.contains("mode-focus")) {
-        toggleFocusMode();   // 전체 화면 진입 (applyFocusMode → fitFocusRack)
-    } else {
-        fitFocusRack();
-    }
-}
-
-function updateZoomButtons() {
-    Object.keys(UNIT_STAGES).forEach((k) => {
-        const stage = document.getElementById(UNIT_STAGES[k]);
-        const btn = stage && stage.querySelector(".unit-zoom");
-        if (!btn) return;
-        const solo = focusUnit === k;
-        btn.textContent = solo ? "⤡" : "⤢";
-        btn.title = solo ? "랙 전체 보기로 돌아가기" : "이 컴포넌트만 전체 화면으로";
-    });
-}
-
-// 각 스테이지 위에 단독 확대 버튼을 붙인다. 모델을 바꾸면 스테이지 innerHTML이
-// 통째로 갈리므로 MutationObserver로 버튼을 다시 붙인다.
-function mountZoomButtons() {
-    Object.keys(UNIT_STAGES).forEach((key) => {
-        const stage = document.getElementById(UNIT_STAGES[key]);
-        if (!stage) return;
-        const ensure = () => {
-            if (stage.querySelector(".unit-zoom")) return;
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "unit-zoom";
-            btn.setAttribute("aria-label", "컴포넌트 단독 전체 화면");
-            btn.addEventListener("click", (event) => {
-                event.stopPropagation();
-                setFocusUnit(focusUnit === key ? null : key);
-            });
-            stage.appendChild(btn);
-            updateZoomButtons();
-        };
-        ensure();
-        new MutationObserver(ensure).observe(stage, { childList: true });
-    });
-}
-
-window.addEventListener("resize", () => {
-    if (document.body.classList.contains("mode-focus")) fitFocusRack();
-});
-
-// 오디오 구성에서 유닛을 켜고 끄면 랙 높이가 변한다 — 몰입 중이면 다시 맞춘다
-// (transform은 레이아웃 크기에 영향을 주지 않으므로 관찰 루프가 생기지 않는다)
-// 이 스크립트가 DOMContentLoaded 이후에 실행될 수도 있어 readyState로 나눈다.
-if (typeof ResizeObserver !== "undefined") {
-    const observeFocusShell = () => {
-        const shell = document.querySelector(".page-shell");
-        if (!shell) return;
-        new ResizeObserver(() => {
-            if (document.body.classList.contains("mode-focus")) fitFocusRack();
-        }).observe(shell);
-    };
-    if (document.readyState === "loading") {
-        window.addEventListener("DOMContentLoaded", observeFocusShell);
-    } else {
-        observeFocusShell();
-    }
+    if (!on) focusClearZoom();
+    applyFocusView();
 }
 
 function toggleFocusMode() {
@@ -260,7 +188,14 @@ function toggleFocusMode() {
 
 // 네이티브 전체 화면이 아닌 환경(맥 앱 등)에서는 ESC로 몰입 모드를 닫는다
 document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && document.body.classList.contains("mode-focus") && !document.fullscreenElement) {
+    if (e.key !== "Escape") return;
+    // 단일 컴포넌트 확대 중이면 확대 해제가 먼저다
+    if (document.body.classList.contains("focus-unit-zoomed") || document.body.classList.contains("unit-lightbox")) {
+        focusClearZoom();
+        focusFitRack();
+        return;
+    }
+    if (document.body.classList.contains("mode-focus") && !document.fullscreenElement) {
         toggleFocusMode();
     }
 });
@@ -2873,6 +2808,27 @@ function ttFrame(now) {
         ttScratchEnergy *= Math.exp(-dt * 10);
     }
 
+    // 리스닝 룸 우퍼 호흡 — 재생 레벨에 콘이 밀려 나온다 (Chromium, 룸 모드에서만)
+    const wooferL = document.body.classList.contains("focus-room") ? document.getElementById("focusWooferL") : null;
+    if (wooferL) {
+        let lvl = 0;
+        if (analyser && isPlaying && !audio.muted) {
+            if (!ttFrame.spkTime || ttFrame.spkTime.length !== analyser.fftSize) ttFrame.spkTime = new Uint8Array(analyser.fftSize);
+            analyser.getByteTimeDomainData(ttFrame.spkTime);
+            let s2 = 0;
+            for (let i = 0; i < ttFrame.spkTime.length; i += 4) {
+                const dv = (ttFrame.spkTime[i] - 128) / 128;
+                s2 += dv * dv;
+            }
+            lvl = Math.min(1, Math.sqrt(s2 / (ttFrame.spkTime.length / 4)) * 2.4);
+        }
+        ttFrame.spkLvl = (ttFrame.spkLvl || 0) + (lvl - (ttFrame.spkLvl || 0)) * 0.4;
+        const sc = (1 + ttFrame.spkLvl * 0.045).toFixed(4);
+        wooferL.setAttribute("transform", "scale(" + sc + ")");
+        const wooferR = document.getElementById("focusWooferR");
+        if (wooferR) wooferR.setAttribute("transform", "scale(" + sc + ")");
+    }
+
     // 진공관 웜업: 켜면 ~2초에 걸쳐 달아오르고, 꺼지면 열이 식듯 더 천천히 어두워진다
     // (테이프 트랜스포트가 도는 동안은 빈 구간이라도 시스템이 켜져 있는 것으로 본다)
     const warmTarget = (isPlaying || deckMode === "play" || !!recorder) ? 1 : 0;
@@ -4322,6 +4278,9 @@ function tickClock() {
     const pad = (value) => String(value).padStart(2, "0");
     liveClock.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     timerPaint();
+    // 스킨 재마운트가 확대 버튼을 지웠으면 되살린다 (멱등) — 일반 랙 화면 포함
+    if (viewMode === "rack") ensureZoomBtns();
+    if (document.body.classList.contains("focus-room")) focusFitRack();
 }
 
 setInterval(tickClock, 1000);
@@ -5489,5 +5448,3 @@ setInterval(updateNowProgram, 30000);
 updateResChip();
 reservationTick();
 updateNowProgram();
-
-mountZoomButtons();

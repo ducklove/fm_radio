@@ -570,6 +570,36 @@ test.describe("데스크톱", () => {
         await page.waitForFunction(() => eqState.gains.ge5.some((g) => g !== 0), null, { timeout: 3000 });
     });
 
+    test("몰입 모드 두 보기: 리스닝 룸 핏·스피커·단일 확대·와이드", async ({ page }) => {
+        await page.setViewportSize({ width: 1512, height: 982 });
+        await page.evaluate(() => applyFocusMode(true));
+        await expect(page.locator("#speakerL svg")).toBeVisible();
+        await page.waitForFunction(() => {
+            const r = document.getElementById("rackColumn").getBoundingClientRect();
+            return r.height > 0 && r.height <= innerHeight;
+        }, null, { timeout: 3000 });
+        expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight), "룸 모드 무스크롤").toBeLessThanOrEqual(0);
+        await page.evaluate(() => focusUnitZoom(document.getElementById("deckStage")));
+        expect(await page.evaluate(() => document.getElementById("ampStage").offsetParent === null), "확대 중 다른 유닛 후퇴").toBe(true);
+        expect(await page.evaluate(() => document.getElementById("deckStage").getBoundingClientRect().width), "확대 폭").toBeGreaterThan(1000);
+        await page.keyboard.press("Escape");
+        expect(await page.evaluate(() => document.body.classList.contains("focus-unit-zoomed")), "ESC 1회 = 확대 해제").toBe(false);
+        expect(await page.evaluate(() => document.body.classList.contains("mode-focus")), "룸은 유지").toBe(true);
+        await page.evaluate(() => toggleFocusView());
+        expect(await page.evaluate(() => getComputedStyle(document.getElementById("speakerL")).display), "와이드 = 스피커 숨김").toBe("none");
+        expect(await page.evaluate(() => document.getElementById("rackColumn").getBoundingClientRect().width), "와이드 = 컴포넌트 크게").toBeGreaterThan(1300);
+        await page.evaluate(() => { toggleFocusView(); applyFocusMode(false); });
+        // 일반 랙 화면의 단일 확대 = 라이트박스 (조작 가능한 유닛이 그대로 앞으로 나온다)
+        await page.evaluate(() => focusUnitZoom(document.getElementById("deckStage")));
+        expect(await page.evaluate(() => ({
+            lb: document.body.classList.contains("unit-lightbox"),
+            pos: getComputedStyle(document.getElementById("deckStage")).position,
+            w: Math.round(document.getElementById("deckStage").getBoundingClientRect().width)
+        }))).toEqual(expect.objectContaining({ lb: true, pos: "fixed" }));
+        await page.keyboard.press("Escape");
+        expect(await page.evaluate(() => document.body.classList.contains("unit-lightbox")), "ESC = 라이트박스 닫힘").toBe(false);
+    });
+
     test("프런트패널 소생: 앰프 톤 영속·EQ 전원·데크 NR 히스", async ({ page }) => {
         await page.evaluate(() => { ampModelId = "e303"; mountAmp(); });
         await page.evaluate(() => {
