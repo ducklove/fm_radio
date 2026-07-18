@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=130">
+    <link rel="stylesheet" href="styles.css?v=131">
 </head>
 <body>
     <div class="page-shell">
@@ -267,58 +267,86 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=130"></script>
-    <script src="player-core.js?v=130"></script>
-    <script src="native-hls-capture.js?v=130"></script>
-    <script src="store.js?v=130"></script>
-    <script src="schedule.js?v=130"></script>
-    <script src="skins.js?v=130"></script>
-    <script src="component-skins.js?v=130"></script>
-    <script src="model-registry.js?v=130"></script>
-    <script src="animation-scheduler.js?v=130"></script>
-    <script src="engine.js?v=130"></script>
-    <script src="deck.js?v=130"></script>
-    <script src="bootstrap.js?v=130"></script>
-    <script src="ui-controls.js?v=130"></script>
+    <script src="stations.js?v=131"></script>
+    <script src="player-core.js?v=131"></script>
+    <script src="native-hls-capture.js?v=131"></script>
+    <script src="store.js?v=131"></script>
+    <script src="schedule.js?v=131"></script>
+    <script src="skins.js?v=131"></script>
+    <script src="component-skins.js?v=131"></script>
+    <script src="model-registry.js?v=131"></script>
+    <script src="animation-scheduler.js?v=131"></script>
+    <script src="engine.js?v=131"></script>
+    <script src="deck.js?v=131"></script>
+    <script src="bootstrap.js?v=131"></script>
+    <script src="ui-controls.js?v=131"></script>
     <script>
+        // 실행 중 버전 — 자산 링크의 ?v=가 단일 진실 (bump-version.py가 올린다)
+        const RUNNING_ASSET_VERSION = (() => {
+            const link = document.querySelector('link[rel="stylesheet"][href^="styles.css?v=131"]');
+            const m = link && /[?&]v=(\d+)/.exec(link.getAttribute("href"));
+            return m ? Number(m[1]) : null;
+        })();
+        if (RUNNING_ASSET_VERSION) {
+            const versionEl = document.getElementById("appVersion");
+            if (versionEl) versionEl.textContent = "v" + RUNNING_ASSET_VERSION;
+        }
+
+        // 한가할 때만 재시작 — 녹음·재생·예약 진행 중에는 절대 끊지 않고, 한가해지면 적용한다.
+        // 항상 켜 두는 라디오 탭·트레이 상주 창에는 '다음 실행'이 오지 않으므로 이 재시도가
+        // 없으면 몇 주 전 셸로 돌며 이미 고친 버그를 다시 보여준다.
+        const appBusy = () => (typeof recorder !== "undefined" && recorder)
+            || (typeof isPlaying !== "undefined" && isPlaying)
+            || (typeof deckMode !== "undefined" && deckMode !== "stop")
+            || (typeof activeResRec !== "undefined" && activeResRec);
+        let reloadArmed = false;
+        function scheduleIdleReload() {
+            if (reloadArmed) return;
+            reloadArmed = true;
+            if (!appBusy()) {
+                location.reload();
+                return;
+            }
+            const st = document.getElementById("playerSubtext");
+            if (st) st.textContent = "새 버전이 준비되었습니다 — 재생을 멈추면 잠시 후 적용됩니다.";
+            setInterval(() => {
+                if (appBusy()) return;
+                location.reload();
+            }, 20000);
+        }
+
+        // 상주 인스턴스(트레이 iframe·늘 켜 둔 탭)에는 visibilitychange가 오지 않아 갱신
+        // 확인이 영영 없다 — 배포 버전을 주기 점검해 뒤처지면 한가할 때 스스로 새로고침한다.
+        // (예약 녹음을 고쳐 배포해도 상주 창이 옛 파이프라인으로 계속 녹음하던 사고의 재발 방지.
+        //  서비스워커가 없는 문맥(트레이 iframe 등)에서도 이 경로가 동작한다.)
+        async function checkDeployedVersion() {
+            try {
+                const res = await fetch("sw.js", { cache: "no-store" });
+                if (!res.ok) return;
+                const m = /fm-radio-v(\d+)/.exec(await res.text());
+                if (m && RUNNING_ASSET_VERSION && Number(m[1]) !== RUNNING_ASSET_VERSION) scheduleIdleReload();
+            } catch (e) {}
+        }
+        setInterval(checkDeployedVersion, 60 * 60 * 1000);
+        setTimeout(checkDeployedVersion, 5 * 60 * 1000);
+
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {
                 const hadController = !!navigator.serviceWorker.controller;
                 navigator.serviceWorker.register("sw.js").then((reg) => {
-                    // 앱이 다시 보일 때마다 업데이트 확인 (iOS PWA 재개 포함)
+                    // 앱이 다시 보일 때마다 + 상주 창을 위해 주기적으로 업데이트 확인
                     document.addEventListener("visibilitychange", () => {
                         if (document.visibilityState === "visible") reg.update().catch(() => {});
                     });
+                    setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
                 }).catch((error) => {
                     console.warn("서비스워커 등록 실패:", error);
                 });
-                // 새 워커가 제어권을 잡으면 구버전 셸로 계속 도는 일이 없도록 즉시 재시작.
-                // 단 녹음·재생·예약 진행 중에는 끊지 않는다. 항상 켜 두는 라디오 탭에는
-                // '다음 실행'이 오지 않으므로, 미룬 재시작은 한가해질 때까지 재시도한다 —
-                // 이 재시도가 없으면 장기 탭이 몇 주 전 셸로 돌며 이미 고친 버그를 다시 보여준다.
-                let reloaded = false;
-                let idleRetry = null;
+                // 새 워커가 제어권을 잡으면 구버전 셸로 계속 도는 일이 없도록 재시작
                 navigator.serviceWorker.addEventListener("controllerchange", () => {
-                    if (reloaded || !hadController) return;   // 최초 설치는 재시작 불필요
-                    const busy = () => (typeof recorder !== "undefined" && recorder)
-                        || (typeof isPlaying !== "undefined" && isPlaying)
-                        || (typeof deckMode !== "undefined" && deckMode !== "stop")
-                        || (typeof activeResRec !== "undefined" && activeResRec);
-                    if (!busy()) {
-                        reloaded = true;
-                        location.reload();
-                        return;
-                    }
-                    const st = document.getElementById("playerSubtext");
-                    if (st) st.textContent = "새 버전이 준비되었습니다 — 재생을 멈추면 잠시 후 적용됩니다.";
-                    if (idleRetry) return;
-                    idleRetry = setInterval(() => {
-                        if (reloaded || busy()) return;
-                        reloaded = true;
-                        clearInterval(idleRetry);
-                        location.reload();
-                    }, 20000);
+                    if (!hadController) return;   // 최초 설치는 재시작 불필요
+                    scheduleIdleReload();
                 });
             });
         }
