@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=109">
+    <link rel="stylesheet" href="styles.css?v=120">
 </head>
 <body>
     <div class="page-shell">
@@ -92,7 +92,7 @@
                         <button class="btn-step" type="button" aria-label="다음 채널" onclick="stepStation(1)">
                             <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z" fill="currentColor"></path></svg>
                         </button>
-                        <button class="btn-rec" id="btnRec" type="button" aria-label="녹음 시작" onclick="toggleRecording()" disabled>
+                        <button class="btn-rec" id="btnRec" type="button" aria-label="녹음 시작" aria-pressed="false" aria-controls="recordingList" aria-describedby="playerSubtext" onclick="toggleRecording()" disabled>
                             <span class="rec-dot" aria-hidden="true"></span>
                             <span class="rec-time" id="recTime">REC</span>
                         </button>
@@ -149,10 +149,10 @@
     </div>
 
     <div class="settings-overlay" id="settingsOverlay" hidden>
-        <div class="settings-panel" role="dialog" aria-modal="true" aria-label="오디오 구성">
+        <div class="settings-panel" role="dialog" aria-modal="true" aria-label="오디오 구성" tabindex="-1">
             <div class="settings-head">
                 오디오 구성
-                <button class="settings-close" type="button" aria-label="오디오 구성 닫기" onclick="toggleSettings(false)">✕</button>
+                <button class="settings-close" type="button" aria-label="오디오 구성 닫기" data-dialog-close data-dialog-initial onclick="toggleSettings(false)">✕</button>
             </div>
             <div class="settings-sec settings-preset-sec">
                 <div class="settings-title">추천 세트</div>
@@ -198,20 +198,20 @@
     </div>
 
     <div class="crate-overlay" id="schedOverlay" hidden>
-        <div class="crate-panel sched-panel" role="dialog" aria-modal="true" aria-label="편성표와 예약 녹음">
+        <div class="crate-panel sched-panel" role="dialog" aria-modal="true" aria-label="편성표와 예약 녹음" tabindex="-1">
             <div class="crate-head">
                 <div class="crate-title">편성표</div>
                 <div class="sched-tabs" role="tablist" aria-label="날짜와 예약 전환">
-                    <button class="sched-tab" id="schedTabD0" type="button" onclick="schedSetDay(0)">오늘</button>
-                    <button class="sched-tab" id="schedTabD1" type="button" onclick="schedSetDay(1)">내일</button>
-                    <button class="sched-tab" id="schedTabRes" type="button" onclick="schedSetView('res')">예약 녹음<span class="sched-tab-count" id="schedResCount" hidden></span></button>
+                    <button class="sched-tab" id="schedTabD0" type="button" role="tab" aria-selected="true" aria-controls="schedList" tabindex="0" onclick="schedSetDay(0)">오늘</button>
+                    <button class="sched-tab" id="schedTabD1" type="button" role="tab" aria-selected="false" aria-controls="schedList" tabindex="-1" onclick="schedSetDay(1)">내일</button>
+                    <button class="sched-tab" id="schedTabRes" type="button" role="tab" aria-selected="false" aria-controls="schedResPane" tabindex="-1" onclick="schedSetView('res')">예약 녹음<span class="sched-tab-count" id="schedResCount" hidden></span></button>
                 </div>
-                <button class="crate-close" type="button" aria-label="편성표 닫기" onclick="closeSchedule()">✕</button>
+                <button class="crate-close" type="button" aria-label="편성표 닫기" data-dialog-close onclick="closeSchedule()">✕</button>
             </div>
             <div class="sched-chips" id="schedChips" role="group" aria-label="채널 선택"></div>
             <div class="res-diag sched-diag" id="schedDiag" hidden></div>
-            <div class="sched-list" id="schedList"></div>
-            <div class="sched-res" id="schedResPane" hidden>
+            <div class="sched-list" id="schedList" role="tabpanel" aria-labelledby="schedTabD0"></div>
+            <div class="sched-res" id="schedResPane" role="tabpanel" aria-labelledby="schedTabRes" hidden>
                 <div class="res-diag" id="resDiag" title="예약 녹음 엔진 상태"></div>
                 <div class="res-list" id="resList"></div>
                 <button class="res-form-toggle" id="resFormToggle" type="button" onclick="toggleResForm()">＋ 직접 입력 예약</button>
@@ -235,12 +235,12 @@
     </div>
 
     <div class="crate-overlay" id="tapeCaseOverlay" hidden>
-        <div class="crate-panel tapecase-panel" role="dialog" aria-modal="true" aria-label="테이프 보관함">
+        <div class="crate-panel tapecase-panel" role="dialog" aria-modal="true" aria-label="테이프 보관함" tabindex="-1">
             <div class="crate-head">
                 <div class="crate-title">테이프 보관함 <span class="crate-count" id="tapeCaseCount"></span></div>
                 <button class="rec-btn tapecase-import" type="button" title="오디오 파일(mp3 등)을 테이프로 가져옵니다 — 여러 개를 고르면 한 테이프에 순서대로 수록" onclick="document.getElementById('tapeImportInput').click()">⇪ 가져오기</button>
                 <input id="tapeImportInput" type="file" accept="audio/*" multiple hidden>
-                <button class="crate-close" type="button" aria-label="보관함 닫기" onclick="closeTapeCase()">✕</button>
+                <button class="crate-close" type="button" aria-label="보관함 닫기" data-dialog-close data-dialog-initial onclick="closeTapeCase()">✕</button>
             </div>
             <div class="tapecase-msg" id="tapeCaseMsg" role="status" hidden></div>
             <div class="tapecase-list" id="tapeCaseList" role="list"></div>
@@ -249,11 +249,11 @@
     </div>
 
     <div class="crate-overlay" id="crateOverlay" hidden>
-        <div class="crate-panel" role="dialog" aria-modal="true" aria-label="음반 수납장">
+        <div class="crate-panel" role="dialog" aria-modal="true" aria-label="음반 수납장" tabindex="-1">
             <div class="crate-head">
                 <div class="crate-title">음반 수납장 <span class="crate-count" id="crateCount"></span></div>
-                <input class="crate-search" id="crateSearch" type="search" placeholder="작곡가·제목·작품 검색" aria-label="음반 검색" autocomplete="off">
-                <button class="crate-close" type="button" aria-label="수납장 닫기" onclick="closeCrate()">✕</button>
+                <input class="crate-search" id="crateSearch" type="search" placeholder="작곡가·제목·작품 검색" aria-label="음반 검색" autocomplete="off" data-dialog-initial>
+                <button class="crate-close" type="button" aria-label="수납장 닫기" data-dialog-close onclick="closeCrate()">✕</button>
             </div>
             <div class="crate-grid" id="crateGrid" role="list"></div>
             <div class="crate-empty" id="crateEmpty" hidden>검색 결과가 없습니다.</div>
@@ -265,15 +265,19 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=109"></script>
-    <script src="player-core.js?v=109"></script>
-    <script src="store.js?v=109"></script>
-    <script src="schedule.js?v=109"></script>
-    <script src="skins.js?v=109"></script>
-    <script src="component-skins.js?v=109"></script>
-    <script src="engine.js?v=109"></script>
-    <script src="deck.js?v=109"></script>
-    <script src="bootstrap.js?v=109"></script>
+    <script src="stations.js?v=120"></script>
+    <script src="player-core.js?v=120"></script>
+    <script src="native-hls-capture.js?v=120"></script>
+    <script src="store.js?v=120"></script>
+    <script src="schedule.js?v=120"></script>
+    <script src="skins.js?v=120"></script>
+    <script src="component-skins.js?v=120"></script>
+    <script src="model-registry.js?v=120"></script>
+    <script src="animation-scheduler.js?v=120"></script>
+    <script src="engine.js?v=120"></script>
+    <script src="deck.js?v=120"></script>
+    <script src="bootstrap.js?v=120"></script>
+    <script src="ui-controls.js?v=120"></script>
     <script>
         // PWA 서비스워커 등록 — 앱 셸 캐싱으로 오프라인 실행/즉시 시작 지원.
         if ("serviceWorker" in navigator) {

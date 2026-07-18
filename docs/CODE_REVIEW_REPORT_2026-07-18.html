@@ -1,0 +1,1529 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Mad for Audio 코드베이스 검토·구현 보고서 — 2026-07-18</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f1ec;
+      --paper: #fffefb;
+      --ink: #24201c;
+      --muted: #6e675f;
+      --line: #ded8cf;
+      --line-strong: #c7bfb4;
+      --brand: #74432d;
+      --brand-soft: #f0e4dc;
+      --accent: #2f6657;
+      --accent-soft: #e3f0eb;
+      --danger: #a53d35;
+      --danger-soft: #f8e5e2;
+      --warn: #8a641e;
+      --warn-soft: #f7edcf;
+      --info: #345c82;
+      --info-soft: #e5edf5;
+      --shadow: 0 18px 48px rgba(49, 40, 31, .10);
+      --radius: 18px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% -10%, rgba(116, 67, 45, .12), transparent 32rem),
+        radial-gradient(circle at 92% 14%, rgba(47, 102, 87, .10), transparent 30rem),
+        var(--bg);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.68;
+      word-break: keep-all;
+    }
+
+    a {
+      color: var(--info);
+      text-underline-offset: .18em;
+    }
+
+    a:hover {
+      color: var(--brand);
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 20;
+      top: 12px;
+      left: 12px;
+      transform: translateY(-180%);
+      padding: 10px 14px;
+      border-radius: 9px;
+      color: white;
+      background: var(--ink);
+      transition: transform .15s ease;
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 68px 28px 72px;
+      color: #fffaf5;
+      background:
+        linear-gradient(126deg, rgba(25, 23, 21, .97), rgba(57, 46, 39, .95)),
+        #25211e;
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    .hero::before,
+    .hero::after {
+      position: absolute;
+      content: "";
+      border-radius: 50%;
+      filter: blur(2px);
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 420px;
+      height: 420px;
+      top: -230px;
+      right: -60px;
+      background: rgba(199, 118, 75, .20);
+    }
+
+    .hero::after {
+      width: 300px;
+      height: 300px;
+      bottom: -220px;
+      left: 16%;
+      background: rgba(79, 150, 130, .18);
+    }
+
+    .hero-inner,
+    .layout {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #d8b7a5;
+      font-size: .8rem;
+      font-weight: 760;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 900px;
+      margin: 0;
+      font-size: clamp(2.15rem, 5.5vw, 4.4rem);
+      line-height: 1.06;
+      letter-spacing: -.045em;
+    }
+
+    .hero-summary {
+      max-width: 780px;
+      margin: 22px 0 0;
+      color: #ded8d1;
+      font-size: clamp(1rem, 2vw, 1.18rem);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin: 28px 0 0;
+      color: #c8c0b8;
+      font-size: .86rem;
+    }
+
+    .hero-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .hero-meta span::before {
+      width: 5px;
+      height: 5px;
+      content: "";
+      border-radius: 50%;
+      background: #d29a79;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 32px;
+      align-items: start;
+      padding: 42px 24px 80px;
+    }
+
+    .report {
+      min-width: 0;
+    }
+
+    .toc {
+      position: sticky;
+      top: 18px;
+      order: 2;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 254, 251, .88);
+      box-shadow: 0 8px 24px rgba(49, 40, 31, .06);
+      backdrop-filter: blur(10px);
+    }
+
+    .toc-title {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 780;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    .toc ol {
+      display: grid;
+      gap: 7px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: toc;
+    }
+
+    .toc li {
+      counter-increment: toc;
+    }
+
+    .toc a {
+      display: grid;
+      grid-template-columns: 1.5rem 1fr;
+      gap: 4px;
+      color: var(--muted);
+      font-size: .88rem;
+      text-decoration: none;
+    }
+
+    .toc a::before {
+      content: counter(toc, decimal-leading-zero);
+      color: #ad9789;
+      font-family: var(--mono);
+      font-size: .72rem;
+      line-height: 1.9;
+    }
+
+    .toc a:hover,
+    .toc a:focus-visible {
+      color: var(--brand);
+    }
+
+    section {
+      scroll-margin-top: 28px;
+    }
+
+    .section {
+      margin: 0 0 30px;
+      padding: clamp(24px, 4vw, 40px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .section-kicker {
+      margin: 0 0 6px;
+      color: var(--brand);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0 0 22px;
+      font-size: clamp(1.55rem, 3vw, 2.15rem);
+      line-height: 1.25;
+      letter-spacing: -.025em;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      line-height: 1.4;
+      letter-spacing: -.01em;
+    }
+
+    p {
+      margin: 0 0 1em;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    .lead {
+      color: #4b4540;
+      font-size: 1.07rem;
+    }
+
+    .verdict {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+      align-items: center;
+      margin: 24px 0 0;
+      padding: 20px;
+      border: 1px solid #d8c6bb;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f8eee8, #fffaf6);
+    }
+
+    .verdict-score {
+      display: grid;
+      width: 84px;
+      height: 84px;
+      place-items: center;
+      border: 7px solid #d5a387;
+      border-radius: 50%;
+      color: var(--brand);
+      background: white;
+      font-size: 1.55rem;
+      font-weight: 820;
+      letter-spacing: -.04em;
+    }
+
+    .verdict strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 1.02rem;
+    }
+
+    .verdict p {
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .metric {
+      min-height: 118px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fbfaf7;
+    }
+
+    .metric-value {
+      display: block;
+      color: var(--brand);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 820;
+      letter-spacing: -.04em;
+    }
+
+    .metric-label {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    .score-table,
+    .verification-table,
+    .roadmap-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: .91rem;
+    }
+
+    th,
+    td {
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      background: #faf8f4;
+      font-size: .78rem;
+      font-weight: 760;
+      letter-spacing: .04em;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .score {
+      width: 90px;
+      font-family: var(--mono);
+      font-weight: 760;
+    }
+
+    .bar {
+      width: 100%;
+      height: 7px;
+      margin-top: 7px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #e8e3dc;
+    }
+
+    .bar > span {
+      display: block;
+      width: var(--value);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--brand), #c68b6c);
+    }
+
+    .strengths {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .strength {
+      padding: 17px;
+      border: 1px solid #cfe0d9;
+      border-radius: 13px;
+      background: var(--accent-soft);
+    }
+
+    .strength strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+
+    .strength span {
+      color: #4e635c;
+      font-size: .88rem;
+    }
+
+    .finding-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .finding {
+      position: relative;
+      padding: 22px 22px 22px 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fcfbf8;
+    }
+
+    .finding::before {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      content: "";
+      background: var(--priority-color);
+    }
+
+    .finding.p1 {
+      --priority-color: var(--danger);
+    }
+
+    .finding.p2 {
+      --priority-color: var(--warn);
+    }
+
+    .finding.p3 {
+      --priority-color: var(--info);
+    }
+
+    .finding-head {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 11px;
+    }
+
+    .priority {
+      flex: none;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: white;
+      background: var(--priority-color);
+      font-family: var(--mono);
+      font-size: .69rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    .finding p,
+    .finding li {
+      color: #565049;
+      font-size: .92rem;
+    }
+
+    .finding ul {
+      margin: 10px 0 0;
+      padding-left: 1.25rem;
+    }
+
+    .evidence {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 13px;
+    }
+
+    .code-ref {
+      display: inline-flex;
+      padding: 4px 7px;
+      border: 1px solid #d8d1c8;
+      border-radius: 7px;
+      color: #574e47;
+      background: #f4f1ec;
+      font-family: var(--mono);
+      font-size: .72rem;
+      line-height: 1.3;
+      text-decoration: none;
+    }
+
+    .code-ref:hover {
+      border-color: #b8a395;
+      color: var(--brand);
+      background: #fbf3ee;
+    }
+
+    .note {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--info);
+      border-radius: 0 10px 10px 0;
+      color: #455a6f;
+      background: var(--info-soft);
+      font-size: .9rem;
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .architecture-card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #faf9f6;
+    }
+
+    .architecture-card.current {
+      border-color: #e3c6c2;
+      background: #fff7f5;
+    }
+
+    .architecture-card.target {
+      border-color: #c7ded6;
+      background: #f4fbf8;
+    }
+
+    .architecture-card h3 {
+      margin-bottom: 12px;
+    }
+
+    .flow {
+      display: grid;
+      gap: 8px;
+    }
+
+    .flow-node {
+      padding: 9px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      color: #4f4943;
+      background: white;
+      font-family: var(--mono);
+      font-size: .75rem;
+      text-align: center;
+    }
+
+    .flow-arrow {
+      height: 13px;
+      color: #9b8b7e;
+      font-size: .85rem;
+      line-height: 13px;
+      text-align: center;
+    }
+
+    pre {
+      margin: 18px 0 0;
+      padding: 18px;
+      overflow: auto;
+      border: 1px solid #36312d;
+      border-radius: 12px;
+      color: #e9e2da;
+      background: #25211e;
+      font-family: var(--mono);
+      font-size: .78rem;
+      line-height: 1.65;
+    }
+
+    .phase {
+      min-width: 84px;
+      color: var(--brand);
+      font-weight: 780;
+    }
+
+    .deliverables {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    .deliverables li + li {
+      margin-top: 4px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      font-size: .78rem;
+      font-weight: 720;
+    }
+
+    .status::before {
+      width: 8px;
+      height: 8px;
+      content: "";
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status.pass {
+      color: var(--accent);
+    }
+
+    .status.fail {
+      color: var(--danger);
+    }
+
+    .status.warn {
+      color: var(--warn);
+    }
+
+    .status.info {
+      color: var(--info);
+    }
+
+    .risk-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: -8px 0 20px;
+    }
+
+    .risk-legend span {
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 700;
+    }
+
+    .risk-legend .confirmed {
+      color: #7e2c27;
+      background: var(--danger-soft);
+    }
+
+    .risk-legend .unresolved {
+      color: #775617;
+      background: var(--warn-soft);
+    }
+
+    .risk-legend .structural {
+      color: #2d5174;
+      background: var(--info-soft);
+    }
+
+    .closing {
+      padding: 24px;
+      border: 1px solid #c9dcd5;
+      border-radius: 14px;
+      color: #3c574e;
+      background: linear-gradient(135deg, #eef8f4, #fbfffd);
+    }
+
+    .closing strong {
+      color: var(--accent);
+    }
+
+    .footer {
+      padding: 24px;
+      color: #7b736b;
+      font-size: .78rem;
+      text-align: center;
+    }
+
+    :focus-visible {
+      outline: 3px solid rgba(52, 92, 130, .45);
+      outline-offset: 3px;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+        order: 0;
+      }
+
+      .toc ol {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .hero {
+        padding: 48px 20px 52px;
+      }
+
+      .layout {
+        padding: 24px 14px 56px;
+      }
+
+      .section {
+        padding: 22px 18px;
+        border-radius: 14px;
+      }
+
+      .metric-grid,
+      .strengths,
+      .architecture {
+        grid-template-columns: 1fr;
+      }
+
+      .toc ol {
+        grid-template-columns: 1fr;
+      }
+
+      .verdict {
+        grid-template-columns: 1fr;
+      }
+
+      .verdict-score {
+        width: 72px;
+        height: 72px;
+      }
+
+      .finding-head {
+        flex-direction: column-reverse;
+      }
+
+      .score-table,
+      .verification-table,
+      .roadmap-table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4;
+        margin: 14mm;
+      }
+
+      :root {
+        --bg: white;
+        --paper: white;
+        --shadow: none;
+      }
+
+      body {
+        background: white;
+        font-size: 10.5pt;
+      }
+
+      .hero {
+        padding: 16mm 12mm;
+        color: #1f1b18;
+        background: white;
+        border: 2px solid #332d28;
+      }
+
+      .hero-summary,
+      .hero-meta {
+        color: #514b45;
+      }
+
+      .eyebrow {
+        color: #74432d;
+      }
+
+      .layout {
+        display: block;
+        width: auto;
+        padding: 10mm 0 0;
+      }
+
+      .toc {
+        display: none;
+      }
+
+      .section {
+        margin-bottom: 8mm;
+        padding: 7mm;
+        break-inside: avoid;
+        box-shadow: none;
+      }
+
+      .finding,
+      .architecture-card,
+      .metric,
+      tr {
+        break-inside: avoid;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .footer {
+        padding: 8mm 0 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">Codebase Review / Engineering Assessment</p>
+      <h1>Mad for Audio<br>코드베이스 검토·구현 보고서</h1>
+      <p class="hero-summary">
+        제품 기능, 아키텍처, 데이터 안정성, 성능, 접근성, 보안·운영, 테스트 체계를
+        전체 저장소 기준으로 검토하고 단계별 리팩토링 방향과 실제 반영 결과를 함께 기록한다.
+      </p>
+      <div class="hero-meta" aria-label="보고서 메타데이터">
+        <span>기준일 2026-07-18</span>
+        <span>검토 기준 9b4ea6a</span>
+        <span>동기화 기준 2874568</span>
+        <span>구현 브랜치 codex/code-review-refactor-2026-07-18</span>
+        <span>앱 셸 v120</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <main class="report" id="main">
+      <section class="section" id="summary">
+        <p class="section-kicker">01 / Executive Summary</p>
+        <h2>종합 판단</h2>
+        <p class="lead">
+          시각적 정체성과 오디오 도메인 구현, 브라우저별 예외 대응은 매우 강하다.
+          반면 파일 경계를 넘어 공유되는 전역 상태와 단일 프레임 루프가 변경 비용과 장애
+          전파 범위를 키우고 있다. 현재 단계는 “완성도 높은 개인 제품”이지만, 장기 확장 가능한
+          애플리케이션 구조로 가기 전 안전화가 필요한 상태다.
+        </p>
+
+        <div class="verdict" aria-label="종합 코드 건강도">
+          <div class="verdict-score">5.8</div>
+          <div>
+            <strong>검토 당시 코드 건강도 5.8 / 10 · 제품 완성도 8.5 / 10</strong>
+            <p>
+              전면 재작성은 권장하지 않는다. 서비스워커·재생 상태·녹음 데이터 결함을 먼저
+              고친 뒤, 재생·녹음·테이프·UI 경계를 순서대로 캡슐화하는 것이 가장 안전하다.
+            </p>
+          </div>
+        </div>
+
+        <div class="metric-grid" aria-label="코드베이스 핵심 지표">
+          <div class="metric">
+            <span class="metric-value">12,883</span>
+            <span class="metric-label">프로덕션 JavaScript 물리 라인</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">6,168</span>
+            <span class="metric-label">app.js 라인 · 호환 facade 포함</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">79.1%</span>
+            <span class="metric-label">대형 핵심 4개 파일의 JS 비중</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">843KB</span>
+            <span class="metric-label">초기 브라우저 JS 원본 크기</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">76</span>
+            <span class="metric-label">Playwright 테스트 정의</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value">0 High</span>
+            <span class="metric-label">트레이 패키지 npm audit 결과</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="scores">
+        <p class="section-kicker">02 / Scorecard</p>
+        <h2>영역별 평가</h2>
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th scope="col">영역</th>
+              <th scope="col">점수</th>
+              <th scope="col">평가 근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>제품·도메인 완성도</td>
+              <td class="score">8.5 / 10<div class="bar"><span style="--value:85%"></span></div></td>
+              <td>라디오·음반·테이프·예약 녹음과 실물 기기 메타포가 깊게 연결되어 있다.</td>
+            </tr>
+            <tr>
+              <td>테스트·문서</td>
+              <td class="score">7.5 / 10<div class="bar"><span style="--value:75%"></span></div></td>
+              <td>광범위한 E2E와 도메인 문서가 강점이지만 WebKit 경로와 서비스워커 검증이 미완료다.</td>
+            </tr>
+            <tr>
+              <td>아키텍처·모듈성</td>
+              <td class="score">4.5 / 10<div class="bar"><span style="--value:45%"></span></div></td>
+              <td>파일은 나뉘었지만 전역 렉시컬 상태와 로드 순서로 하나의 거대한 프로그램처럼 동작한다.</td>
+            </tr>
+            <tr>
+              <td>안정성·데이터 보존</td>
+              <td class="score">5.0 / 10<div class="bar"><span style="--value:50%"></span></div></td>
+              <td>녹음 세션 오염, B면 삭제 누락, 영속 저장 실패 은폐 가능성이 확인됐다.</td>
+            </tr>
+            <tr>
+              <td>성능</td>
+              <td class="score">5.0 / 10<div class="bar"><span style="--value:50%"></span></div></td>
+              <td>상시 RAF와 프레임별 DOM 조회·스타일 쓰기, 대형 SVG 문자열의 초기 로드 비용이 크다.</td>
+            </tr>
+            <tr>
+              <td>접근성</td>
+              <td class="score">5.5 / 10<div class="bar"><span style="--value:55%"></span></div></td>
+              <td>기본 포커스와 일부 SVG 키보드 조작은 좋지만 모달·탭·피커의 실제 의미가 불완전하다.</td>
+            </tr>
+            <tr>
+              <td>보안·운영</td>
+              <td class="score">4.5 / 10<div class="bar"><span style="--value:45%"></span></div></td>
+              <td>사용자 입력의 SVG 주입, 열린 postMessage 경계, 구형 Electron과 webSecurity 해제가 주요 위험이다.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="strengths" aria-label="주요 강점">
+          <div class="strength">
+            <strong>도메인 모델링</strong>
+            <span>테이프 위치·덮어쓰기·예약 회차·소스 우선권을 실제 동작으로 구현했다.</span>
+          </div>
+          <div class="strength">
+            <strong>브라우저 대응 경험</strong>
+            <span>WebKit, MSE, MediaRecorder, IndexedDB 차이를 실제 실패 경험에 근거해 방어한다.</span>
+          </div>
+          <div class="strength">
+            <strong>회귀 테스트 범위</strong>
+            <span>모바일, 키보드, 접근성, 녹음, 앰프 DSP까지 사용자 흐름 중심으로 검증한다.</span>
+          </div>
+          <div class="strength">
+            <strong>문서화와 설명력</strong>
+            <span>장비 레퍼런스, 오디오 소스, 모델링 근거와 운영 방법이 비교적 충실하다.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="findings">
+        <p class="section-kicker">03 / Findings</p>
+        <h2>우선순위별 핵심 발견</h2>
+        <div class="risk-legend" aria-label="발견 유형">
+          <span class="confirmed">확정 결함</span>
+          <span class="unresolved">미확정 호환성 위험</span>
+          <span class="structural">구조적 부채</span>
+        </div>
+
+        <div class="finding-list">
+          <article class="finding p1">
+            <div class="finding-head">
+              <div>
+                <h3>서비스워커가 루트·타 프로젝트 캐시를 손상시킬 수 있음</h3>
+              </div>
+              <span class="priority">P1</span>
+            </div>
+            <p>
+              활성화 과정에서 현재 캐시를 제외한 모든 origin 캐시를 삭제한다. GitHub Pages처럼
+              같은 origin에 여러 프로젝트가 있으면 다른 앱의 Cache Storage까지 영향을 받는다.
+              또한 모든 navigation 응답을 <code>"./"</code> 키에 기록해 설명서나 위젯 방문이
+              오프라인 루트 셸을 덮어쓸 수 있다.
+            </p>
+            <ul>
+              <li><code>fm-radio-</code> 접두사 캐시만 정리한다.</li>
+              <li>루트 navigation과 개별 페이지 캐시 키를 분리한다.</li>
+              <li>루트·manual·widget 오프라인 전환 테스트를 추가한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../sw.js">sw.js:48–52</a>
+              <a class="code-ref" href="../sw.js">sw.js:78–91</a>
+            </div>
+          </article>
+
+          <article class="finding p1">
+            <div class="finding-head">
+              <div>
+                <h3>사용자 테이프 라벨이 영속 SVG DOM 주입 경계가 됨</h3>
+              </div>
+              <span class="priority">P1</span>
+            </div>
+            <p>
+              직접 입력하거나 가져온 파일명에서 만든 테이프 라벨은 localStorage에 유지된다.
+              이후 랙 선반 SVG를 다시 그릴 때 라벨을 이스케이프 없이 <code>innerHTML</code>에
+              삽입한다. 로컬 사용자 입력이지만 Electron·PWA 문맥에서 지속 실행될 수 있는
+              명확한 DOM 주입 지점이다.
+            </p>
+            <ul>
+              <li>SVG <code>text</code> 노드를 생성하고 <code>textContent</code>를 사용한다.</li>
+              <li>HTML 문자열 렌더러와 사용자·외부 데이터의 경계를 정적 검사한다.</li>
+              <li>장기적으로 인라인 이벤트를 제거하고 CSP를 적용한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../deck.js">deck.js:53–59</a>
+              <a class="code-ref" href="../deck.js">deck.js:901</a>
+              <a class="code-ref" href="../deck.js">deck.js:1172–1178</a>
+              <a class="code-ref" href="../deck.js">deck.js:1393–1395</a>
+            </div>
+          </article>
+
+          <article class="finding p1">
+            <div class="finding-head">
+              <div>
+                <h3>실제 오디오와 재생 상태가 불일치할 수 있음</h3>
+              </div>
+              <span class="priority">P1</span>
+            </div>
+            <p>
+              플레이어를 붙인 직후 실제 <code>playing</code> 이벤트보다 먼저
+              <code>isPlaying = true</code>를 설정한다. HLS 미지원 콜백은 동기적으로 오류를
+              기록하지만 호출부가 곧바로 재생 중 상태로 덮어쓴다. 네이티브 HLS와 일반 파일의
+              오류 이벤트도 동일한 상태 모델로 수렴하지 않는다.
+            </p>
+            <ul>
+              <li><code>PlaybackController</code>가 source, phase, requestId를 단독 소유한다.</li>
+              <li>UI·미디어 세션·램프는 상태 구독자로 제한한다.</li>
+              <li>재생 성공은 실제 <code>playing</code> 이벤트에서만 확정한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../player-core.js">player-core.js:57–67</a>
+              <a class="code-ref" href="../app.js">app.js:3634–3674</a>
+              <a class="code-ref" href="../app.js">app.js:3726–3729</a>
+              <a class="code-ref" href="../app.js">app.js:2847–2856</a>
+            </div>
+          </article>
+
+          <article class="finding p1">
+            <div class="finding-head">
+              <div>
+                <h3>예약 녹음 프리버퍼가 세션을 넘어 오염되고 장시간 메모리를 점유함</h3>
+              </div>
+              <span class="priority">P1</span>
+            </div>
+            <p>
+              rolling buffer는 새 청크를 계속 보관하지만 재튜닝 시 init과 MIME만 초기화된다.
+              짧은 간격의 연속 예약에서는 이전 채널 조각이 다음 녹음 앞에 섞일 수 있고,
+              기존 rolling 데이터가 고착 감지를 무력화한다. 수동·예약 녹음 모두 전체 데이터를
+              메모리에 모은 뒤 Blob으로 만들어 장시간 녹음에서 메모리 급증 가능성도 있다.
+            </p>
+            <ul>
+              <li>예약·재튜닝별 session/generation ID를 도입한다.</li>
+              <li>취소·완료·재튜닝 때 이전 이벤트와 rolling buffer를 폐기한다.</li>
+              <li>청크를 IndexedDB 또는 OPFS에 점진 저장한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../app.js">app.js:5282–5305</a>
+              <a class="code-ref" href="../app.js">app.js:5308–5329</a>
+              <a class="code-ref" href="../app.js">app.js:5334–5348</a>
+              <a class="code-ref" href="../app.js">app.js:5391–5393</a>
+            </div>
+          </article>
+
+          <article class="finding p1">
+            <div class="finding-head">
+              <div>
+                <h3>B면 삭제 누락과 저장 실패 은폐가 데이터 신뢰성을 낮춤</h3>
+              </div>
+              <span class="priority">P1</span>
+            </div>
+            <p>
+              녹음 삭제는 각 테이프의 <code>segments</code>만 정리하고
+              <code>segmentsB</code>는 남긴다. Blob URL과 IndexedDB 레코드가 삭제된 후
+              B면에는 죽은 트랙이 남는다. 또한 영속 저장 실패 시 <code>null</code>을 반환하지만
+              호출부가 성공 메시지와 세션 목록을 그대로 표시할 수 있다.
+            </p>
+            <ul>
+              <li>양면 삭제·덮어쓰기·테이프 제거를 <code>TapeRepository</code>로 모은다.</li>
+              <li>저장 API는 <code>{ ok, id, reason }</code>을 반환하고 실패를 사용자에게 알린다.</li>
+              <li>quota 확인과 즉시 다운로드 폴백을 제공한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../app.js">app.js:4198–4207</a>
+              <a class="code-ref" href="../store.js">store.js:58–73</a>
+              <a class="code-ref" href="../app.js">app.js:4022–4028</a>
+            </div>
+          </article>
+
+          <article class="finding p2">
+            <div class="finding-head">
+              <div>
+                <h3>상시 RAF와 프레임별 DOM 조회가 유휴 성능을 소모함</h3>
+              </div>
+              <span class="priority">P2</span>
+            </div>
+            <p>
+              초기화 직후 <code>tunerLoop()</code>가 계속 RAF를 예약하고 508줄의
+              <code>ttFrame()</code>을 호출한다. 정적 계측상 프레임 본문에는
+              getElementById 29회, querySelectorAll 10회 이상, style 쓰기 27회,
+              setAttribute 19회가 있다. 트레이는 background throttling을 꺼 두어 숨김 상태에서도
+              비용이 이어질 가능성이 높다.
+            </p>
+            <ul>
+              <li>마운트 시 DOM 참조를 캐시하고 dirty flag로 변경분만 반영한다.</li>
+              <li>재생·릴·웜업 등 활성 서브루프만 RAF를 사용한다.</li>
+              <li>숨김·bar/simple 모드·reduced-motion에서 정지 또는 저주기 갱신한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../app.js">app.js:404–459</a>
+              <a class="code-ref" href="../app.js">app.js:2835–3342</a>
+              <a class="code-ref" href="../app.js">app.js:4564</a>
+              <a class="code-ref" href="../tray/main.js">tray/main.js:105–112</a>
+            </div>
+          </article>
+
+          <article class="finding p1">
+            <div class="finding-head">
+              <div>
+                <h3>Electron 런타임·빌드 체인과 보안 경계가 오래됨</h3>
+              </div>
+              <span class="priority">P1</span>
+            </div>
+            <p>
+              설치된 Electron 33.4.11과 electron-builder 25.1.8을 대상으로 한
+              <code>npm audit</code>에서 high 10건이 확인됐다. 원격 랙과 로컬 위젯을 한 창에서
+              다루면서 <code>webSecurity: false</code>도 설정되어 있다. 외부 URL 열기와
+              postMessage 수신 역시 허용 범위가 넓다.
+            </p>
+            <ul>
+              <li>Electron·builder를 지원되는 최신 메이저로 올리고 패키징 회귀를 검증한다.</li>
+              <li><code>webSecurity: true</code>로 복원하고 스트림 CORS는 전용 계층에서 처리한다.</li>
+              <li>navigation, 외부 프로토콜, message source/origin을 명시적으로 제한한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../tray/package.json">tray/package.json</a>
+              <a class="code-ref" href="../tray/main.js">tray/main.js:93–133</a>
+              <a class="code-ref" href="../app.js">app.js:4567–4622</a>
+              <a class="code-ref" href="../widget.html">widget.html:1219–1285</a>
+            </div>
+          </article>
+
+          <article class="finding p2">
+            <div class="finding-head">
+              <div>
+                <h3>모달·탭·피커의 ARIA 표기와 실제 키보드 동작이 불일치함</h3>
+              </div>
+              <span class="priority">P2</span>
+            </div>
+            <p>
+              여러 오버레이가 <code>aria-modal="true"</code>를 선언하지만 포커스 이동,
+              포커스 트랩, 호출자 복귀, 배경 inert가 없다. 편성표는 tablist만 있고 tab 역할,
+              aria-selected, 방향키 탐색이 빠져 있다. 기존 axe 검사는 닫힌 모달 중심이라
+              이 상호작용을 잡지 못한다.
+            </p>
+            <ul>
+              <li>공통 <code>DialogController</code> 또는 네이티브 dialog를 도입한다.</li>
+              <li>피커의 active 상태를 <code>aria-pressed</code>와 동기화한다.</li>
+              <li>열린 모달의 Tab 순환·ESC·포커스 복귀 E2E를 추가한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../index.html">index.html:150–260</a>
+              <a class="code-ref" href="../app.js">app.js:3353–3371</a>
+              <a class="code-ref" href="../app.js">app.js:4695–4734</a>
+              <a class="code-ref" href="../deck.js">deck.js:1098–1108</a>
+            </div>
+          </article>
+
+          <article class="finding p3">
+            <div class="finding-head">
+              <div>
+                <h3>대형 전역 스킨 레지스트리와 CSS cascade가 모델 추가 비용을 키움</h3>
+              </div>
+              <span class="priority">P3</span>
+            </div>
+            <p>
+              튜너·앰프·데크·턴테이블·타이머·EQ가 서로 다른 렌더 계약을 사용한다.
+              component-skins가 앞서 로드된 전역 레지스트리를 뒤에서 변이하고, 모델 전환 때
+              전체 SVG 문자열을 재파싱한 뒤 이벤트를 다시 배선한다. CSS에도 후기 규칙이
+              이전 규칙을 덮는 구간과 퇴역 코드가 남아 있다.
+            </p>
+            <ul>
+              <li><code>render / mount / update / dispose / controls / audioProfile</code> 계약을 통일한다.</li>
+              <li>시각 스킨과 DSP 프로필을 분리하고 모델별 지연 로딩을 적용한다.</li>
+              <li>CSS를 tokens, base, rack, dialogs, pages 계층으로 분리한다.</li>
+            </ul>
+            <div class="evidence">
+              <a class="code-ref" href="../skins.js">skins.js:1–3</a>
+              <a class="code-ref" href="../component-skins.js">component-skins.js:204–220</a>
+              <a class="code-ref" href="../component-skins.js">component-skins.js:1195–1326</a>
+              <a class="code-ref" href="../styles.css">styles.css</a>
+            </div>
+          </article>
+        </div>
+
+        <div class="note">
+          <strong>WebKit 분류 주의:</strong> 브라우저 실행 파일 설치 후에도 WebKit 대상 6개가
+          모두 실패했지만, 실패가 Windows Playwright WebKit의 미디어 구현 차이인지 실제
+          Safari/WKWebView 회귀인지는 분리되지 않았다. 프로덕션 결함으로 단정하지 않되,
+          macOS Safari 실기 검증 전까지 릴리스 위험으로 관리해야 한다.
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <p class="section-kicker">04 / Architecture</p>
+        <h2>현재 결합 구조와 목표 경계</h2>
+        <div class="architecture">
+          <div class="architecture-card current">
+            <h3>현재</h3>
+            <div class="flow" aria-label="현재 구조">
+              <div class="flow-node">index.html · classic scripts</div>
+              <div class="flow-arrow">↓ 로드 순서 의존</div>
+              <div class="flow-node">app.js · UI + 상태 + 예약 + 녹음</div>
+              <div class="flow-arrow">↕ 전역 읽기·쓰기</div>
+              <div class="flow-node">engine.js ↔ deck.js ↔ store.js</div>
+              <div class="flow-arrow">↓ 직접 DOM 갱신</div>
+              <div class="flow-node">SVG · dialogs · station list</div>
+            </div>
+          </div>
+
+          <div class="architecture-card target">
+            <h3>목표</h3>
+            <div class="flow" aria-label="목표 구조">
+              <div class="flow-node">compat/window-api.js</div>
+              <div class="flow-arrow">↓ 얇은 공개 API</div>
+              <div class="flow-node">Playback · Recording · Tape controllers</div>
+              <div class="flow-arrow">↓ 명시적 상태 이벤트</div>
+              <div class="flow-node">Audio engine · repositories · providers</div>
+              <div class="flow-arrow">↓ 구독 기반 렌더</div>
+              <div class="flow-node">UI modules · model registry</div>
+            </div>
+          </div>
+        </div>
+
+        <pre aria-label="권장 디렉터리 구조">src/
+  core/
+    playback-controller.js
+  audio/
+    audio-engine.js
+  recording/
+    background-recorder.js
+    recording-repository.js
+  tape/
+    tape-model.js
+    tape-repository.js
+    deck-controller.js
+  schedule/
+    schedule-service.js
+    reservation-engine.js
+  ui/
+    dialog-controller.js
+    station-list.js
+    rack-renderer.js
+    animation-scheduler.js
+  models/
+    model-registry.js
+  compat/
+    window-api.js</pre>
+      </section>
+
+      <section class="section" id="roadmap">
+        <p class="section-kicker">05 / Refactoring Roadmap</p>
+        <h2>권장 실행 순서</h2>
+        <table class="roadmap-table">
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">목표</th>
+              <th scope="col">주요 산출물</th>
+              <th scope="col">완료 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="phase">Phase 0<br>안전화</td>
+              <td>데이터 손상과 보안 경계부터 제거</td>
+              <td>
+                <ul class="deliverables">
+                  <li>서비스워커 캐시 범위 수정</li>
+                  <li>테이프 라벨 안전 렌더</li>
+                  <li>양면 삭제·저장 실패 처리</li>
+                  <li>예약 녹음 generation 도입</li>
+                </ul>
+              </td>
+              <td>새 회귀 테스트가 결함을 재현하고 수정 후 통과</td>
+            </tr>
+            <tr>
+              <td class="phase">Phase 1<br>상태 경계</td>
+              <td>재생·녹음·테이프 상태의 단일 소유자 확립</td>
+              <td>
+                <ul class="deliverables">
+                  <li>PlaybackController</li>
+                  <li>BackgroundRecorder</li>
+                  <li>Tape/Recording Repository</li>
+                  <li>순수 예약 회차 계산</li>
+                </ul>
+              </td>
+              <td>UI가 오디오 전역을 직접 쓰지 않고 상태를 구독</td>
+            </tr>
+            <tr>
+              <td class="phase">Phase 2<br>UI 모듈화</td>
+              <td>app.js를 화면·상호작용 단위로 축소</td>
+              <td>
+                <ul class="deliverables">
+                  <li>ES modules + window.MFA 호환 facade</li>
+                  <li>DialogController · ModelPicker</li>
+                  <li>station/schedule/rack UI 분리</li>
+                  <li>열린 모달 접근성 테스트</li>
+                </ul>
+              </td>
+              <td>app entry가 초기 조립과 호환 API만 담당</td>
+            </tr>
+            <tr>
+              <td class="phase">Phase 3<br>성능·운영</td>
+              <td>유휴 비용과 데스크톱 배포 위험 축소</td>
+              <td>
+                <ul class="deliverables">
+                  <li>상태 기반 animation scheduler</li>
+                  <li>SVG 모델 레지스트리·지연 로드</li>
+                  <li>Electron 업그레이드·보안 복원</li>
+                  <li>서비스워커·트레이 CI</li>
+                </ul>
+              </td>
+              <td>숨김 상태 CPU, 초기 로드, audit, 오프라인 테스트 기준 충족</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="verification">
+        <p class="section-kicker">06 / Verification</p>
+        <h2>검증 결과</h2>
+        <table class="verification-table">
+          <thead>
+            <tr>
+              <th scope="col">검증</th>
+              <th scope="col">결과</th>
+              <th scope="col">해석</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>JavaScript 구문 검사</td>
+              <td><span class="status pass">통과</span></td>
+              <td>브라우저·Node 스크립트의 파싱 오류 없음</td>
+            </tr>
+            <tr>
+              <td>음반 카탈로그</td>
+              <td><span class="status pass">통과</span></td>
+              <td>63장 · 327트랙 형식 검증 완료</td>
+            </tr>
+            <tr>
+              <td>Chromium Playwright</td>
+              <td><span class="status pass">76 / 76</span></td>
+              <td>기존 기능과 신규 안전성·접근성·플랫폼 회귀 테스트 전체 통과</td>
+            </tr>
+            <tr>
+              <td>WebKit Playwright</td>
+              <td><span class="status pass">6 / 6</span></td>
+              <td>네이티브 HLS 세그먼트 캡처와 WAV 헤더 판독 추가 후 핵심 경로 전체 통과</td>
+            </tr>
+            <tr>
+              <td>복제 코드 검사</td>
+              <td><span class="status pass">0 clones</span></td>
+              <td>10줄·80토큰 이상 기준. 핵심 부채는 복제보다 공유 전역 상태</td>
+            </tr>
+            <tr>
+              <td>테스트 패키지 npm audit</td>
+              <td><span class="status pass">0건</span></td>
+              <td>현재 잠금 파일 기준 알려진 취약점 없음</td>
+            </tr>
+            <tr>
+              <td>트레이 패키지 npm audit</td>
+              <td><span class="status pass">0건</span></td>
+              <td>Electron 43.1.1 · electron-builder 26.15.3 업그레이드 후 high 포함 알려진 취약점 없음</td>
+            </tr>
+            <tr>
+              <td>서비스워커 오프라인 E2E</td>
+              <td><span class="status pass">통과</span></td>
+              <td>루트·manual·widget·embed 오프라인 부팅과 스트림 무개입을 전용 E2E로 검증</td>
+            </tr>
+            <tr>
+              <td>Windows 트레이 패키징</td>
+              <td><span class="status pass">통과</span></td>
+              <td>Node 24 런타임에서 Electron 43.1.1 win-unpacked 패키징 완료</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" id="implementation">
+        <p class="section-kicker">07 / Implementation Addendum</p>
+        <h2>리팩토링 반영 결과</h2>
+        <p class="lead">
+          원격 <code>master</code>를 <code>2874568</code>까지 fast-forward한 뒤 별도 작업 브랜치에서
+          Phase 0의 확정 결함과 Phase 1·3의 핵심 경계를 우선 구현했다. 변경은 기존 바닐라 JavaScript·정적 배포
+          구조와 안정적인 SVG 조작 ID를 보존하는 호환 계층 방식으로 적용했다.
+        </p>
+        <table class="verification-table">
+          <thead>
+            <tr>
+              <th scope="col">영역</th>
+              <th scope="col">상태</th>
+              <th scope="col">주요 반영</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>데이터·재생 안전성</td>
+              <td><span class="status pass">완료</span></td>
+              <td>PlaybackController generation/phase, 실제 <code>playing</code> 확정, HLS 재시도 예산 회복, AudioContext 원자적 폴백</td>
+            </tr>
+            <tr>
+              <td>녹음·테이프 영속성</td>
+              <td><span class="status pass">완료</span></td>
+              <td>예약 generation 격리, A/B면 삭제, Result 계약, atomic IDB 삭제, 저장-삭제 경합·B웰 stale 참조 제거</td>
+            </tr>
+            <tr>
+              <td>WebKit 녹음 경로</td>
+              <td><span class="status pass">완료</span></td>
+              <td>네이티브 HLS master/media playlist 추적과 세그먼트 캡처, 숨은 오디오 비재생, WAV 헤더 길이 판독</td>
+            </tr>
+            <tr>
+              <td>서비스워커·운영</td>
+              <td><span class="status pass">완료</span></td>
+              <td>소유 캐시만 정리, 페이지별 navigation 키, 스트림/range 무개입, v120 프리캐시 정합</td>
+            </tr>
+            <tr>
+              <td>Electron·메시지 보안</td>
+              <td><span class="status pass">완료</span></td>
+              <td><code>webSecurity</code> 복원, sandbox/contextIsolation, URL·권한 제한, source/origin/generation/nonce 검증</td>
+            </tr>
+            <tr>
+              <td>UI·접근성</td>
+              <td><span class="status pass">완료</span></td>
+              <td>공통 dialog 포커스 제어, inert/복귀, tab roving, aria-pressed, 모바일 고정 바 여백, reduced-motion</td>
+            </tr>
+            <tr>
+              <td>모델·애니메이션 경계</td>
+              <td><span class="status pass">핵심 완료</span></td>
+              <td>통합 모델 레지스트리, 고유 SVG defs, 상태 기반 RAF scheduler, 숨김 탭 정지, 안정 ID 회귀 테스트</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout warn">
+          <strong>남은 구조적 후속</strong>
+          <p>
+            <code>app.js</code>의 물리적 ES module 분해, CSS 계층 파일 분리, 모델별 지연 로딩은 대규모 호환 전환이라
+            이번 안전화 브랜치에서는 facade와 제어 계층까지만 적용했다. 장시간 단일 녹음은 세션 오염과 프리버퍼 상한은
+            해결됐지만, 완전한 무메모리 처리를 위해 OPFS/IndexedDB 점진 chunk 저장이 후속으로 필요하다.
+            macOS Safari 실기·실제 방송 CORS·장시간 트레이 실행도 배포 전 최종 확인 대상으로 남긴다.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="conclusion">
+        <p class="section-kicker">08 / Conclusion</p>
+        <h2>최종 제안</h2>
+        <div class="closing">
+          <p>
+            <strong>가장 중요한 판단은 “파일 분할 자체가 목표가 아니다”라는 점이다.</strong>
+            현재 코드의 주된 위험은 복사·붙여넣기보다 여러 파일이 같은 재생·녹음·테이프 상태를
+            직접 변경하는 데서 생긴다. 따라서 서비스워커와 데이터 결함을 먼저 수정하고,
+            PlaybackController, BackgroundRecorder, TapeRepository 순으로 상태 소유권을 옮긴 뒤
+            app.js와 스킨 계층을 분리해야 한다.
+          </p>
+          <p>
+            이 순서를 지키면 바닐라 JavaScript와 정적 배포라는 프로젝트의 장점, 그리고 현재의
+            강한 시각적 정체성을 유지하면서도 새 모델·새 소스·새 플랫폼을 추가할 때의 회귀 범위를
+            크게 줄일 수 있다.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="toc" aria-label="보고서 목차">
+      <p class="toc-title">Contents</p>
+      <ol>
+        <li><a href="#summary">종합 판단</a></li>
+        <li><a href="#scores">영역별 평가</a></li>
+        <li><a href="#findings">핵심 발견</a></li>
+        <li><a href="#architecture">목표 아키텍처</a></li>
+        <li><a href="#roadmap">리팩토링 로드맵</a></li>
+        <li><a href="#verification">검증 결과</a></li>
+        <li><a href="#implementation">구현 결과</a></li>
+        <li><a href="#conclusion">최종 제안</a></li>
+      </ol>
+    </nav>
+  </div>
+
+  <footer class="footer">
+    Mad for Audio 코드베이스 검토·구현 보고서 · 2026-07-18 · 검토 9b4ea6a · 구현 v120
+  </footer>
+</body>
+</html>

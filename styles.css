@@ -9,6 +9,10 @@
     --accent: #d36a42;
     --accent-strong: #ec8255;
     --rec: #e5484d;
+    --focus-ring: #f49a72;
+    --dialog-backdrop: rgba(10, 8, 7, 0.72);
+    --dialog-surface: #1d1916;
+    --mobile-player-clearance: 136px;
     --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
     --radius-lg: 24px;
     --radius-md: 18px;
@@ -30,8 +34,13 @@ body {
     min-height: 100vh;
 }
 
+body.dialog-open {
+    overflow: hidden;
+}
+
 button,
-input {
+input,
+select {
     font: inherit;
 }
 
@@ -47,8 +56,9 @@ button {
 
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 a:focus-visible {
-    outline: 2px solid var(--accent-strong);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 3px;
 }
 
@@ -60,7 +70,7 @@ svg circle:focus {
 
 body.kbd-nav svg rect:focus,
 body.kbd-nav svg circle:focus {
-    outline: 2px solid var(--accent-strong);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 3px;
 }
 
@@ -767,8 +777,8 @@ main {
     display: none !important;
 }
 
-/* 보기 모드 — body.mode-rack: 기기 이미지로만 조작(데스크톱 기본),
-   body.mode-simple: 간편 플레이어(모바일 기본) — 랙을 숨기고 플레이어바 + 채널 목록만.
+/* 보기 모드 — body.mode-rack: 기기 이미지 중심의 기본 화면,
+   body.mode-simple: URL로 선택하는 간편 플레이어 — 랙을 숨기고 플레이어바 + 채널 목록만.
    좁은 화면의 랙 모드는 감상/상세 화면: 랙과 플레이어바를 함께 보여준다. */
 @media (min-width: 721px) and (pointer: fine) {
     body.mode-rack .hero-player-wrap,
@@ -804,11 +814,11 @@ body.mode-simple #stationMain.collapsed {
     display: flex !important;
 }
 
-.settings-overlay {
+.settings-overlay,
+.crate-overlay {
     position: fixed;
     inset: 0;
-    z-index: 60;
-    background: rgba(10, 8, 7, 0.66);
+    background: var(--dialog-backdrop);
     backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
@@ -816,18 +826,28 @@ body.mode-simple #stationMain.collapsed {
     padding: 20px;
 }
 
-.settings-overlay[hidden] {
+.settings-overlay {
+    z-index: 60;
+}
+
+.settings-overlay[hidden],
+.crate-overlay[hidden] {
     display: none !important;
+}
+
+.settings-panel,
+.crate-panel {
+    background: var(--dialog-surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    overscroll-behavior: contain;
 }
 
 .settings-panel {
     width: min(560px, 100%);
     max-height: 86vh;
     overflow-y: auto;
-    background: #1d1916;
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    box-shadow: var(--shadow);
     padding: 22px 24px 26px;
 }
 
@@ -840,12 +860,14 @@ body.mode-simple #stationMain.collapsed {
     margin-bottom: 6px;
 }
 
-.settings-close {
+.settings-close,
+.crate-close {
     width: 34px;
     height: 34px;
     border-radius: 10px;
     background: var(--panel-soft);
     border: 1px solid var(--line);
+    color: var(--text);
     cursor: pointer;
     font-size: 0.9rem;
 }
@@ -957,13 +979,6 @@ body.mode-simple #stationMain.collapsed {
     filter: url(#lzSwitchDepth);
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .rack-unit svg .lz-hardware-button,
-    .rack-unit svg .lz-hardware-gloss {
-        transition: none;
-    }
-}
-
 .list-toggle-wrap {
     display: flex;
     justify-content: center;
@@ -1034,7 +1049,7 @@ body.mode-simple #stationMain.collapsed {
         width: min(100% - 18px, 100%);
         padding-top: 10px;
         /* 하단 고정 플레이어 바(두 줄이 될 수 있다)에 내용이 가리지 않도록 여백 확보 */
-        padding-bottom: calc(136px + env(safe-area-inset-bottom));
+        padding-bottom: calc(var(--mobile-player-clearance) + env(safe-area-inset-bottom));
     }
 
     /* 컨트롤을 엄지 영역에 상시 노출 — 랙을 스크롤해도 재생/녹음/타이머가 손에 닿는다 */
@@ -1356,19 +1371,7 @@ a.mini-open {
 
 /* ===== 음반 수납장 (레코드 크레이트) ===== */
 .crate-overlay {
-    position: fixed;
-    inset: 0;
     z-index: 70;
-    background: rgba(10, 8, 7, 0.72);
-    backdrop-filter: blur(6px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-.crate-overlay[hidden] {
-    display: none !important;
 }
 
 .crate-panel {
@@ -1376,10 +1379,6 @@ a.mini-open {
     max-height: 88vh;
     display: flex;
     flex-direction: column;
-    background: #1d1916;
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    box-shadow: var(--shadow);
     padding: 20px 22px 22px;
 }
 
@@ -1416,19 +1415,15 @@ a.mini-open {
 }
 
 .crate-search:focus {
-    outline: none;
     border-color: var(--accent);
 }
 
+.crate-search:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
 .crate-close {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: var(--panel-soft);
-    border: 1px solid var(--line);
-    color: var(--text);
-    cursor: pointer;
-    font-size: 0.9rem;
     flex: none;
 }
 
@@ -1895,6 +1890,12 @@ body.unit-lightbox .unit-zoomed .unit-zoom-btn {
     opacity: 1;
 }
 
+.unit-zoom-btn:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 3px;
+    transition: none;
+}
+
 @media (pointer: coarse) {
     .unit-zoom-btn {
         opacity: 0.5;
@@ -1983,6 +1984,11 @@ body.focus-unit-zoomed .unit-zoomed {
     background: var(--panel-soft);
     border-color: var(--accent);
     color: var(--text);
+}
+
+.sched-tab:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .sched-tab-count {

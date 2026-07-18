@@ -9,6 +9,7 @@ const path = require("path");
 const NM = path.join(__dirname, "node_modules");
 const STREAM_DIR = path.join(__dirname, ".stream");
 const MOCK_STREAM_URL = "https://mockstream.test/playlist.m3u8";
+const MOCK_AUDIO_URL = "https://mockstream.test/sample.mp3";
 
 function contentType(p) {
     if (p.endsWith(".js")) return "application/javascript";
@@ -16,6 +17,7 @@ function contentType(p) {
     if (p.endsWith(".woff2")) return "font/woff2";
     if (p.endsWith(".m3u8")) return "application/vnd.apple.mpegurl";
     if (p.endsWith(".ts")) return "video/mp2t";
+    if (p.endsWith(".mp3")) return "audio/mpeg";
     return "application/octet-stream";
 }
 
@@ -75,4 +77,4 @@ function collectErrors(page) {
     return errors;
 }
 
-module.exports = { mockExternal, collectErrors, MOCK_STREAM_URL };
+module.exports = { mockExternal, collectErrors, MOCK_STREAM_URL, MOCK_AUDIO_URL };

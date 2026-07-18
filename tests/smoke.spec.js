@@ -2,7 +2,7 @@
 // 재생은 모의 HLS(MP3/TS)로 검증한다 — 실제 방송 스트림 연결은 환경(지역·정책)에
 // 좌우되므로 테스트하지 않는다. 파이프라인(선국→URL 해석→hls.js→<audio>)이 대상이다.
 const { test, expect } = require("@playwright/test");
-const { mockExternal, collectErrors } = require("./fixtures");
+const { mockExternal, collectErrors, MOCK_AUDIO_URL } = require("./fixtures");
 
 // 포노 트랙(위키미디어) 대역 — 재생이 지속되어야 하는 테스트용 합성 WAV (220Hz 사인)
 function makeWav(seconds) {
@@ -291,7 +291,9 @@ test.describe("데스크톱", () => {
         const mid = await page.evaluate(() => ({
             mainPaused: document.getElementById("audioPlayer").paused,
             playing: isPlaying,
-            bgOn: !!(bgRecAudio && !bgRecAudio.paused),
+            bgOn: !!((bgRecPlayer && bgRecPlayer.hls && bgRecAudio && !bgRecAudio.paused)
+                || (bgRecPlayer && bgRecPlayer.kind === "native-capture"
+                    && bgRecNativeCapture && bgRecNativeCapture.ready)),
             ampWarm: +ampWarm.toFixed(2),
             tunerWarm: +tunerWarm.toFixed(2),
             reel1: document.getElementById("deckReelL").getAttribute("transform"),
@@ -422,7 +424,7 @@ test.describe("데스크톱", () => {
         expect(second.mode, "요청한 조작(PLAY) 실행").toBe("play");
     });
 
-    test("더블데크 W-990RX: A웰 재생 중 예약 녹음은 B웰 — 재생 무중단, 종료 후 카세트 랙 보관", async ({ page }) => {
+    test("더블데크 W-990RX: A웰 재생 중 예약 녹음은 B웰 — 재생 무중단, 종료 후 카세트 랙 보관", async ({ page, browserName }) => {
         // W-990RX 장착
         await page.click('button:has-text("오디오 구성")');
         await page.locator('#deckPicker .skin-btn', { hasText: "TEAC W-990RX" }).click();
@@ -450,15 +452,14 @@ test.describe("데스크톱", () => {
         });
         await expect(page.locator("#deckStage .lz-hardware-side")).toHaveCount(6);
         // 수록곡 있는 테이프를 A웰에 장착하고 재생 (합성 WAV 세그먼트)
-        await page.evaluate((b64) => {
-            const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-            const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+        await page.evaluate((url) => {
             const t = newBlankTape(1800);
-            tapeAddSegment(t, { start: 0, dur: 40, url, name: "시험 곡", type: "audio/wav" });
+            tapeAddSegment(t, { start: 0, dur: 40, url, name: "시험 곡", type: "audio/mpeg" });
             deckInsertTape(t.id);
             deckPlay();
-        }, makeWav(40).toString("base64"));
+        }, MOCK_AUDIO_URL);
         await page.waitForFunction(() => deckMode === "play" && !document.getElementById("audioPlayer").paused, null, { timeout: 15000 });
+        const mainSource = await page.evaluate(() => audio.currentSrc);
         // 예약 발화 → 녹음은 B웰(recOnB)로, A웰 재생은 계속되어야 한다
         await page.evaluate(() => {
             const st = window.FMRadio.stations[0];
@@ -470,11 +471,15 @@ test.describe("데스크톱", () => {
             mode: deckMode,
             playing: isPlaying,
             mainPaused: document.getElementById("audioPlayer").paused,
+            mainSource: document.getElementById("audioPlayer").currentSrc,
             hasB: !!deckBTape,
             bReel: document.getElementById("deckBReelL").getAttribute("transform"),
         }));
         expect(mid.mode, "A웰 재생 무중단").toBe("play");
-        expect(mid.playing && !mid.mainPaused, "본체 오디오 유지").toBe(true);
+        expect(!mid.mainPaused && mid.mainSource === mainSource, "본체 오디오 소스 유지").toBe(true);
+        // Windows Playwright WebKit에는 MP3/PCM 디코더가 없어 playing이 error로
+        // 바뀔 수 있다. 이 프로젝트에서 검증할 계약은 예약이 pause/src 교체를 하지 않는지다.
+        if (browserName !== "webkit") expect(mid.playing, "본체 오디오 유지").toBe(true);
         expect(mid.hasB, "B웰 테이프 장착").toBe(true);
         // B웰 릴 회전 — rAF 스로틀과 무관하게 합성 타임스탬프로 프레임 루프를 돌린다
         expect(await page.evaluate((r1) => {
@@ -492,11 +497,13 @@ test.describe("데스크톱", () => {
             const t = tapes.find((x) => x.label.includes("더블데크 예약"));
             return {
                 mode: deckMode, playing: isPlaying, bEmpty: deckBTape === null,
+                mainPaused: audio.paused, mainSource: audio.currentSrc,
                 pos: t && t.pos, segs: t ? t.segments.length : 0, inA: deckTape === t,
             };
         });
         expect(end.mode, "종료 후에도 A웰 재생").toBe("play");
-        expect(end.playing, "본체 재생 유지").toBe(true);
+        expect(!end.mainPaused && end.mainSource === mainSource, "종료 후에도 본체 소스 유지").toBe(true);
+        if (browserName !== "webkit") expect(end.playing, "본체 재생 유지").toBe(true);
         expect(end.bEmpty, "B웰 자동 배출").toBe(true);
         expect(end.pos, "되감김").toBe(0);
         expect(end.segs, "녹음 세그먼트 존재").toBeGreaterThan(0);
@@ -965,8 +972,9 @@ test.describe("데스크톱", () => {
         await expect(delBtn, "1차: 확인 대기").toHaveText("정말 삭제?");
         expect(await page.evaluate(() => tapes.some((t) => t.label === "명반 모음")), "1차에는 안 지워짐").toBe(true);
         await delBtn.click();
+        await page.waitForFunction(() => !tapes.some((t) => t.label === "명반 모음"), null, { timeout: 10000 });
         expect(await page.evaluate(() => tapes.some((t) => t.label === "명반 모음")), "테이프 제거").toBe(false);
-        expect(await page.evaluate(() => document.querySelectorAll("#recordingList .recording").length), "녹음 목록 정리").toBe(0);
+        await expect(page.locator("#recordingList .recording"), "녹음 목록 정리").toHaveCount(0);
     });
 
     test("테이프 가져오기/내보내기: mp3급 파일 → 믹스테이프, 원본 형식 다운로드", async ({ page }) => {

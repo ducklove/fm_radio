@@ -13,6 +13,7 @@ let deckMode = "stop";          // stop | play | rec | wind
 let deckPlaying = false;        // 덱이 메인 오디오 소스 (deckMode === "play")
 let windDir = 0;
 let deckSegPlaying = null;      // 재생 중인 세그먼트
+let deckAutoSegAnnounced = null; // 빈 구간을 지나 자동 시작된 세그먼트 안내 중복 방지
 let deckRecStartPos = 0;
 let deckReelAngle = 0;
 let tapeSeq = 1;
@@ -64,6 +65,27 @@ Object.entries(tapeMeta).forEach(([id, m]) => {
     if (!m || !m.label) return;
     tapes.push({ id, label: m.label, segments: [], segmentsB: [], side: m.side === "B" ? "B" : "A", pos: 0, len: m.len || TAPE_LEN, blank: !m.named, named: !!m.named, createdAt: m.createdAt, cal: !!m.cal, foreign: !!m.foreign });
 });
+
+// ----- 데크 장착 상태 영속화 -----
+// 실물 데크처럼 "지난번에 물려 있던 그 테이프, 그 위치"만 되장착한다.
+// (아무 테이프나 자동 장착하면 옛 수록 위에 새 녹음이 덮이는 사고가 된다 —
+//  녹음해 둔 줄 잊은 음반 녹음이 새 녹음 뒤에 이어 나오는 미스터리의 정체.)
+function deckStateSave() {
+    if (deckTape) deckTape.pos = tapePos;
+    saveJson("fmRadio.deckState", deckTape && !(deckTape.blank && !deckTape.segments.length && !(deckTape.segmentsB || []).length)
+        ? { tapeId: deckTape.id, pos: Math.round(tapePos) }
+        : null);
+}
+
+(function deckStateRestore() {
+    const saved = loadJson("fmRadio.deckState", null);
+    if (!saved || !saved.tapeId) return;
+    const t = tapes.find((x) => x.id === saved.tapeId);
+    if (!t) return;
+    deckTape = t;
+    tapePos = Math.max(0, Math.min(saved.pos || 0, tapeLenOf(t)));
+    t.pos = tapePos;
+})();
 
 // 테이프 생성 시각 — 명시 필드가 없으면 id에 새겨진 타임스탬프("tape-<ms>-")에서 복원
 function tapeCreatedAt(t) {
@@ -184,6 +206,44 @@ function tapeAddSegment(tape, seg) {
     }
 }
 
+// 테이프의 현재 면/반대 면을 호출부가 직접 순회하지 않게 하는 저장소 경계.
+// 한 녹음 Blob이 덮어쓰기로 여러 조각이 되어도 url/dbId 기준으로 양면에서 함께 정리한다.
+const TapeRepository = Object.freeze({
+    allSegments(tape) {
+        if (!tape) return [];
+        tapeEnsureSides(tape);
+        return tape.segments.concat(tape.segmentsB);
+    },
+    removeRecording(record) {
+        const url = record && record.url;
+        const dbId = record && record.dbId;
+        let removed = 0;
+        tapes.forEach((tape) => {
+            tapeEnsureSides(tape);
+            ["segments", "segmentsB"].forEach((side) => {
+                const before = tape[side].length;
+                tape[side] = tape[side].filter((seg) => !(
+                    (url && seg.url === url) || (dbId != null && seg.dbId === dbId)
+                ));
+                removed += before - tape[side].length;
+            });
+        });
+        return removed;
+    },
+    markPersisted(url, dbId) {
+        if (!url || dbId == null) return 0;
+        let updated = 0;
+        tapes.forEach((tape) => {
+            tapeEnsureSides(tape);
+            tape.segments.concat(tape.segmentsB).forEach((seg) => {
+                if (seg.url === url) { seg.dbId = dbId; updated += 1; }
+            });
+        });
+        return updated;
+    }
+});
+window.MFA_TapeRepository = TapeRepository;
+
 function ensureHiss() {
     if (!audioCtx || hissSrc) return;
     try {
@@ -220,15 +280,29 @@ function deckSegHeal() {
 }
 
 let deckSeekFixing = false;   // 길이 확정 시크 중 — ended 핸들러가 오인하지 않게
+let deckSeekGeneration = 0;
 
 function deckStartSegment(seg, innerOffset) {
+    const seekGeneration = ++deckSeekGeneration;
+    deckSeekFixing = false;
     deckSegPlaying = seg;
     streamLoaded = true;
     const target = (seg.offset || 0) + Math.max(0, innerOffset);
+    const playbackToken = PlaybackController.begin("tape", seg.name || "TAPE");
+    PlaybackController.bind(playbackToken, seg.url, null);
+    setAudioState("buffering", "TAPE");
     const startPlay = () => {
-        audio.play().then(() => { isPlaying = true; updatePlayButton(); }).catch(() => {});
+        if (!PlaybackController.isCurrent(playbackToken) || deckSegPlaying !== seg) return;
+        audio.play().catch(() => {
+            if (!PlaybackController.isCurrent(playbackToken)) return;
+            PlaybackController.transition(playbackToken, "blocked");
+            setAudioState("blocked", "TAPE");
+            isPlaying = false;
+            updatePlayButton();
+        });
     };
     const seekAndPlay = () => {
+        if (!PlaybackController.isCurrent(playbackToken) || deckSegPlaying !== seg) return;
         if (!isFinite(audio.duration)) {
             // MediaRecorder·바이트 캡처 blob은 길이 미상(Infinity)이라 시킹이 무시된다.
             // 표준 워크어라운드: 끝으로 한 번 밀면 브라우저가 실제 길이와 큐를 확정한다.
@@ -236,7 +310,8 @@ function deckStartSegment(seg, innerOffset) {
             audio.pause();
             const done = () => {
                 audio.removeEventListener("seeked", done);
-                deckSeekFixing = false;
+                if (seekGeneration === deckSeekGeneration) deckSeekFixing = false;
+                if (!PlaybackController.isCurrent(playbackToken) || deckSegPlaying !== seg) return;
                 deckSegHeal();
                 if (!deckSegPlaying) return;
                 if (target - (seg.offset || 0) >= seg.dur - 0.05) {   // 실측보다 뒤 — 빈 구간으로
@@ -247,7 +322,10 @@ function deckStartSegment(seg, innerOffset) {
                 startPlay();
             };
             audio.addEventListener("seeked", done);
-            try { audio.currentTime = 1e10; } catch (e) { deckSeekFixing = false; startPlay(); }
+            try { audio.currentTime = 1e10; } catch (e) {
+                if (seekGeneration === deckSeekGeneration) deckSeekFixing = false;
+                startPlay();
+            }
             return;
         }
         deckSegHeal();
@@ -267,7 +345,6 @@ function deckStartSegment(seg, innerOffset) {
         audio.addEventListener("loadedmetadata", seekAndPlay, { once: true });
         startPlay();
     }
-    isPlaying = true;
 }
 
 function mountDeck() {
@@ -466,7 +543,7 @@ function deckAutoWind(target, label) {
     if ((recorder && !recOnB) || deckMode === "rec") { playerSubtext.textContent = "녹음 중에는 감을 수 없습니다."; return; }
     if (!deckTape) return;
     target = Math.max(0, Math.min(tapeLenOf(deckTape), target));
-    if (deckMode === "play") { audio.pause(); deckSegPlaying = null; deckPlaying = false; }
+    if (deckMode === "play") { PlaybackController.invalidate(); audio.pause(); deckSegPlaying = null; deckPlaying = false; }
     if (Math.abs(target - tapePos) < 0.5) {
         deckMode = "stop";
         windDir = 0;
@@ -723,6 +800,7 @@ async function w990StartDub() {
     w990DubUntil = Date.now() + theater;
     playerSubtext.textContent = (w990DubHigh ? "HIGH-SPEED" : "NORMAL") + " DUBBING — A→B 복사 중... (" + Math.ceil(theater / 1000) + "초)";
     let copied = 0;
+    let volatileCopies = 0;
     try {
         for (const seg of src.segments.slice()) {
             const blob = await fetch(seg.url).then((r) => r.blob());
@@ -732,7 +810,12 @@ async function w990StartDub() {
                 type: seg.type || blob.type || "audio/mp4",
                 tapeId: dst.id, tapeStart: seg.start, tapeLen: tapeLenOf(dst), blob
             };
-            record.dbId = await persistRecording(record);
+            const saved = await persistRecording(record);
+            record.dbId = saved.ok ? saved.id : null;
+            if (!saved.ok) {
+                volatileCopies += 1;
+                offerRecordingDownload(record, saved);
+            }
             tapeAddSegment(dst, { start: seg.start, dur: seg.dur, url: URL.createObjectURL(blob), name: seg.name, dbId: record.dbId, type: record.type });
             copied++;
         }
@@ -747,6 +830,8 @@ async function w990StartDub() {
         deckBTape = null;
         tapes.splice(tapes.indexOf(dst), 1);
         playerSubtext.textContent = "더빙에 실패했습니다.";
+    } else if (volatileCopies) {
+        playerSubtext.textContent = "더빙은 완료됐지만 브라우저 저장소에 보관하지 못한 " + volatileCopies + "개 파일의 다운로드를 시작했습니다.";
     } else if (w990ContPlay) {
         playerSubtext.textContent = "더빙 완료 — 카세트 「" + dst.label + "」가 B웰에 대기합니다 (REV MODE: 릴레이).";
     } else {
@@ -807,6 +892,7 @@ function bindW990Dub() {
 function deckMountMicPanel() {
     const svg = document.querySelector("#deckStage svg");
     if (!svg || svg.querySelector("#deckMicPanel")) return;
+    const lzPrefix = svg.getAttribute("data-lz-prefix") || "";
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("id", "deckMicPanel");
     g.setAttribute("role", "button");
@@ -814,12 +900,12 @@ function deckMountMicPanel() {
     g.setAttribute("aria-label", "녹음 입력 선택 — LINE(재생 소스) / MIC(마이크)");
     g.setAttribute("style", "cursor:pointer");
     g.innerHTML = '<title>REC INPUT — LINE은 지금 나오는 소리를, MIC는 마이크를 녹음합니다</title>' +
-        '<rect x="112" y="434" width="272" height="72" rx="8" fill="#000" opacity=".38" filter="url(#lzSoft)"/>' +
+        '<rect x="112" y="434" width="272" height="72" rx="8" fill="#000" opacity=".38" filter="url(#' + lzPrefix + 'lzSoft)"/>' +
         '<rect x="108" y="430" width="272" height="72" rx="8" fill="#14161b" stroke="#3c4046" stroke-width="1.8"/>' +
         '<path d="M116 434 H372" stroke="#fff" stroke-width="1.6" opacity=".14"/>' +
         '<text x="124" y="451" font-family="Arial" font-size="10" letter-spacing="2" fill="#8a8e96">REC INPUT</text>' +
         '<circle cx="152" cy="479" r="14" fill="#23262c" stroke="#767b83" stroke-width="2.4"/>' +
-        '<circle cx="152" cy="479" r="14" fill="url(#lzInCirc)" opacity=".5"/>' +
+        '<circle cx="152" cy="479" r="14" fill="url(#' + lzPrefix + 'lzInCirc)" opacity=".5"/>' +
         '<circle cx="152" cy="479" r="6.5" fill="#040507"/>' +
         '<rect x="200" y="444" width="26" height="52" rx="6" fill="#26262c"/>' +
         '<rect id="deckMicKnob" x="204" y="448" width="18" height="22" rx="3" fill="#55555c"/>' +
@@ -877,6 +963,7 @@ function deckSyncTape() {
     if (deckTape) deckTape.pos = tapePos;
     updateDeckLabel();
     deckRefreshShelf();
+    deckStateSave();   // 트랜스포트가 멈춰 위치가 확정될 때마다 장착 상태를 남긴다
 }
 
 function deckRefreshShelf() {
@@ -893,19 +980,30 @@ function deckRefreshShelf() {
     } else {
         others.slice(0, 4).forEach((t, i) => {
             const x = 1120 + i * 168;
-            html += '<g style="cursor:pointer" data-id="' + t.id + '">' +
+            html += '<g style="cursor:pointer" data-tape-index="' + i + '">' +
                 '<rect x="' + x + '" y="430" width="156" height="72" rx="6" fill="#22222a" stroke="#3a3a40" stroke-width="1.2"/>' +
                 '<circle cx="' + (x + 46) + '" cy="478" r="9" fill="#101014" stroke="#4a4a52"/>' +
                 '<circle cx="' + (x + 110) + '" cy="478" r="9" fill="#101014" stroke="#4a4a52"/>' +
                 '<rect x="' + (x + 10) + '" y="438" width="136" height="20" rx="3" fill="#e8e0c8"/>' +
-                '<text x="' + (x + 78) + '" y="452" font-family="Arial" font-size="11" font-weight="700" fill="#3a2b1e" text-anchor="middle">' + t.label.slice(0, 11) + '</text>' +
+                '<text data-tape-label-index="' + i + '" x="' + (x + 78) + '" y="452" font-family="Arial" font-size="11" font-weight="700" fill="#3a2b1e" text-anchor="middle"></text>' +
                 '<text x="' + (x + 78) + '" y="497" font-family="Arial" font-size="9" fill="#8a8a94" text-anchor="middle">' + formatDuration(tapeUsedSec(t) * 1000) + ' / ' + formatDuration(tapeLenOf(t) * 1000) + '</text>' +
                 '</g>';
         });
     }
     shelf.innerHTML = html;
-    shelf.querySelectorAll("g[data-id]").forEach((g) => {
-        g.addEventListener("click", () => deckInsertTape(g.getAttribute("data-id")));
+    const visibleTapes = others.slice(0, 4);
+    shelf.querySelectorAll("text[data-tape-label-index]").forEach((labelNode) => {
+        const tape = visibleTapes[Number(labelNode.getAttribute("data-tape-label-index"))];
+        labelNode.textContent = tape ? String(tape.label || "").slice(0, 11) : "";
+    });
+    shelf.querySelectorAll("g[data-tape-index]").forEach((g) => {
+        const tape = visibleTapes[Number(g.getAttribute("data-tape-index"))];
+        if (tape) {
+            // 기존 셸/테스트의 data-id 계약은 유지하되, 문자열 템플릿이 아닌 DOM API로
+            // 설정해 가져온 ID에 따옴표나 마크업이 있어도 속성 경계를 벗어나지 못하게 한다.
+            g.setAttribute("data-id", String(tape.id || ""));
+            g.addEventListener("click", () => deckInsertTape(tape.id));
+        }
     });
     const caseBtn = shelf.querySelector("#deckCaseBtn");
     if (caseBtn) {
@@ -960,6 +1058,7 @@ function deckInsertTape(id) {
     deckTape = t;
     tapePos = t.pos || 0;
     deckRefreshShelf();
+    deckStateSave();
     playerSubtext.textContent = "테이프 장착: " + t.label + " (" + formatDuration(tapePos * 1000) + " 위치)";
 }
 
@@ -971,6 +1070,7 @@ function deckPlay() {
     if (!deckTape) deckTape = newBlankTape();
     stopPhono();
     if (player) { player.destroy(); player = null; }
+    PlaybackController.invalidate();
     if (typeof Hls !== "undefined" && Hls.isSupported()) ensureAudioGraph();
     // 제스처 밖에서 만들어져 잠든 컨텍스트가 있으면 깨운다 — 릴만 돌고 무음이 되는 원인
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
@@ -1022,6 +1122,9 @@ function deckStopTransport() {
         return;
     }
     if (deckMode === "play") {
+        PlaybackController.invalidate();
+        deckSeekGeneration += 1;
+        deckSeekFixing = false;
         audio.pause();
         deckSegPlaying = null;
     }
@@ -1063,17 +1166,21 @@ function deckRec() {
 function deckEject() {
     if (!deckGuardReservedRec()) return;
     if (recorder && !recOnB) { playerSubtext.textContent = "녹음 중에는 꺼낼 수 없습니다."; return; }
-    if (deckMode === "play") { audio.pause(); deckSegPlaying = null; deckPlaying = false; }
+    if (deckMode === "play") { PlaybackController.invalidate(); audio.pause(); deckSegPlaying = null; deckPlaying = false; }
     deckMode = "stop";
     if (deckTape) deckTape.pos = tapePos;
     const old = deckTape ? deckTape.label : "";
     deckTape = newBlankTape();
     tapePos = 0;
     deckRefreshShelf();
+    deckStateSave();
     playerSubtext.textContent = old + " 테이프를 랙에 보관하고 새 공테이프를 넣었습니다.";
 }
 
 function stopDeck() {
+    if (deckPlaying || deckMode === "play") PlaybackController.invalidate();
+    deckSeekGeneration += 1;
+    deckSeekFixing = false;
     deckPlaying = false;
     deckSegPlaying = null;
     if (deckMode === "play" || deckMode === "wind") deckMode = "stop";
@@ -1243,11 +1350,21 @@ function tapeCaseInsert(id) {
     else { renderTapeCase(); tapeCaseMirrorMsg(); }
 }
 
-function tapeCaseDelete(id, btn) {
+async function tapeCaseDelete(id, btn) {
     const t = tapes.find((x) => x.id === id);
     if (!t) return;
     if (recorder && (deckTape === t || deckBTape === t)) {
         playerSubtext.textContent = "녹음 중인 테이프는 지울 수 없습니다 — 먼저 정지하세요.";
+        tapeCaseMirrorMsg();
+        return;
+    }
+    if (typeof activeResRec !== "undefined" && activeResRec && activeResRec.tapeId === t.id) {
+        playerSubtext.textContent = "예약 녹음 회차가 사용 중인 테이프는 지울 수 없습니다 — 예약이 끝난 뒤 다시 시도하세요.";
+        tapeCaseMirrorMsg();
+        return;
+    }
+    if (w990DubBusy && deckBTape === t) {
+        playerSubtext.textContent = "더빙 중인 B웰 테이프는 지울 수 없습니다 — 더빙이 끝난 뒤 다시 시도하세요.";
         tapeCaseMirrorMsg();
         return;
     }
@@ -1265,35 +1382,64 @@ function tapeCaseDelete(id, btn) {
         }, 4000);
         return;
     }
-    if (deckTape === t && deckMode === "play") {
-        audio.pause();
-        deckSegPlaying = null;
+
+    const lifecycle = window.MFA_RecordingLifecycle;
+    if (!lifecycle) {
+        playerSubtext.textContent = "녹음 저장소가 아직 준비되지 않았습니다. 잠시 후 다시 삭제해 주세요.";
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.dataset.deleting = "1";
+        btn.textContent = "삭제 중…";
+    }
+    const segments = t.segments.concat(t.segmentsB || []).slice();
+    const prepared = await lifecycle.prepareTapeDeletion(segments);
+    if (!prepared.ok) {
+        if (btn && btn.isConnected) {
+            btn.disabled = false;
+            btn.dataset.deleting = "";
+            btn.dataset.arm = "1";
+            btn.textContent = "다시 삭제";
+        }
+        playerSubtext.textContent = prepared.reason === "busy"
+            ? "이 테이프의 녹음 삭제가 이미 진행 중입니다. 완료 후 다시 시도하세요."
+            : "브라우저 저장소에서 일부 수록을 지우지 못했습니다. 테이프와 파일은 유지했으니 다시 삭제해 주세요.";
+        tapeCaseMirrorMsg();
+        return;
+    }
+
+    // 영속 데이터 삭제가 모두 확인된 뒤에만 재생/릴레이 참조와 로컬 메타를 정리한다.
+    lifecycle.commitTapeDeletion(prepared);
+    if (deckTape === t) {
+        if (deckMode === "play") {
+            PlaybackController.invalidate();
+            deckSeekGeneration += 1;
+            deckSeekFixing = false;
+            audio.pause();
+            deckSegPlaying = null;
+        }
         deckPlaying = false;
         deckMode = "stop";
         windDir = 0;
+        deckWindTarget = null;
+        deckAutoResume = false;
+        if (hissGain) hissGain.gain.value = 0;
     }
-    // 수록 녹음을 IndexedDB와 녹음 파일 목록에서도 제거한다 (미리듣기 src로 대조)
-    const urls = new Set();
-    t.segments.concat(t.segmentsB || []).forEach((seg) => {
-        if (seg.dbId != null) deleteRecording(seg.dbId);
-        if (seg.url) urls.add(seg.url);
-    });
-    urls.forEach((u) => {
-        document.querySelectorAll("#recordingList .recording audio").forEach((a) => {
-            if (a.getAttribute("src") === u) {
-                a.closest(".recording").remove();
-                recordingCount -= 1;
-            }
-        });
-        try { URL.revokeObjectURL(u); } catch (e) {}
-    });
-    updateRecordingsNote();
+    if (deckBTape === t) {
+        deckBTape = null;
+        deckBPos = 0;
+        deckBRecStartPos = 0;
+        w990DubUntil = 0;
+    }
     tapes = tapes.filter((x) => x !== t);
     if (deckTape === t) {
         deckTape = newBlankTape();
         tapePos = 0;
     }
     tapeMetaSave();
+    deckStateSave();
     deckRefreshShelf();
     renderTapeCase();
     playerSubtext.textContent = '테이프 "' + t.label + '"를 정리했습니다.';
@@ -1330,7 +1476,42 @@ document.addEventListener("keydown", (e) => {
 // 원본 blob을 IndexedDB '녹음'으로 저장하므로 리로드 후에도 남는다.
 // 내보내기: 수록곡을 원본 형식 그대로 내려받는다 — 재인코딩 없음, 원본 음질.
 
-function audioFileDuration(file) {
+async function wavFileDuration(file) {
+    if (!file || !/\.wav$/i.test(file.name || "") && !/wav/i.test(file.type || "")) return 0;
+    try {
+        const view = new DataView(await file.slice(0, Math.min(file.size, 1024 * 1024)).arrayBuffer());
+        const ascii = (offset, length) => {
+            let text = "";
+            for (let i = 0; i < length && offset + i < view.byteLength; i++) {
+                text += String.fromCharCode(view.getUint8(offset + i));
+            }
+            return text;
+        };
+        if (view.byteLength < 44 || ascii(0, 4) !== "RIFF" || ascii(8, 4) !== "WAVE") return 0;
+        let offset = 12;
+        let byteRate = 0;
+        let dataBytes = 0;
+        while (offset + 8 <= view.byteLength) {
+            const id = ascii(offset, 4);
+            const size = view.getUint32(offset + 4, true);
+            const body = offset + 8;
+            if (id === "fmt " && size >= 16 && body + 12 <= view.byteLength) {
+                byteRate = view.getUint32(body + 8, true);
+            } else if (id === "data") {
+                dataBytes = size;
+                break;
+            }
+            offset = body + size + (size % 2);
+        }
+        return byteRate > 0 && dataBytes > 0 ? dataBytes / byteRate : 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
+async function audioFileDuration(file) {
+    const headerDuration = await wavFileDuration(file);
+    if (headerDuration > 0) return headerDuration;
     return new Promise((resolve) => {
         const url = URL.createObjectURL(file);
         const probe = document.createElement("audio");
@@ -1371,6 +1552,12 @@ async function tapeCaseImportFiles(fileList) {
     const len = [1800, 3600, 5400, 7200].find((s) => s >= total) || Math.ceil(total / 1800) * 1800;
     const tape = newBlankTape(len);
     tape.foreign = true;   // 외부 테이프 — 아지무스가 미세하게 어긋나 있다 (DRAGON의 NAAC만 보정)
+    // 비동기 IDB 저장보다 먼저 최종 라벨을 확정한다. 두 번째 세그먼트가 보이는 순간에도
+    // 사용자가 중간 라벨(첫 파일명만)을 보거나 테스트/셸이 이를 영속 상태로 오인하지 않는다.
+    if (items.length > 1 && !tape.named) {
+        tape.label = items[0].file.name.replace(/\.[a-z0-9]+$/i, "") + " 외 " + (items.length - 1) + "곡";
+        tape.blank = false;
+    }
     let pos = 0;
     for (const x of items) {
         const record = {
@@ -1384,13 +1571,12 @@ async function tapeCaseImportFiles(fileList) {
             tapeLen: len,
             blob: x.file
         };
-        record.dbId = await persistRecording(record);
-        addRecordingItem(record);
+        const item = addRecordingItem(record);
+        await startRecordingPersistence(record, item);
         pos += x.dur + 2;
     }
     // 믹스테이프 라벨 — 첫 곡 이름에 나머지 곡 수를 붙인다 (직접 쓴 라벨은 존중)
     if (items.length > 1 && !tape.named) {
-        tape.label = items[0].file.name.replace(/\.[a-z0-9]+$/i, "") + " 외 " + (items.length - 1) + "곡";
         tapeMetaSave();
         deckRefreshShelf();
     }

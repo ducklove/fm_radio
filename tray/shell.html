@@ -161,7 +161,7 @@
         const TUNER_URL = params.get("tuner");
         const SYSTEM_URL = params.get("system");
 
-        const frame = document.getElementById("widgetFrame");
+        let frame = document.getElementById("widgetFrame");
         const miniBar = document.getElementById("miniBar");
         const miniPlay = document.getElementById("miniPlay");
         const miniPlayIcon = document.getElementById("miniPlayIcon");
@@ -170,21 +170,83 @@
         const miniText = document.getElementById("miniText");
         const miniExpand = document.getElementById("miniExpand");
 
-        let currentView = "tuner";
+        const STATE_MESSAGE_TYPES = new Set(["fmRadio:ready", "fmRadio:state", "fmRadio:ended"]);
+        const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+        let currentView = null;
+        let loadGeneration = 0;
+        let activeLoad = null;
         let lastState = null;
 
-        frame.src = TUNER_URL;
+        function parseFrameTarget(rawUrl) {
+            const url = new URL(rawUrl);
+            const isOpaqueFile = url.protocol === "file:";
+            const isRemoteHttps = url.protocol === "https:";
+            const isLocalHttp = url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname);
+            if (!isOpaqueFile && !isRemoteHttps && !isLocalHttp) {
+                throw new TypeError(`허용되지 않은 프레임 URL: ${url.protocol}`);
+            }
+            return {
+                url,
+                origin: isOpaqueFile ? "null" : url.origin,
+                opaque: isOpaqueFile
+            };
+        }
+
+        function createLoadNonce() {
+            return crypto.randomUUID();
+        }
+
+        function loadView(view) {
+            const rawUrl = view === "system" ? SYSTEM_URL : TUNER_URL;
+            let target;
+            try {
+                target = parseFrameTarget(rawUrl);
+            } catch (error) {
+                console.error("트레이 보기를 열 수 없습니다.", error);
+                return false;
+            }
+
+            const generation = ++loadGeneration;
+            const nonce = createLoadNonce();
+            target.url.searchParams.set("shellGeneration", String(generation));
+            target.url.searchParams.set("nonce", nonce);
+
+            // WindowProxy는 같은 iframe의 탐색에서 재사용된다. 노드 자체를 교체해야
+            // 이전 문서가 큐에 넣은 메시지를 현재 로드의 메시지로 오인하지 않는다.
+            const previousFrame = frame;
+            const nextFrame = previousFrame.cloneNode(false);
+            nextFrame.dataset.loadGeneration = String(generation);
+            frame = nextFrame;
+            activeLoad = {
+                frame: nextFrame,
+                generation,
+                nonce,
+                origin: target.origin,
+                targetOrigin: target.opaque ? "*" : target.origin,
+                // widget.html은 nonce를 왕복한다. 전체 랙은 기존 계약상 nonce 없이
+                // 상태를 보내므로 교체된 WindowProxy + origin 경계로 격리한다.
+                requiresNonce: view === "tuner"
+            };
+            previousFrame.replaceWith(nextFrame);
+            nextFrame.src = target.url.href;
+            currentView = view;
+            return true;
+        }
 
         function postToFrame(message) {
-            if (frame.contentWindow) frame.contentWindow.postMessage(message, "*");
+            const load = activeLoad;
+            if (!load || !load.frame.contentWindow) return;
+            load.frame.contentWindow.postMessage(Object.assign({}, message, {
+                nonce: load.nonce,
+                shellGeneration: load.generation
+            }), load.targetOrigin);
         }
 
         function setView(view) {
             const next = view === "system" ? "system" : "tuner";
             if (next === currentView) return;
-            currentView = next;
-            frame.src = next === "system" ? SYSTEM_URL : TUNER_URL;
-            trayBridge.sendView(next);
+            if (loadView(next)) trayBridge.sendView(next);
         }
 
         function applyMode(mode) {
@@ -199,16 +261,24 @@
 
         // iframe(위젯/랙) → 셸
         window.addEventListener("message", (event) => {
+            const load = activeLoad;
             const data = event.data;
             if (!data || typeof data.type !== "string" || !data.type.startsWith("fmRadio:")) return;
+            if (!load || event.source !== load.frame.contentWindow) return;
+            if (event.origin !== load.origin) return;
+            if (data.nonce !== undefined && data.nonce !== load.nonce) return;
+            if (load.requiresNonce && data.nonce !== load.nonce) return;
             if (data.type === "fmRadio:openView") {
                 setView(data.view);
                 return;
             }
+            if (!STATE_MESSAGE_TYPES.has(data.type)) return;
             lastState = data;
             updateMini(data);
             trayBridge.sendState(data);
         });
+
+        loadView("tuner");
 
         // 메인 프로세스 → 셸
         trayBridge.onCommand((message) => {

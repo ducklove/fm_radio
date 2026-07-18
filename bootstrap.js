@@ -5,6 +5,19 @@
     const source = document.currentScript && document.currentScript.src;
     const version = source ? new URL(source, location.href).searchParams.get("v") : "";
     const assetUrl = (name) => version ? `${name}?v=${encodeURIComponent(version)}` : name;
+    const bootstrapState = {
+        version: version || "dev",
+        phase: "loading",
+        catalog: { status: "loading", records: [], error: null },
+        capabilities: { phono: false }
+    };
+
+    window.MFA_BOOTSTRAP = bootstrapState;
+    window.MFA_RECORDS = bootstrapState.catalog.records;
+
+    function publishState() {
+        window.dispatchEvent(new CustomEvent("mfa:bootstrap-state", { detail: bootstrapState }));
+    }
 
     // 실행 중인 버전을 화면에 노출 — "고쳤다는데 왜 그대로지?"를 눈으로 확인할 수 있게
     const versionEl = document.getElementById("appVersion");
@@ -34,32 +47,57 @@
         });
     }
 
-    function showLoadError(error) {
-        const station = document.getElementById("nowStation");
-        const subtext = document.getElementById("playerSubtext");
-        const chip = document.getElementById("audioStateChip");
-        if (station) station.textContent = "음반 카탈로그 로드 실패";
-        if (subtext) subtext.textContent = "페이지를 새로고침해 주세요. 오프라인이라면 한 번 온라인에서 실행해야 합니다.";
-        if (chip) {
-            chip.hidden = false;
-            chip.className = "audio-state-chip st-err";
-            chip.textContent = "오류";
-        }
-        console.error(error);
+    function serializeError(error) {
+        return {
+            name: error && error.name ? String(error.name) : "Error",
+            message: error && error.message ? String(error.message) : "음반 카탈로그를 불러오지 못했습니다"
+        };
     }
 
-    window.MFA_READY = fetch(assetUrl("records.json"), { credentials: "same-origin" })
+    function showCatalogWarning(error) {
+        const subtext = document.getElementById("playerSubtext");
+        const chip = document.getElementById("audioStateChip");
+        if (subtext) subtext.textContent = "음반 카탈로그를 불러오지 못해 포노만 제한됩니다. 라디오와 데크는 계속 사용할 수 있습니다.";
+        if (chip) {
+            chip.hidden = false;
+            chip.className = "audio-state-chip st-warn";
+            chip.textContent = "포노 제한";
+        }
+        console.warn("음반 카탈로그 degraded 모드:", error);
+    }
+
+    const catalogReady = fetch(assetUrl("records.json"), { credentials: "same-origin" })
         .then((response) => {
             if (!response.ok) throw new Error(`음반 카탈로그 응답 오류: ${response.status}`);
             return response.json();
         })
         .then((records) => {
             if (!validateCatalog(records)) throw new Error("음반 카탈로그 형식이 올바르지 않습니다");
+            bootstrapState.catalog.status = "ready";
+            bootstrapState.catalog.records = records;
+            bootstrapState.capabilities.phono = true;
             window.MFA_RECORDS = records;
-            return loadApp();
+            publishState();
+            return records;
         })
         .catch((error) => {
-            showLoadError(error);
-            throw error;
+            bootstrapState.catalog.status = "degraded";
+            bootstrapState.catalog.error = serializeError(error);
+            bootstrapState.catalog.records = [];
+            bootstrapState.capabilities.phono = false;
+            window.MFA_RECORDS = bootstrapState.catalog.records;
+            publishState();
+            return bootstrapState.catalog.records;
+        });
+
+    // 카탈로그 장애는 포노 기능에만 격리한다. app.js 자체를 받지 못한 경우만
+    // MFA_READY를 reject하여 실제 앱 셸 로드 실패와 기능 저하를 구분한다.
+    window.MFA_READY = catalogReady
+        .then(() => loadApp())
+        .then(() => {
+            bootstrapState.phase = "ready";
+            if (!bootstrapState.capabilities.phono) showCatalogWarning(bootstrapState.catalog.error);
+            publishState();
+            return bootstrapState;
         });
 })();

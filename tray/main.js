@@ -4,15 +4,13 @@
 //   오디오 시스템 = 배포판 index.html (전체 하이파이 랙)
 // 위젯/랙의 postMessage API(fmRadio:*)를 IPC로 중계해 트레이 메뉴와 연결하고,
 // 튜너형 재생 중 창을 닫으면 곡명+재생/정지만 남긴 슬림 바로 축소한다.
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, shell } = require("electron");
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, session, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
-const { pathToFileURL } = require("url");
+const { fileURLToPath, pathToFileURL } = require("url");
 
 const HOME_URL = "https://ducklove.github.io/mad-for-audio/";
-// 오디오 시스템 보기의 로드 대상 — 개발 중 로컬 index.html 검증용 오버라이드 (예: file:///.../index.html)
-const SYSTEM_BASE = process.env.MFA_TRAY_HOME || HOME_URL;
 const VOLUME_PRESETS = [100, 80, 60, 40, 20, 0];
 const DEBUG = !!process.env.MFA_TRAY_DEBUG;
 
@@ -36,6 +34,128 @@ if (app.isPackaged) {
 
 // 개발 중에는 저장소 루트, 패키징 후에는 resources/web 아래에서 웹 자산을 찾는다
 const webRoot = app.isPackaged ? path.join(process.resourcesPath, "web") : path.join(__dirname, "..");
+const shellFileUrl = pathToFileURL(path.join(__dirname, "shell.html"));
+const tunerFileUrl = pathToFileURL(path.join(webRoot, "widget.html"));
+
+function sameFile(left, right) {
+    try {
+        return path.resolve(fileURLToPath(left)).toLowerCase()
+            === path.resolve(fileURLToPath(right)).toLowerCase();
+    } catch (error) {
+        return false;
+    }
+}
+
+function isPathInside(root, candidate) {
+    const relative = path.relative(path.resolve(root), path.resolve(candidate));
+    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function isLoopback(url) {
+    return (url.protocol === "http:" || url.protocol === "https:")
+        && ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname);
+}
+
+// 개발 오버라이드는 저장소 내부 file: URL 또는 로컬 서버만 허용한다.
+// 패키징 앱에서는 공식 HTTPS 배포판 외의 콘텐츠를 로드하지 않는다.
+function normalizeSystemBase(raw) {
+    let candidate;
+    try {
+        candidate = new URL(raw || HOME_URL);
+    } catch (error) {
+        console.warn("MFA_TRAY_HOME URL이 올바르지 않아 공식 배포판을 사용합니다.");
+        return new URL(HOME_URL);
+    }
+
+    if (candidate.protocol === "https:" && candidate.origin === new URL(HOME_URL).origin
+            && candidate.pathname.startsWith(new URL(HOME_URL).pathname)) {
+        return candidate;
+    }
+    if (!app.isPackaged && isLoopback(candidate)) return candidate;
+    if (!app.isPackaged && candidate.protocol === "file:" && isPathInside(webRoot, fileURLToPath(candidate))) {
+        return candidate;
+    }
+
+    console.warn("허용되지 않은 MFA_TRAY_HOME을 무시하고 공식 배포판을 사용합니다.");
+    return new URL(HOME_URL);
+}
+
+const systemBaseUrl = normalizeSystemBase(process.env.MFA_TRAY_HOME || HOME_URL);
+
+function isWithinBase(candidate, base) {
+    if (candidate.protocol !== base.protocol) return false;
+    if (candidate.protocol === "file:") return sameFile(candidate, base);
+    const prefix = base.pathname.endsWith("/") ? base.pathname : `${base.pathname}/`;
+    return candidate.origin === base.origin
+        && (candidate.pathname === base.pathname || candidate.pathname.startsWith(prefix));
+}
+
+function isTrustedNavigation(rawUrl) {
+    try {
+        const candidate = new URL(rawUrl);
+        return sameFile(candidate, shellFileUrl)
+            || sameFile(candidate, tunerFileUrl)
+            || isWithinBase(candidate, systemBaseUrl);
+    } catch (error) {
+        return false;
+    }
+}
+
+function openExternalSafely(rawUrl) {
+    try {
+        const target = new URL(rawUrl);
+        if (target.protocol !== "https:" && target.protocol !== "http:") return;
+        void shell.openExternal(target.href).catch((error) => console.error("외부 링크 열기 실패:", error));
+    } catch (error) {
+        console.warn("올바르지 않은 외부 링크를 차단했습니다.");
+    }
+}
+
+function navigationTarget(detailsOrUrl) {
+    return typeof detailsOrUrl === "string" ? detailsOrUrl : detailsOrUrl && detailsOrUrl.url;
+}
+
+function requestUrl(details, webContents) {
+    return (details && (details.requestingUrl || details.requestingOrigin
+        || details.securityOrigin || details.embeddingOrigin))
+        || (webContents && webContents.getURL())
+        || "";
+}
+
+function isTrustedPermissionOrigin(rawUrl) {
+    try {
+        const candidate = new URL(rawUrl);
+        if (candidate.protocol === "file:") return isTrustedNavigation(candidate.href);
+        return candidate.origin === systemBaseUrl.origin;
+    } catch (error) {
+        return false;
+    }
+}
+
+function isAllowedPermission(webContents, permission, details = {}, isCheck = false) {
+    const trusted = isTrustedPermissionOrigin(requestUrl(details, webContents));
+    if (!trusted) return false;
+    if (permission === "fullscreen") return true;
+    return permission === "media"
+        && ((isCheck && !Array.isArray(details.mediaTypes))
+            || (Array.isArray(details.mediaTypes)
+                && details.mediaTypes.length > 0
+                && details.mediaTypes.every((type) => type === "audio")));
+}
+
+function configureSessionSecurity() {
+    const targetSession = session.defaultSession;
+    targetSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        callback(isAllowedPermission(webContents, permission, details));
+    });
+    targetSession.setPermissionCheckHandler((webContents, permission, origin, details) => {
+        return isAllowedPermission(webContents, permission, {
+            ...details,
+            requestingUrl: (details && details.requestingUrl) || origin
+        }, true);
+    });
+    targetSession.setDevicePermissionHandler(() => false);
+}
 
 // stations.js는 브라우저용 IIFE(window.FMRadio 등록)라 가짜 window 샌드박스에서 실행해 읽는다
 function loadStations() {
@@ -105,31 +225,57 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             contextIsolation: true,
-            // 방송사 API·HLS 세그먼트의 CORS 헤더가 제각각이라 로컬 신뢰 콘텐츠에 한해 끈다
-            webSecurity: false,
+            nodeIntegration: false,
+            sandbox: true,
+            webSecurity: true,
+            allowRunningInsecureContent: false,
+            navigateOnDragDrop: false,
+            safeDialogs: true,
+            devTools: !app.isPackaged || DEBUG,
             // 창이 숨겨져도(슬림 바·백그라운드) 재생·재시도 타이머가 늦어지지 않게 한다
             backgroundThrottling: false
         }
     });
 
     // 튜너형: 로컬 widget.html
-    const tunerUrl = pathToFileURL(path.join(webRoot, "widget.html"));
+    const tunerUrl = new URL(tunerFileUrl.href);
     tunerUrl.searchParams.set("skin", "tuner");
     tunerUrl.searchParams.set("station", settings.stationId);
     tunerUrl.searchParams.set("chrome", "tray");
     if (settings.autoplayOnStart) tunerUrl.searchParams.set("autoplay", "1");
 
     // 오디오 시스템: 배포판 전체 랙(온라인) — macOS 앱과 동일하게 배포판을 로드
-    const systemUrl = `${SYSTEM_BASE}?view=rack&chrome=tray`;
+    const systemUrl = new URL(systemBaseUrl.href);
+    systemUrl.searchParams.set("view", "rack");
+    systemUrl.searchParams.set("chrome", "tray");
 
     win.loadFile(path.join(__dirname, "shell.html"), {
-        query: { tuner: tunerUrl.href, system: systemUrl }
+        query: { tuner: tunerUrl.href, system: systemUrl.href }
     });
 
-    // 위젯/랙 밖으로 나가는 새 창 요청(window.open 등)은 기본 브라우저로 돌린다
+    // 위젯/랙 밖의 탐색과 새 창은 셸 안에서 실행하지 않는다.
     win.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url.startsWith("file:") ? HOME_URL : url);
+        openExternalSafely(url);
         return { action: "deny" };
+    });
+    win.webContents.on("will-attach-webview", (event) => event.preventDefault());
+    win.webContents.on("will-navigate", (event, details) => {
+        const url = navigationTarget(details);
+        if (isTrustedNavigation(url)) return;
+        event.preventDefault();
+        if (url) openExternalSafely(url);
+    });
+    win.webContents.on("will-frame-navigate", (event, details) => {
+        const url = navigationTarget(details);
+        if (url && isTrustedNavigation(url)) return;
+        event.preventDefault();
+        if (url) openExternalSafely(url);
+    });
+    win.webContents.on("will-redirect", (event, details) => {
+        const url = navigationTarget(details);
+        if (isTrustedNavigation(url)) return;
+        event.preventDefault();
+        if (url) openExternalSafely(url);
     });
 
     win.on("blur", () => {
@@ -361,18 +507,30 @@ function createTray() {
     refreshTray();
 }
 
+function isTrustedIpcSender(event) {
+    return !!win
+        && !win.isDestroyed()
+        && event.sender === win.webContents
+        && event.senderFrame === win.webContents.mainFrame;
+}
+
 // 셸이 보기를 바꾸면(사용자가 '오디오 시스템'/'미니 플레이어'를 누름) 창 크기를 맞춘다
-ipcMain.on("widget-view", (_event, view) => {
+ipcMain.on("widget-view", (event, view) => {
+    if (!isTrustedIpcSender(event) || (view !== "tuner" && view !== "system")) return;
     currentView = view === "system" ? "system" : "tuner";
     if (win.isVisible() && !barMode) applyViewBounds();
     refreshTray();
 });
 
 // 슬림 바에서 '펼치기'
-ipcMain.on("widget-request-full", () => showFull());
+ipcMain.on("widget-request-full", (event) => {
+    if (isTrustedIpcSender(event)) showFull();
+});
 
-ipcMain.on("widget-state", (_event, message) => {
-    if (!message || typeof message.type !== "string") return;
+ipcMain.on("widget-state", (event, message) => {
+    if (!isTrustedIpcSender(event)
+            || !message
+            || !["fmRadio:ready", "fmRadio:state", "fmRadio:ended"].includes(message.type)) return;
     if (DEBUG) console.log("[state]", JSON.stringify(message));
 
     if (message.type === "fmRadio:ready") {
@@ -381,20 +539,23 @@ ipcMain.on("widget-state", (_event, message) => {
         return;
     }
 
+    const volume = Number(message.volume);
     state = {
         playing: !!message.playing,
         loading: !!message.loading,
-        station: message.station || null,
-        stationName: message.stationName || "",
-        volume: typeof message.volume === "number" ? message.volume : state.volume
+        station: typeof message.station === "string" && stations.some((item) => item.id === message.station)
+            ? message.station
+            : null,
+        stationName: typeof message.stationName === "string" ? message.stationName.slice(0, 160) : "",
+        volume: Number.isFinite(volume) ? Math.max(0, Math.min(100, Math.round(volume))) : state.volume
     };
 
     if (message.mode === "radio" && message.station && message.station !== settings.stationId) {
         settings.stationId = message.station;
         saveSettings();
     }
-    if (typeof message.volume === "number" && message.volume !== settings.volume) {
-        settings.volume = message.volume;
+    if (Number.isFinite(volume) && state.volume !== settings.volume) {
+        settings.volume = state.volume;
         saveSettings();
     }
 
@@ -412,11 +573,11 @@ if (!gotLock) {
     app.whenReady().then(async () => {
         app.setAppUserModelId("com.madforaudio.tray");
         loadSettings();
+        configureSessionSecurity();
         // 시작할 때 웹 캐시·서비스워커 저장소를 비운다 — 온라인 전용이라 캐시 이득이 없고,
         // 손상되거나 낡은 SW 캐시가 랙 페이지 렌더링을 깨뜨리는 일을 원천 차단한다.
         // (설정·즐겨찾기(localStorage)와 녹음(IndexedDB)은 지우지 않는다)
         try {
-            const { session } = require("electron");
             await session.defaultSession.clearCache();
             await session.defaultSession.clearStorageData({ storages: ["serviceworkers", "cachestorage"] });
         } catch (error) {

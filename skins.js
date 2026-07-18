@@ -67,6 +67,30 @@ const LZ_DEFS = '<defs>' +
     '<filter id="lzSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>' +
     '</defs>';
 
+// Shared lighting/filter names used to be duplicated in every mounted SVG.
+// HTML ids are document-global, so WebKit and DOM lookups could resolve a
+// filter from a different component. Prefix only the decorative `lz*` ids;
+// interaction ids such as tsFreq, ampVolMark and deckBtnPlay stay stable.
+let lzSvgSequence = 0;
+
+function lzScopeMarkup(markup, prefix) {
+    return markup
+        .replace(/\bid="(lz[A-Za-z0-9_-]+)"/g, (_, id) => 'id="' + prefix + id + '"')
+        .replace(/url\(#(lz[A-Za-z0-9_-]+)\)/g, (_, id) => 'url(#' + prefix + id + ')')
+        .replace(/(["'])#(lz[A-Za-z0-9_-]+)\1/g, (_, quote, id) => quote + '#' + prefix + id + quote);
+}
+
+function lzScopeMountedReferences(svg, prefix) {
+    svg.querySelectorAll("*").forEach((el) => {
+        Array.from(el.attributes).forEach((attr) => {
+            const next = attr.value
+                .replace(/url\(#(lz[A-Za-z0-9_-]+)\)/g, (_, id) => 'url(#' + prefix + id + ')')
+                .replace(/^#(lz[A-Za-z0-9_-]+)$/, (_, id) => '#' + prefix + id);
+            if (next !== attr.value) el.setAttribute(attr.name, next);
+        });
+    });
+}
+
 const LZ_HARDWARE_BUTTONS = [
     '[id^="deckBtn"]', '[id^="dtBtn"]', '#eqDefeatBtn', '#ttCleanBtn', '#ttPowerBtn', '#ttStartBtn',
     '#tt33', '#tt45', '#ttPrevRec', '#ttNextRec'
@@ -96,7 +120,10 @@ function lzDecorateHardwareButton(el) {
     el.parentNode.insertBefore(side, el);
 
     const gloss = lzStripControlClone(el, "lz-hardware-gloss");
-    gloss.setAttribute("fill", tag === "circle" ? "url(#lzControlGlossRound)" : "url(#lzControlGloss)");
+    const svgPrefix = el.ownerSVGElement ? (el.ownerSVGElement.getAttribute("data-lz-prefix") || "") : "";
+    gloss.setAttribute("fill", tag === "circle"
+        ? "url(#" + svgPrefix + "lzControlGlossRound)"
+        : "url(#" + svgPrefix + "lzControlGloss)");
     gloss.setAttribute("stroke", "none");
     gloss.setAttribute("opacity", ".72");
     el.parentNode.insertBefore(gloss, el.nextSibling);
@@ -122,12 +149,15 @@ function applyHardwareDepth(svg) {
 }
 
 function applyPanelLighting(svg) {
-    if (!svg) return;
+    if (!svg || svg.getAttribute("data-lz-lighting") === "1") return;
+    const prefix = "mfa-lz-" + (++lzSvgSequence) + "-";
+    svg.setAttribute("data-lz-prefix", prefix);
+    svg.setAttribute("data-lz-lighting", "1");
     const vb = (svg.getAttribute("viewBox") || "0 0 2000 400").split(/\s+/).map(Number);
     const X = vb[0], Y = vb[1], W = vb[2], H = vb[3];   // viewBox 원점이 (0,0)이 아닐 수도 있다 (턴테이블)
     const g = document.createElementNS(SVG_NS, "g");
     g.setAttribute("pointer-events", "none");
-    g.innerHTML = LZ_DEFS +
+    g.innerHTML = lzScopeMarkup(LZ_DEFS +
         '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + Math.round(H * 0.32) + '" rx="8" fill="url(#lzGloss)"/>' +
         '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="url(#lzKeyLight)"/>' +
         '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="url(#lzFloorBounce)"/>' +
@@ -136,8 +166,9 @@ function applyPanelLighting(svg) {
         '<rect x="' + (X + 2) + '" y="' + (Y + 2) + '" width="' + (W - 4) + '" height="' + (H - 4) + '" rx="7" fill="none" stroke="url(#lzEdgeLight)" stroke-width="2" opacity="0.34"/>' +
         '<path d="M ' + (X + 12) + ' ' + (Y + 3) + ' H ' + (X + W - 12) + '" stroke="#ffffff" stroke-width="1.4" opacity="0.13"/>' +
         '<path d="M ' + (X + 10) + ' ' + (Y + H - 3) + ' H ' + (X + W - 10) + '" stroke="#000000" stroke-width="2" opacity="0.36"/>' +
-        '<rect class="lzPowerDim" x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="#000000" opacity="0.22"/>';
+        '<rect class="lzPowerDim" x="' + X + '" y="' + Y + '" width="' + W + '" height="' + H + '" rx="8" fill="#000000" opacity="0.22"/>', prefix);
     svg.appendChild(g);
+    lzScopeMountedReferences(svg, prefix);
     applyHardwareDepth(svg);
 }
 

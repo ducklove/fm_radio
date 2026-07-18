@@ -28,7 +28,7 @@
             --panel: rgba(255, 248, 240, 0.05);
             --line: rgba(255, 244, 232, 0.12);
             --text: #f7f0e7;
-            --muted: #b9aea1;
+            --muted: #c2b7aa;
             --accent: #d36a42;
         }
 
@@ -37,7 +37,7 @@
             --panel: rgba(30, 24, 18, 0.05);
             --line: rgba(30, 24, 18, 0.14);
             --text: #2b2118;
-            --muted: #7d7166;
+            --muted: #6f6257;
         }
 
         * {
@@ -75,7 +75,9 @@
 
         button:focus-visible,
         input:focus-visible,
-        select:focus-visible {
+        select:focus-visible,
+        a:focus-visible,
+        [role="button"]:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: 2px;
         }
@@ -480,7 +482,7 @@
             font-size: 0.56rem;
             font-weight: 700;
             letter-spacing: 0.14em;
-            color: #8a7460;
+            color: #ad967e;
         }
 
         .lamp {
@@ -618,7 +620,7 @@
         }
 
         :root[data-skin="tuner"] .w-status {
-            color: #a3937d;
+            color: #b7a791;
         }
 
         :root[data-skin="tuner"] select {
@@ -784,10 +786,20 @@
                 display: none;
             }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="widget" role="application" aria-label="Mad for Audio 미니 플레이어">
+    <main class="widget" aria-label="Mad for Audio 미니 플레이어">
         <span class="screw s1" aria-hidden="true"></span>
         <span class="screw s2" aria-hidden="true"></span>
         <span class="screw s3" aria-hidden="true"></span>
@@ -805,14 +817,14 @@
             <div class="dial-glass"></div>
         </div>
         <div class="row">
-            <button class="btn-play" id="btnPlay" type="button" aria-label="재생 또는 일시정지">
+            <button class="btn-play" id="btnPlay" type="button" aria-label="재생 또는 일시정지" aria-pressed="false">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path id="playIcon" d="M8 5v14l11-7z"></path>
                 </svg>
             </button>
             <div class="info">
-                <div class="w-station" id="wStation"></div>
-                <div class="w-status" id="wStatus">재생 버튼을 눌러 시작하세요.</div>
+                <div class="w-station" id="wStation" aria-live="polite" aria-atomic="true"></div>
+                <div class="w-status" id="wStatus" role="status" aria-live="polite" aria-atomic="true">재생 버튼을 눌러 시작하세요.</div>
             </div>
             <div class="eq" id="eq" aria-hidden="true"><i></i><i></i><i></i></div>
             <div class="sig-meter" aria-hidden="true">
@@ -850,7 +862,7 @@
             <span>NATURAL SOUND</span>
             <span>FM STEREO TUNER</span>
         </div>
-    </div>
+    </main>
 
     <!-- crossorigin을 붙이지 않는다: CORS 헤더 없는 서버의 MP3도 재생돼야 한다 (위젯은 Web Audio 캡처를 쓰지 않음) -->
     <audio id="audioPlayer"></audio>
@@ -887,16 +899,53 @@
         const DIAL_MIN = 87.5;
         const DIAL_MAX = 108.5;
 
-        // 트레이 셸 안(chrome=tray)에서는 '오디오 시스템' 전환을 부모(셸)가 창 안에서 처리한다
+        // 브라우저 임베드는 같은 출처만 기본 허용한다. 교차 출처 부모는 위젯 URL에
+        // allowedOrigin을 명시해야 하며, nonce를 주면 모든 명령·상태에 같은 값을 요구한다.
+        // file:// 기반 트레이 셸은 origin이 불투명(null)이므로 source 고정 + null origin으로 제한한다.
         const isTray = params.get("chrome") === "tray";
+        function normalizeAllowedOrigin(value) {
+            if (!value) return location.origin;
+            try {
+                const origin = new URL(value).origin;
+                return origin === "null" ? location.origin : origin;
+            } catch (error) {
+                console.warn("allowedOrigin 형식이 올바르지 않아 같은 출처만 허용합니다.");
+                return location.origin;
+            }
+        }
+        const opaqueOrigin = location.origin === "null";
+        const allowedOrigin = (isTray || opaqueOrigin) ? "null" : normalizeAllowedOrigin(params.get("allowedOrigin"));
+        const integrationNonce = params.get("nonce") || "";
+        const messageTargetOrigin = (isTray || opaqueOrigin) ? "*" : allowedOrigin;
+
+        function integrationPayload(message) {
+            return integrationNonce ? Object.assign({}, message, { nonce: integrationNonce }) : message;
+        }
+
+        function postIntegrationMessage(target, message) {
+            if (!target) return;
+            target.postMessage(integrationPayload(message), messageTargetOrigin);
+        }
+
+        function isTrustedMessage(event) {
+            const knownSource = (window.parent !== window && event.source === window.parent)
+                || (!!window.opener && event.source === window.opener);
+            if (!knownSource) return false;
+            if (isTray || opaqueOrigin) return event.origin === "null";
+            if (event.origin !== allowedOrigin) return false;
+            return !integrationNonce || (event.data && event.data.nonce === integrationNonce);
+        }
+
         if (isTray) {
             systemLink.addEventListener("click", (event) => {
                 event.preventDefault();
                 if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({ type: "fmRadio:openView", view: "system" }, "*");
+                    postIntegrationMessage(window.parent, { type: "fmRadio:openView", view: "system" });
                 }
             });
         }
+
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
         let current = stations.find((item) => item.id === params.get("station")) || stations[0];
         let isPlaying = false;
@@ -991,6 +1040,7 @@
             playIcon.setAttribute("d", isPlaying ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z");
             btnPlay.classList.toggle("loading", isLoading);
             btnPlay.classList.toggle("playing-glow", isPlaying);
+            btnPlay.setAttribute("aria-pressed", String(isPlaying));
             eq.classList.toggle("on", isPlaying);
             lampStereo.classList.toggle("on", isPlaying);
             updateMeter();
@@ -1021,8 +1071,22 @@
         }
 
         function updateMeter() {
-            if (skin !== "tuner" || meterRaf) return;
+            if (skin !== "tuner") return;
+            if (reducedMotion.matches) {
+                if (meterRaf) cancelAnimationFrame(meterRaf);
+                meterRaf = null;
+                meterValue = isPlaying ? 0.66 : 0;
+                meterNeedle.setAttribute("transform", `rotate(${(-42 + meterValue * 84).toFixed(2)} 33 40)`);
+                return;
+            }
+            if (meterRaf) return;
             meterRaf = requestAnimationFrame(meterFrame);
+        }
+
+        if (typeof reducedMotion.addEventListener === "function") {
+            reducedMotion.addEventListener("change", updateMeter);
+        } else if (typeof reducedMotion.addListener === "function") {
+            reducedMotion.addListener(updateMeter);
         }
 
         function stopStream() {
@@ -1240,8 +1304,8 @@
         function broadcastState() {
             const message = stateMessage();
             try {
-                if (window.parent && window.parent !== window) window.parent.postMessage(message, "*");
-                if (window.opener) window.opener.postMessage(message, "*");
+                if (window.parent && window.parent !== window) postIntegrationMessage(window.parent, message);
+                if (window.opener) postIntegrationMessage(window.opener, message);
             } catch (error) {
                 console.error(error);
             }
@@ -1250,6 +1314,7 @@
         window.addEventListener("message", (event) => {
             const data = event.data;
             if (!data || typeof data.type !== "string" || !data.type.startsWith("fmRadio:")) return;
+            if (!isTrustedMessage(event)) return;
 
             switch (data.type) {
                 case "fmRadio:play":
@@ -1279,7 +1344,7 @@
                     }
                     break;
                 case "fmRadio:getState":
-                    if (event.source) event.source.postMessage(stateMessage(), "*");
+                    if (event.source) postIntegrationMessage(event.source, stateMessage());
                     break;
             }
         });
@@ -1332,8 +1397,8 @@
             updateUi();
             broadcastState();
             try {
-                if (window.parent && window.parent !== window) window.parent.postMessage(stateMessage("fmRadio:ended"), "*");
-                if (window.opener) window.opener.postMessage(stateMessage("fmRadio:ended"), "*");
+                if (window.parent && window.parent !== window) postIntegrationMessage(window.parent, stateMessage("fmRadio:ended"));
+                if (window.opener) postIntegrationMessage(window.opener, stateMessage("fmRadio:ended"));
             } catch (error) {
                 console.error(error);
             }
@@ -1430,8 +1495,8 @@
         updateUi();
 
         try {
-            if (window.parent && window.parent !== window) window.parent.postMessage(stateMessage("fmRadio:ready"), "*");
-            if (window.opener) window.opener.postMessage(stateMessage("fmRadio:ready"), "*");
+            if (window.parent && window.parent !== window) postIntegrationMessage(window.parent, stateMessage("fmRadio:ready"));
+            if (window.opener) postIntegrationMessage(window.opener, stateMessage("fmRadio:ready"));
         } catch (error) {
             console.error(error);
         }

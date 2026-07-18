@@ -337,7 +337,6 @@ function tunerPreview(freq) {
 }
 
 function tunerLoop(now) {
-    tsRaf = requestAnimationFrame(tunerLoop);
     ttFrame(now || performance.now());
     if (!tunerCfg) return;
     let target = 0;
@@ -392,6 +391,47 @@ function tunerLoop(now) {
         tsMultipathPtr.setAttribute("transform", "rotate(" + (-35 + amount * 70).toFixed(1) + " 190 347)");
     }
     tsSyncPanel();
+}
+
+function rackAnimationShouldRun() {
+    const playingOrMoving = isPlaying || !!recorder || deckMode !== "stop" || !!deckSegPlaying;
+    const busy = audioState === "resolving" || audioState === "buffering" || !!busySince;
+    const listeningTarget = (isPlaying || deckMode === "play" || !!recorder) ? 1 : 0;
+    const ampTarget = (isPlaying || deckMode === "play") ? 1 : 0;
+    const deckTarget = (isPlaying || deckMode !== "stop" || !!recorder) ? 1 : 0;
+    const tunerTarget = ((isPlaying && currentStation) || (recorder && activeResRec)) ? 1 : 0;
+    const settling = Math.abs(tubeWarm - listeningTarget) > 0.003
+        || Math.abs(ampWarm - ampTarget) > 0.003
+        || Math.abs(deckWarm - deckTarget) > 0.003
+        || Math.abs(tunerWarm - tunerTarget) > 0.003
+        || Math.abs(ttSpin - ((phonoActive && isPlaying && !ttBraking) ? 1 : 0)) > 0.003
+        || Math.abs(tsSignal) > 0.003
+        || Math.abs(tsTune - ((isPlaying && currentStation) ? 0 : 0.85)) > 0.003;
+    return playingOrMoving || busy || settling || ttArmDrag || ttScratchEnergy > 0.002
+        || performance.now() < ttCleanUntil || performance.now() < ampRectUntil;
+}
+
+function startRackAnimationLoop() {
+    const scheduler = window.MFA && window.MFA.animationScheduler;
+    if (!scheduler) {
+        const legacyFrame = (now) => {
+            tunerLoop(now);
+            tsRaf = requestAnimationFrame(legacyFrame);
+        };
+        tsRaf = requestAnimationFrame(legacyFrame);
+        return;
+    }
+
+    scheduler.register("rack-runtime", tunerLoop, { isActive: rackAnimationShouldRun });
+    const wakeRack = () => scheduler.invalidate("rack-runtime");
+    ["pointerdown", "keydown", "input", "change"].forEach((name) =>
+        document.addEventListener(name, wakeRack, true));
+    ["playing", "pause", "ended", "emptied", "waiting", "stalled"].forEach((name) =>
+        audio.addEventListener(name, wakeRack));
+    // Clock, watchdog and dust state still need a low-frequency idle tick, but
+    // hidden tabs are stopped by the scheduler's visibility policy.
+    setInterval(wakeRack, 1000);
+    wakeRack();
 }
 
 
@@ -2043,13 +2083,19 @@ const PHONO_GAIN = 2.0;
 // bootstrap.js가 records.json을 검증·로딩한 다음 이 스크립트를 실행한다.
 // 트랙은 CORS가 열린 upload.wikimedia.org에서 스트리밍해야 Web Audio
 // 체인(EQ·앰프·크랙클)을 통과할 수 있다.
-const RECORDS = window.MFA_RECORDS;
-if (!Array.isArray(RECORDS) || RECORDS.length === 0) {
-    throw new Error("음반 카탈로그를 불러오지 못했습니다");
-}
+const BOOTSTRAP_STATE = window.MFA_BOOTSTRAP || null;
+const RECORDS = Array.isArray(window.MFA_RECORDS) ? window.MFA_RECORDS : [];
+const PHONO_AVAILABLE = RECORDS.length > 0
+    && !(BOOTSTRAP_STATE && BOOTSTRAP_STATE.capabilities && BOOTSTRAP_STATE.capabilities.phono === false);
+const EMPTY_RECORD = Object.freeze({
+    title: "음반 카탈로그 사용 불가", composer: "", performer: "", credit: "",
+    bwv: "", side: "A", jacketBg: "#1d1d20", accent: "#777777",
+    jTitle: "PHONO OFFLINE", jSub1: "CATALOG", jSub2: "UNAVAILABLE",
+    labelBg: "#d8d0bc", labelBig: "NO DISC", labelTitle: "", labelArtist: "", tracks: []
+});
 let recordIdx = loadJson("fmRadio.record", 0);
 if (typeof recordIdx !== "number" || !RECORDS[recordIdx]) recordIdx = 0;
-let RECORD = RECORDS[recordIdx];
+let RECORD = RECORDS[recordIdx] || EMPTY_RECORD;
 
 // 음반 교체 — 실제로 판을 갈아 끼우듯, 돌고 있던 판은 내려놓는다
 // 재킷 배경 밝기에 따라 잉크(글자·테두리) 색을 정한다 — 어두운 재킷에서도 인쇄가 읽히도록.
@@ -2063,6 +2109,10 @@ function jacketInk(bg) {
 }
 
 function setRecord(i) {
+    if (!PHONO_AVAILABLE) {
+        playerSubtext.textContent = "음반 카탈로그를 불러오지 못해 PHONO를 사용할 수 없습니다. 라디오와 테이프는 계속 사용할 수 있습니다.";
+        return;
+    }
     recordIdx = ((i % RECORDS.length) + RECORDS.length) % RECORDS.length;
     RECORD = RECORDS[recordIdx];
     saveJson("fmRadio.record", recordIdx);
@@ -2234,7 +2284,10 @@ function bindTtModelControls() {
             ttBraking = false;
             if (lever()) lever().setAttribute("transform", "");
             if (resume && phonoActive) {
-                audio.play().then(() => { isPlaying = true; updatePlayButton(); }).catch(() => {});
+                const token = PlaybackController.inspect().generation;
+                audio.play().catch(() => {
+                    if (PlaybackController.isCurrent(token)) setAudioState("blocked");
+                });
                 playerSubtext.textContent = "브레이크 해제 — 플래터가 다시 돕니다.";
             }
             resume = false;
@@ -2341,7 +2394,12 @@ function applyRpmRate() {
 // 턴테이블 전원 — 일시정지와 달리 완전히 내려놓는다:
 // 톤암 복귀·플래터 런다운·소스 해제. 대기 중이던 방송국이 있으면 이어서 연결한다.
 function phonoPower() {
+    if (!PHONO_AVAILABLE) {
+        playerSubtext.textContent = "음반 카탈로그를 불러오지 못해 PHONO를 사용할 수 없습니다. 라디오와 테이프는 계속 사용할 수 있습니다.";
+        return;
+    }
     if (phonoActive) {
+        PlaybackController.invalidate();
         audio.pause();
         stopPhono();
         isPlaying = false;
@@ -2420,6 +2478,11 @@ function ttVisualSpec(id, skin) {
 }
 
 function mountTurntable() {
+    if (!PHONO_AVAILABLE) {
+        const stage = document.getElementById("ttStage");
+        if (stage) stage.innerHTML = '<div role="status" style="min-height:180px;display:grid;place-content:center;text-align:center;color:#b8b1a6;background:#171719;border:1px solid #343438"><strong>PHONO OFFLINE</strong><span>음반 카탈로그를 불러오지 못했습니다.<br>라디오와 테이프는 계속 사용할 수 있습니다.</span></div>';
+        return;
+    }
     // 모델 교체 시 고유 조작 상태 초기화 — 물건이 바뀌면 손잡이도 제자리
     ttSpeedTrim = 1;
     ttPitch = 0;
@@ -2646,6 +2709,10 @@ function mountTurntable() {
 
 // auto=true는 한 면을 이어 재생하는 자동 곡 넘김 — 바늘을 새로 놓는 게 아니므로 낙침음을 내지 않는다
 function playPhonoTrack(i, auto) {
+    if (!PHONO_AVAILABLE || !RECORD.tracks[i]) {
+        playerSubtext.textContent = "재생할 음반 데이터가 없습니다. 라디오와 테이프는 계속 사용할 수 있습니다.";
+        return;
+    }
     if (!recIsMic) stopRecording();   // MIC 녹음은 본체 소스와 무관 — 계속 담는다
     stopDeck();
     if (player) { player.destroy(); player = null; }
@@ -2659,10 +2726,18 @@ function playPhonoTrack(i, auto) {
     document.querySelectorAll(".station").forEach((el) => el.classList.remove("active", "playing", "loading"));
     streamLoaded = true;
     try { audio.preservesPitch = false; audio.webkitPreservesPitch = false; } catch (e) {}
+    const src = phonoSrc(RECORD.tracks[i].f);
+    const playbackToken = PlaybackController.begin("phono", RECORD.tracks[i].t);
     setAudioState("resolving", "PHONO");
-    audio.src = phonoSrc(RECORD.tracks[i].f);
-    audio.play().catch(() => { isPlaying = false; setAudioState("blocked"); updatePlayButton(); });
-    isPlaying = true;
+    audio.src = src;
+    PlaybackController.bind(playbackToken, src, null);
+    audio.play().catch(() => {
+        if (!PlaybackController.isCurrent(playbackToken)) return;
+        PlaybackController.transition(playbackToken, "blocked");
+        isPlaying = false;
+        setAudioState("blocked");
+        updatePlayButton();
+    });
     if (SAFARI_LIKE && ttRpm45) applyRpmRate();
     if (!auto) needleThump();
     nowStation.textContent = RECORD.tracks[i].t + " — " + RECORD.composer;
@@ -2970,11 +3045,17 @@ function ttFrame(now) {
             // 위치가 이미 세그먼트 안이면 그 자리에서 시작 — IndexedDB 복원이 늦게
             // 도착한 경우(릴만 돌고 무음)와 구간 중간 재개를 모두 살린다
             const inSeg = deckTape ? segmentAt(deckTape, tapePos) : null;
+            const rolled = inSeg || (deckTape ? nextSegmentAfter(deckTape, tapePos) : null);
             if (inSeg) {
                 deckStartSegment(inSeg, tapePos - inSeg.start);
-            } else {
-                const nx = deckTape ? nextSegmentAfter(deckTape, tapePos) : null;
-                if (nx && tapePos >= nx.start) deckStartSegment(nx, tapePos - nx.start);
+            } else if (rolled && tapePos >= rolled.start) {
+                deckStartSegment(rolled, tapePos - rolled.start);
+            }
+            // 테이프가 굴러가다 다른 수록곡에 닿았다 — 어떤 수록이 나오는지 알려 준다
+            // (새 녹음 뒤에 남아 있던 옛 수록이 "왜 이 소리가 나오지?"가 되지 않도록)
+            if (deckSegPlaying && deckSegPlaying !== deckAutoSegAnnounced) {
+                deckAutoSegAnnounced = deckSegPlaying;
+                if (deckSegPlaying.name) playerSubtext.textContent = "테이프 수록 재생: " + deckSegPlaying.name + " (" + formatDuration(deckSegPlaying.start * 1000) + " 위치)";
             }
         }
         if (tapePos >= tapeLenOf(deckTape)) {
@@ -3383,6 +3464,70 @@ let currentStation = null;
 let isPlaying = false;
 let player = null; // PlayerCore 핸들 (hls 인스턴스 포함)
 let streamLoaded = false;
+
+// 재생 소스와 비동기 콜백의 단일 소유자. 각 선국/포노/테이프 요청은 새 generation을
+// 받고, 이전 요청의 URL 해석·play Promise·HLS 콜백은 현재 토큰이 아니면 UI를 못 바꾼다.
+const PlaybackController = (() => {
+    let generation = 0;
+    let current = { generation: 0, source: "none", phase: "idle", label: "", url: "", handle: null };
+
+    function begin(source, label) {
+        generation += 1;
+        current = { generation, source, phase: "resolving", label: label || "", url: "", handle: null };
+        return generation;
+    }
+
+    function isCurrent(token) { return token === current.generation; }
+
+    function bind(token, url, handle) {
+        if (!isCurrent(token)) {
+            if (handle) handle.destroy();
+            return false;
+        }
+        current.url = url || "";
+        current.handle = handle || null;
+        current.phase = "buffering";
+        return true;
+    }
+
+    function transition(token, phase) {
+        if (!isCurrent(token)) return false;
+        current.phase = phase;
+        return true;
+    }
+
+    function acceptsMediaEvent() {
+        if (!streamLoaded || current.source === "none") return false;
+        if (current.handle && typeof current.handle.isCurrent === "function" && !current.handle.isCurrent()) return false;
+        if (!current.url || (current.handle && current.handle.kind === "hls")) return true;
+        try {
+            const expected = new URL(current.url, location.href).href;
+            const actual = audio.currentSrc || audio.src || "";
+            return !actual || actual === expected;
+        } catch (error) {
+            return true;
+        }
+    }
+
+    function invalidate(phase) {
+        generation += 1;
+        current = { generation, source: "none", phase: phase || "idle", label: "", url: "", handle: null };
+        return generation;
+    }
+
+    function inspect() {
+        return Object.freeze({
+            generation: current.generation,
+            source: current.source,
+            phase: current.phase,
+            label: current.label,
+            kind: current.handle ? current.handle.kind : null
+        });
+    }
+
+    return Object.freeze({ begin, bind, transition, isCurrent, acceptsMediaEvent, invalidate, inspect });
+})();
+window.MFA_PlaybackController = PlaybackController;
 let volumeLevel = loadJson("fmRadio.volume", 1.0);
 if (typeof volumeLevel !== "number" || !(volumeLevel >= 0 && volumeLevel <= 1)) volumeLevel = 1.0;
 let accentColor = "#d36a42";
@@ -3535,7 +3680,29 @@ function shadeColor(hex, amount) {
     return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, "0")}`;
 }
 
-function playStream(url) {
+function handlePlaybackFailure(token, info) {
+    if (!PlaybackController.isCurrent(token)) return;
+    const detail = info || {};
+    PlaybackController.transition(token, "error");
+    isPlaying = false;
+    streamLoaded = false;
+    cardsOf(currentStation ? currentStation.id : "").forEach((element) => {
+        element.classList.remove("loading", "playing");
+    });
+    updatePlayButton();
+    updateActiveStation();
+    tunerSetLeds(false);
+    setAudioState("error", detail.label || "재생 실패");
+    playerSubtext.textContent = detail.message || "재생할 수 없습니다. 소스를 다시 선택해 주세요.";
+    gtag('event', 'stream_error', {
+        station_id: currentStation ? currentStation.id : null,
+        stage: detail.stage || 'playback',
+        message: String(detail.reason || "media-error").slice(0, 100)
+    });
+}
+
+function playStream(url, token) {
+    if (!PlaybackController.isCurrent(token)) return false;
     if (player) {
         player.destroy();
         player = null;
@@ -3548,32 +3715,55 @@ function playStream(url) {
     }
 
     streamLoaded = true;
-    player = PlayerCore.attach(audio, url, {
+    const nextPlayer = PlayerCore.attach(audio, url, {
         onBlocked: () => {
+            if (!PlaybackController.isCurrent(token)) return;
+            PlaybackController.transition(token, "blocked");
             isPlaying = false;
             updatePlayButton();
             setAudioState("blocked");
         },
         onRetry: (n, max) => {
+            if (!PlaybackController.isCurrent(token)) return;
+            PlaybackController.transition(token, "buffering");
             setAudioState("buffering", `재시도 ${n}/${max}`);
             playerSubtext.textContent = `연결이 불안정합니다. 다시 시도 중… (${n}/${max})`;
         },
         onFatal: (data) => {
-            stopPlay();
-            setAudioState("error", "스트림 중단");
-            playerSubtext.textContent = "스트림이 중단되었습니다. 채널을 다시 선택해 주세요.";
-            gtag('event', 'stream_error', {
-                station_id: currentStation ? currentStation.id : null,
-                stage: 'playback',
-                message: data && data.details ? String(data.details).slice(0, 100) : 'fatal'
+            handlePlaybackFailure(token, {
+                label: "스트림 중단",
+                message: "스트림이 중단되었습니다. 채널을 다시 선택해 주세요.",
+                reason: data && data.details ? data.details : "fatal"
+            });
+        },
+        onError: (data) => {
+            handlePlaybackFailure(token, {
+                label: "미디어 오류",
+                message: "오디오를 재생하지 못했습니다. 채널을 다시 선택해 주세요.",
+                reason: data && data.mediaError && data.mediaError.code
+                    ? "media-error-" + data.mediaError.code : "media-error"
             });
         },
         onUnsupported: () => {
-            streamLoaded = false;
-            setAudioState("error", "HLS 미지원");
-            playerSubtext.textContent = "이 브라우저는 HLS 스트리밍을 지원하지 않습니다.";
+            handlePlaybackFailure(token, {
+                label: "HLS 미지원",
+                message: "이 브라우저는 HLS 스트리밍을 지원하지 않습니다.",
+                reason: "unsupported"
+            });
         }
     });
+    if (!PlaybackController.isCurrent(token)) {
+        nextPlayer.destroy();
+        return false;
+    }
+    if (nextPlayer.kind === "unsupported") {
+        nextPlayer.destroy();
+        return false;
+    }
+    player = nextPlayer;
+    PlaybackController.bind(token, url, player);
+    setAudioState("buffering", currentStation ? currentStation.name : "");
+    return true;
 }
 
 let selectSeq = 0;
@@ -3605,8 +3795,11 @@ async function selectStation(id) {
         player.destroy();
         player = null;
     }
+    PlaybackController.invalidate();
     audio.pause();
     streamLoaded = false;
+    isPlaying = false;
+    const playbackToken = PlaybackController.begin("radio", station.name);
 
     document.querySelectorAll(".station").forEach((element) => {
         element.classList.remove("active", "playing", "loading");
@@ -3622,13 +3815,8 @@ async function selectStation(id) {
 
     try {
         const url = await getStreamUrl(station);
-        if (mySeq !== selectSeq) return; // 그 사이 다른 선국이 시작됨 — 늦은 응답은 버린다
-        cardsOf(id).forEach((element) => {
-            element.classList.remove("loading");
-            element.classList.add("playing");
-        });
-        playStream(url);
-        isPlaying = true;
+        if (mySeq !== selectSeq || !PlaybackController.isCurrent(playbackToken)) return; // 그 사이 다른 선국이 시작됨 — 늦은 응답은 버린다
+        playStream(url, playbackToken);
         updatePlayButton();
         updateMediaSession();
         updateNowProgram();
@@ -3639,9 +3827,10 @@ async function selectStation(id) {
             station_group: station.group
         });
     } catch (error) {
-        if (mySeq !== selectSeq) return;
+        if (mySeq !== selectSeq || !PlaybackController.isCurrent(playbackToken)) return;
         cardsOf(id).forEach((element) => element.classList.remove("loading"));
         nowStation.textContent = `${station.name} 연결 실패`;
+        PlaybackController.transition(playbackToken, "error");
         setAudioState("error", "주소 확인 실패");
         playerSubtext.textContent = "스트림 응답이 없거나 브라우저 정책 때문에 재생이 차단되었습니다. 채널을 다시 눌러 재시도할 수 있습니다.";
         console.error(error);
@@ -3689,12 +3878,10 @@ function togglePlay() {
             return;
         }
         // 포노는 멈춘 자리에서 그대로 이어 재생
-        audio.play().then(() => {
-            isPlaying = true;
-            playerSubtext.textContent = `${sourceName} 재생 중입니다.`;
-            updatePlayButton();
-            updateActiveStation();
-        }).catch(() => {
+        const token = PlaybackController.inspect().generation;
+        audio.play().catch(() => {
+            if (!PlaybackController.isCurrent(token)) return;
+            PlaybackController.transition(token, "blocked");
             isPlaying = false;
             setAudioState("blocked");
             updatePlayButton();
@@ -3708,6 +3895,7 @@ function togglePlay() {
 
 function stopPlay() {
     if (!recIsMic) stopRecording();   // MIC 녹음은 본체 정지와 무관 — 계속 담는다
+    PlaybackController.invalidate();
     stopPhono();
     stopDeck();
 
@@ -3766,21 +3954,22 @@ function playEasterEgg() {
     applyStationTheme(currentStation);
     tunerSetStation(currentStation);
 
-    audio.src = "https://listen7.myradio24.com/69366";
+    const src = "https://listen7.myradio24.com/69366";
+    const playbackToken = PlaybackController.begin("radio", currentStation.name);
+    audio.src = src;
+    PlaybackController.bind(playbackToken, src, null);
     streamLoaded = true;
-    audio.play().then(() => {
-        isPlaying = true;
-        updatePlayButton();
-        updateMediaSession();
-        gtag('event', 'play_station', {
-            station_id: 'pyongyang',
-            station_name: '평양 FM',
-            station_group: 'easter_egg'
-        });
-    }).catch(() => {
+    audio.play().catch(() => {
+        if (!PlaybackController.isCurrent(playbackToken)) return;
+        PlaybackController.transition(playbackToken, "error");
         isPlaying = false;
         updatePlayButton();
         setAudioState("error", "연결 실패");
+    });
+    gtag('event', 'play_station', {
+        station_id: 'pyongyang',
+        station_name: '평양 FM',
+        station_group: 'easter_egg'
     });
 }
 
@@ -3837,26 +4026,29 @@ function toggleRecording(opts) {
     }
 
     // 백그라운드 녹음은 스트림 바이트 캡처라 WebAudio·MediaRecorder가 필요 없다.
-    // 본체 그래프는 Safari 계열에서 의도적으로 꺼져 있으므로 bg 경로에서 요구하면 안 된다.
+    // Chromium은 hls.js 버퍼 이벤트, Safari/WKWebView는 네이티브 HLS playlist fetch를 쓴다.
     let rec;
     if (bgRec) {
-        if (!bgRecPlayer || !bgRecPlayer.hls) {
+        if (!bgRecPlayer || (!bgRecPlayer.hls && !(bgRecNativeCapture && bgRecNativeCapture.ready))) {
             playerSubtext.textContent = "이 브라우저에서는 백그라운드 녹음을 지원하지 않습니다.";
             return;
         }
         bgCapStart();
-        // MediaRecorder와 같은 사용법의 캡처 심 — stop() 시 모아 둔 바이트를 내보낸다
+        // MediaRecorder와 같은 사용법의 캡처 심 — stop() 시 모아 둔 바이트를 내보낸다.
+        // capturedMs(프래그먼트 실측 길이)는 저장 시 벽시계 대신 세그먼트 길이로 쓰인다.
         rec = {
             state: "recording",
             mimeType: bgRecCap.mime || "audio/mp4",
+            capturedMs: 0,
             ondataavailable: null,
             onstop: null,
             start() {},
             stop() {
                 this.state = "inactive";
-                const blob = bgCapStop();
-                this.mimeType = blob.type;
-                if (this.ondataavailable && blob.size) this.ondataavailable({ data: blob });
+                const cap = bgCapStop();
+                this.mimeType = cap.blob.type;
+                this.capturedMs = cap.sec > 1 ? Math.round(cap.sec * 1000) : 0;
+                if (this.ondataavailable && cap.blob.size) this.ondataavailable({ data: cap.blob });
                 if (this.onstop) this.onstop();
             }
         };
@@ -3911,8 +4103,19 @@ function toggleRecording(opts) {
     };
     rec.onstop = async () => {
         if (!chunks.length) return;
-        const durationMs = Date.now() - startMs;
+        // 예약(바이트 캡처)은 프래그먼트 실측 길이를 쓴다 — 벽시계는 스트림이 끊겼던
+        // 시간까지 세어 테이프 카운터·세그먼트 길이를 부풀린다
+        const durationMs = rec.capturedMs || (Date.now() - startMs);
         const type = rec.mimeType || chunks[0].type || "audio/mp4";
+        const blob = new Blob(chunks, { type });
+        // 캡처 파일의 타임라인 오프셋 실측 — hls 라이브 캡처는 0이 아니라 라이브 재생
+        // 위치에서 시작한다. blob의 끝 시각(duration)에서 담긴 초를 빼면 시작점이다.
+        // 네이티브 HLS 폴백은 MPEG-TS 세그먼트를 그대로 이어 붙인다. TS는 fMP4처럼
+        // 브라우저 메타데이터에서 절대 타임라인 오프셋을 안정적으로 노출하지 않으므로
+        // 0을 사용하고, 불필요한 4초 probe 대기를 피한다.
+        const mediaStart = rec.capturedMs && !type.includes("mp2t")
+            ? await probeRecordingOffset(blob, durationMs / 1000)
+            : 0;
         const record = {
             stationId: station.id,
             stationName: station.name,
@@ -3923,10 +4126,12 @@ function toggleRecording(opts) {
             tapeStart: tapeStartPos,
             tapeLen: tapeLenOf(tapeTarget),
             side: tapeSide,
-            blob: new Blob(chunks, { type })
+            mediaStart,
+            blob
         };
-        record.dbId = await persistRecording(record);
-        addRecordingItem(record);
+        // 세그먼트를 먼저 테이프에 올린다 — 파트가 끊겨 이어질 때(워치독 재시동)
+        // 다음 파트의 시작 위치 계산이 이 세그먼트를 볼 수 있어야 한다
+        const item = addRecordingItem(record);
         // 예약 녹음 완료 안내(카세트 보관 위치)가 방금 표시됐다면 일반 저장 문구로 덮지 않는다
         playerSubtext.textContent = recSavedMsgOverride || `${station.name} → 테이프 ${formatDuration(tapeStartPos * 1000)} 위치에 녹음되었습니다.`;
         recSavedMsgOverride = null;
@@ -3935,6 +4140,7 @@ function toggleRecording(opts) {
             station_name: station.name,
             duration_seconds: Math.round(durationMs / 1000)
         });
+        await startRecordingPersistence(record, item);
     };
 
     recorder = rec;
@@ -3954,9 +4160,12 @@ function toggleRecording(opts) {
     updateRecTime();
     btnRec.classList.add("recording");
     btnRec.setAttribute("aria-label", "녹음 정지 및 저장");
+    // 현재 위치 뒤에 기존 수록이 남아 있으면 실물 테이프처럼 그 위에 덮인다 — 미리 알린다
+    // (덮고 남은 뒷부분은 재생 시 새 녹음에 이어 그대로 흘러나온다)
+    const overwriting = !bgRec && !wellB && tapeTarget && tapeTarget.segments.some((s) => s.start + s.dur > tapeStartPos + 0.5);
     playerSubtext.textContent = micRec
         ? "MIC 녹음 중입니다 — 재생·선국과 무관하게 계속 담깁니다. REC를 다시 누르면 저장됩니다."
-        : `${station.name} 녹음 중입니다. 정지하거나 채널을 바꾸면 자동 저장됩니다.`;
+        : `${station.name} 녹음 중입니다.${overwriting ? " 이 테이프의 기존 수록 위에 덮어씁니다." : ""} 정지하거나 채널을 바꾸면 자동 저장됩니다.`;
 
     gtag('event', 'record_start', {
         station_id: station.id,
@@ -3984,6 +4193,7 @@ function stopRecording() {
         deckMode = "stop";
         tapePos = Math.min(tapeLenOf(deckTape), deckRecStartPos + (Date.now() - recStartMs) / 1000);
         if (deckTape) deckTape.pos = tapePos;
+        deckStateSave();
     }
 
     clearInterval(recTimerId);
@@ -3998,7 +4208,34 @@ function stopRecording() {
     }
 }
 
+// 캡처 blob의 타임라인 시작점 실측 — duration(끝 시각) - 담긴 초 = 시작 오프셋.
+// fMP4의 moov 덕에 대부분 loadedmetadata에서 바로 끝난다. 실패하면 0 (안전한 기본값).
+function probeRecordingOffset(blob, contentSec) {
+    return new Promise((resolve) => {
+        const url = URL.createObjectURL(blob);
+        const probe = document.createElement("audio");
+        probe.preload = "metadata";
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            const off = isFinite(probe.duration) && probe.duration > contentSec ? probe.duration - contentSec : 0;
+            URL.revokeObjectURL(url);
+            resolve(Math.max(0, Math.round(off * 1000) / 1000));
+        };
+        probe.onloadedmetadata = () => {
+            if (isFinite(probe.duration)) return finish();
+            probe.onseeked = finish;   // 길이 미상 — 끝으로 밀어 실측 (MediaRecorder식 워크어라운드)
+            try { probe.currentTime = 1e10; } catch (e) { finish(); }
+        };
+        probe.onerror = finish;
+        setTimeout(finish, 4000);
+        probe.src = url;
+    });
+}
+
 function recFileExtension(mimeType) {
+    if (mimeType.includes("mp2t")) return "ts";
     if (mimeType.includes("mpeg") || mimeType.includes("mp3")) return "mp3";
     if (mimeType.includes("mp4")) return "m4a";
     if (mimeType.includes("ogg")) return "ogg";
@@ -4035,16 +4272,224 @@ function updateRecButton() {
     btnRec.disabled = !recorder && !isPlaying && !activeResRec;
 }
 
-function addRecordingItem(record) {
-    recordingCount += 1;
+let volatileRecordingCount = 0;
+const recordingHandlesByUrl = new Map();
+
+function setRecordingDeleteState(handle, busy, failed) {
+    if (!handle || handle.cleaned) return;
+    handle.deleting = !!busy;
+    handle.item.dataset.deletion = busy ? "pending" : (failed ? "failed" : "");
+    handle.remove.disabled = !!busy;
+    handle.remove.textContent = busy
+        ? (handle.persistencePromise && !handle.persistenceResult ? "저장 대기…" : "삭제 중…")
+        : (failed ? "다시 삭제" : "삭제");
+}
+
+async function settleRecordingPersistence(handle) {
+    if (!handle) return { ok: false, id: null, reason: "missing", error: null };
+    if (handle.persistencePromise) {
+        try {
+            await handle.persistencePromise;
+        } catch (error) {
+            handle.persistenceResult = { ok: false, id: null, reason: "write-failed", error };
+        }
+    }
+    if (handle.persistenceResult) return handle.persistenceResult;
+    if (handle.record.dbId != null) {
+        return { ok: true, id: handle.record.dbId, reason: null, error: null };
+    }
+    // 저장 자체가 불가능했던 휘발 카드에는 제거할 IDB row가 없다.
+    return { ok: false, id: null, reason: "volatile", error: null };
+}
+
+async function removePersistedRecordingIds(ids) {
+    const uniqueIds = [...new Set(ids.filter((value) => value != null))];
+    if (!uniqueIds.length) return { ok: true, ids: [], reason: null, error: null };
+    const result = await deleteRecordings(uniqueIds);
+    return result || { ok: false, ids: uniqueIds, reason: "delete-failed", error: null };
+}
+
+function removeRecordingHandleLocally(handle, options) {
+    if (!handle || handle.cleaned) return;
+    const opts = options || {};
+    handle.cleaned = true;
+    handle.preview.pause();
+    if (opts.removeTape !== false) {
+        TapeRepository.removeRecording({ url: handle.url, dbId: handle.record.dbId });
+    }
+    if (deckSegPlaying && deckSegPlaying.url === handle.url) {
+        PlaybackController.invalidate();
+        audio.pause();
+        deckSegPlaying = null;
+    }
+    if (handle.item.dataset.persistence === "volatile") {
+        volatileRecordingCount = Math.max(0, volatileRecordingCount - 1);
+    }
+    if (recordingHandlesByUrl.get(handle.url) === handle) recordingHandlesByUrl.delete(handle.url);
+    handle.item.remove();
+    recordingCount = Math.max(0, recordingCount - 1);
+    if (opts.revoke !== false) {
+        try { URL.revokeObjectURL(handle.url); } catch (error) {}
+    }
+    if (opts.syncTape !== false) {
+        tapeMetaSave();
+        deckRefreshShelf();
+    }
+    if (opts.updateNote !== false) updateRecordingsNote();
+}
+
+async function deleteRecordingHandle(handle) {
+    if (!handle || handle.cleaned || handle.deleting) return false;
+    setRecordingDeleteState(handle, true, false);
+    await settleRecordingPersistence(handle);
+    const dbId = handle.record.dbId != null
+        ? handle.record.dbId
+        : (handle.persistenceResult && handle.persistenceResult.ok ? handle.persistenceResult.id : null);
+    const removed = await removePersistedRecordingIds(dbId == null ? [] : [dbId]);
+    if (!removed.ok) {
+        setRecordingDeleteState(handle, false, true);
+        playerSubtext.textContent = "브라우저 저장소에서 녹음을 지우지 못했습니다. 파일과 테이프 수록은 유지했으니 다시 삭제해 주세요.";
+        return false;
+    }
+    removeRecordingHandleLocally(handle);
+    return true;
+}
+
+async function prepareTapeRecordingDeletion(segments) {
+    const refs = (segments || []).filter(Boolean);
+    const urls = new Set(refs.map((seg) => seg.url).filter(Boolean));
+    const initialIds = new Set(refs.map((seg) => seg.dbId).filter((id) => id != null));
+    const handles = [...recordingHandlesByUrl.values()].filter((handle) =>
+        urls.has(handle.url) || (handle.record.dbId != null && initialIds.has(handle.record.dbId))
+    );
+    if (handles.some((handle) => handle.deleting)) {
+        return { ok: false, reason: "busy", handles: [], refs, urls, dbIds: initialIds };
+    }
+    handles.forEach((handle) => setRecordingDeleteState(handle, true, false));
+    await Promise.all(handles.map((handle) => settleRecordingPersistence(handle)));
+    const dbIds = new Set(initialIds);
+    handles.forEach((handle) => {
+        if (handle.record.dbId != null) dbIds.add(handle.record.dbId);
+        else if (handle.persistenceResult && handle.persistenceResult.ok) dbIds.add(handle.persistenceResult.id);
+    });
+    const removed = await removePersistedRecordingIds([...dbIds]);
+    if (!removed.ok) {
+        handles.forEach((handle) => setRecordingDeleteState(handle, false, true));
+        return { ok: false, reason: removed.reason || "delete-failed", handles, refs, urls, dbIds };
+    }
+    return { ok: true, reason: null, handles, refs, urls, dbIds };
+}
+
+function commitTapeRecordingDeletion(prepared) {
+    if (!prepared || !prepared.ok) return false;
+    prepared.refs.forEach((seg) => TapeRepository.removeRecording({ url: seg.url, dbId: seg.dbId }));
+    prepared.handles.forEach((handle) => removeRecordingHandleLocally(handle, {
+        removeTape: false, revoke: false, syncTape: false, updateNote: false
+    }));
+
+    // 더빙처럼 카드 없이 테이프에만 존재하는 Blob URL도 마지막에 한 번만 해제한다.
+    prepared.urls.forEach((url) => {
+        document.querySelectorAll("#recordingList .recording audio").forEach((preview) => {
+            if (preview.getAttribute("src") !== url) return;
+            const item = preview.closest(".recording");
+            if (item) {
+                item.remove();
+                recordingCount = Math.max(0, recordingCount - 1);
+            }
+        });
+        try { URL.revokeObjectURL(url); } catch (error) {}
+    });
+    updateRecordingsNote();
+    return true;
+}
+
+function startRecordingPersistence(record, itemHandle) {
+    if (itemHandle && itemHandle.persistencePromise) return itemHandle.persistencePromise;
+    if (itemHandle) itemHandle.item.dataset.persistence = "pending";
+    const task = (async () => {
+        let result;
+        try {
+            result = await persistRecording(record);
+        } catch (error) {
+            result = { ok: false, id: null, reason: "write-failed", error };
+        }
+        if (itemHandle) itemHandle.persistenceResult = result;
+        finalizeRecordingPersistence(record, itemHandle, result);
+        return result;
+    })();
+    if (itemHandle) itemHandle.persistencePromise = task;
+    return task;
+}
+
+window.MFA_RecordingLifecycle = Object.freeze({
+    start: startRecordingPersistence,
+    remove: deleteRecordingHandle,
+    prepareTapeDeletion: prepareTapeRecordingDeletion,
+    commitTapeDeletion: commitTapeRecordingDeletion,
+    inspect(url) {
+        const handle = recordingHandlesByUrl.get(url);
+        return handle ? { deleting: handle.deleting, cleaned: handle.cleaned, persistence: handle.item.dataset.persistence } : null;
+    }
+});
+
+function recordingFileInfo(record) {
     const startDate = new Date(record.startedAt);
-    const url = URL.createObjectURL(record.blob);
-    const ext = recFileExtension(record.type);
     const pad = (value) => String(value).padStart(2, "0");
     const stamp = `${startDate.getFullYear()}${pad(startDate.getMonth() + 1)}${pad(startDate.getDate())}_${pad(startDate.getHours())}${pad(startDate.getMinutes())}${pad(startDate.getSeconds())}`;
-    const safeName = record.stationName.replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "-");
-    const fileName = `${safeName}_${stamp}.${ext}`;
-    const startLabel = `${startDate.getMonth() + 1}/${startDate.getDate()} ${pad(startDate.getHours())}:${pad(startDate.getMinutes())} 시작`;
+    const safeName = String(record.stationName || "recording").replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "-");
+    return {
+        fileName: `${safeName}_${stamp}.${recFileExtension(record.type || "")}`,
+        startLabel: `${startDate.getMonth() + 1}/${startDate.getDate()} ${pad(startDate.getHours())}:${pad(startDate.getMinutes())} 시작`
+    };
+}
+
+// IndexedDB 실패 시 Blob을 잃기 전에 다운로드를 시도한다. 자동 다운로드가 정책상
+// 막혀도 녹음 카드의 '저장' 링크는 같은 URL을 계속 제공한다.
+function offerRecordingDownload(record, result, existing) {
+    const ownUrl = !(existing && existing.url);
+    const url = ownUrl ? URL.createObjectURL(record.blob) : existing.url;
+    const fileName = existing && existing.fileName ? existing.fileName : recordingFileInfo(record).fileName;
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.hidden = true;
+    document.body.appendChild(anchor);
+    try { anchor.click(); } catch (error) { console.warn("녹음 다운로드 폴백 실패:", error); }
+    anchor.remove();
+    if (ownUrl) setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return { ok: false, reason: result && result.reason || "write-failed", fileName };
+}
+
+function finalizeRecordingPersistence(record, itemHandle, result) {
+    if (itemHandle) itemHandle.persistenceResult = result;
+    if (result && result.ok) {
+        record.dbId = result.id;
+        if (itemHandle) {
+            itemHandle.item.dataset.persistence = "saved";
+            TapeRepository.markPersisted(itemHandle.url, result.id);
+        }
+        return result;
+    }
+    record.dbId = null;
+    if (itemHandle) {
+        const alreadyVolatile = itemHandle.item.dataset.persistence === "volatile";
+        itemHandle.item.dataset.persistence = "volatile";
+        if (!alreadyVolatile) {
+            itemHandle.meta.textContent += " · 브라우저 저장 실패 — 다운로드 필요";
+            volatileRecordingCount += 1;
+        }
+    }
+    offerRecordingDownload(record, result, itemHandle);
+    const reason = result && result.reason === "quota" ? "저장 공간이 부족합니다" : "브라우저 저장소에 보관하지 못했습니다";
+    playerSubtext.textContent = `${reason} — 녹음 파일 다운로드를 시작했습니다. '저장' 버튼으로도 다시 받을 수 있습니다.`;
+    updateRecordingsNote();
+    return result;
+}
+
+function addRecordingItem(record) {
+    recordingCount += 1;
+    const url = URL.createObjectURL(record.blob);
+    const { fileName, startLabel } = recordingFileInfo(record);
 
     // 테이프에 세그먼트로 기록 (복원 시에는 tapeId 기준으로 테이프를 재구성한다)
     let tape = record.tapeId ? tapes.find((t) => t.id === record.tapeId) : null;
@@ -4054,13 +4499,18 @@ function addRecordingItem(record) {
         tapeSeq += 1;
         tapes.push(tape);
     }
-    tapeAddSegmentSide(tape, { start: record.tapeStart || 0, dur: record.durationMs / 1000, url, name: record.stationName, dbId: record.dbId, type: record.type }, record.side);
-    if (!deckTape) deckTape = tape;
+    // offset(mediaStart): 예약 캡처 파일은 타임라인이 0이 아니라 라이브 재생 위치에서
+    // 시작한다 — 오프셋 없이 재생하면 데크 카운터가 그만큼 앞서 나가 테이프가 일찍 끝난다.
+    // 주의: 예전처럼 "데크가 비어 있으면 아무 테이프나 자동 장착"하지 않는다 — 옛 수록이
+    // 남은 테이프가 소리 없이 물려 있다가 새 녹음이 그 위에 덮이는 사고의 원인이었다.
+    // 장착 상태는 fmRadio.deckState(deck.js)가 따로 복원한다.
+    tapeAddSegmentSide(tape, { start: record.tapeStart || 0, dur: record.durationMs / 1000, url, name: record.stationName, dbId: record.dbId, type: record.type, offset: record.mediaStart || 0 }, record.side);
     tapeMetaSave();
     deckRefreshShelf();
 
     const item = document.createElement("div");
     item.className = "recording";
+    item.dataset.persistence = record.dbId != null ? "saved" : "pending";
 
     const badge = document.createElement("div");
     badge.className = "rec-badge";
@@ -4097,34 +4547,29 @@ function addRecordingItem(record) {
     remove.className = "rec-btn danger";
     remove.type = "button";
     remove.textContent = "삭제";
-    remove.addEventListener("click", () => {
-        preview.pause();
-        // 모든 테이프에서 해당 세그먼트를 지운다 (재생 중이면 그 구간은 침묵으로)
-        tapes.forEach((t) => { t.segments = t.segments.filter((sg) => sg.url !== url); });
-        if (deckSegPlaying && deckSegPlaying.url === url) {
-            audio.pause();
-            deckSegPlaying = null;
-        }
-        tapeMetaSave();
-        deckRefreshShelf();
-        URL.revokeObjectURL(url);
-        deleteRecording(record.dbId);
-        item.remove();
-        recordingCount -= 1;
-        updateRecordingsNote();
-    });
+    const itemHandle = {
+        item, meta, preview, remove, url, fileName, record,
+        persistencePromise: null, persistenceResult: record.dbId != null
+            ? { ok: true, id: record.dbId, reason: null, error: null }
+            : null,
+        deleting: false, cleaned: false
+    };
+    recordingHandlesByUrl.set(url, itemHandle);
+    remove.addEventListener("click", () => { deleteRecordingHandle(itemHandle); });
 
     actions.append(download, remove);
     item.append(badge, info, actions);
     recordingList.prepend(item);
     updateRecordingsNote();
+    return itemHandle;
 }
 
 function updateRecordingsNote() {
     recordingsGroup.hidden = recordingCount === 0;
-    const keepNote = recDb
-        ? "녹음 파일은 이 브라우저에 보관됩니다."
-        : "페이지를 닫으면 목록이 사라집니다. 필요한 파일은 저장해 두세요.";
+    const keepNote = volatileRecordingCount
+        ? `${volatileRecordingCount}개는 브라우저 저장에 실패했습니다. 지금 저장해 두세요.`
+        : recDb ? "녹음 파일은 이 브라우저에 보관됩니다."
+            : "페이지를 닫으면 목록이 사라집니다. 필요한 파일은 저장해 두세요.";
     recordingsNote.textContent = `${recordingCount}개 · ${keepNote}`;
 }
 
@@ -4311,11 +4756,15 @@ document.addEventListener("keydown", (event) => {
 });
 
 audio.addEventListener("pause", () => {
+    const playbackSnapshot = PlaybackController.inspect();
+    if (streamLoaded && playbackSnapshot.source !== "none" && !PlaybackController.acceptsMediaEvent()) return;
     // 수동 녹음(본체 소스 탭)만 소스 정지에 따라 멈춘다 —
     // 백그라운드 예약 녹음은 본체 재생과 무관하므로 계속 굴러가야 한다
     if (!(recorder && (activeResRec || recIsMic))) stopRecording();
     stopVu();
     isPlaying = false;
+    const token = PlaybackController.inspect().generation;
+    if (PlaybackController.isCurrent(token)) PlaybackController.transition(token, "idle");
     // 재생 중이었다면 대기로 — 버퍼링/오류 등 전환 중 상태는 건드리지 않는다
     if (audioState === "playing") setAudioState("idle");
     updatePlayButton();
@@ -4326,10 +4775,14 @@ audio.addEventListener("pause", () => {
 
 // 버퍼 고갈 — 스트림은 살아 있지만 데이터가 늦게 온다
 ["waiting", "stalled"].forEach((ev) => audio.addEventListener(ev, () => {
+    if (!PlaybackController.acceptsMediaEvent()) return;
+    const token = PlaybackController.inspect().generation;
+    PlaybackController.transition(token, "buffering");
     if (streamLoaded && (isPlaying || audioState === "playing")) setAudioState("buffering");
 }));
 
 audio.addEventListener("ended", () => {
+    if (!PlaybackController.acceptsMediaEvent()) return;
     if (deckSeekFixing) return;   // blob 길이 확정용 시크가 끝을 스친 것 — 진짜 종료가 아니다
     // 카세트: 세그먼트가 끝나도 테이프는 계속 감긴다 (빈 구간은 히스, 정지는 30:00에서)
     if (deckMode === "play" && deckSegPlaying) {
@@ -4361,16 +4814,20 @@ audio.addEventListener("ended", () => {
     }
 });
 
-// 일부 엔진(특히 WebKit 네이티브 HLS)은 버퍼링 복구 후 'playing' 이벤트를 건너뛴다 —
-// 실제로 재생 시간이 흐르고 있으면 재생 중으로 승격한다 (최초 POWER 후 '버퍼링' 고착 수정)
+// timeupdate는 이미 playing이 확인된 세션의 버퍼링 표시만 복구한다. 최초 성공 판정은
+// 반드시 playing 이벤트에서만 하며, 시간 이벤트가 새 요청을 재생 중으로 승격하지 않는다.
 audio.addEventListener("timeupdate", () => {
-    if (!audio.paused && streamLoaded && (audioState === "buffering" || audioState === "resolving")) {
+    if (!PlaybackController.acceptsMediaEvent()) return;
+    if (isPlaying && !audio.paused && streamLoaded && audioState === "buffering") {
+        PlaybackController.transition(PlaybackController.inspect().generation, "playing");
         setAudioState("playing", currentStation ? currentStation.name
             : phonoActive ? "PHONO" : deckMode === "play" ? "TAPE" : "");
     }
 });
 
 audio.addEventListener("playing", () => {
+    if (!PlaybackController.acceptsMediaEvent()) return;
+    PlaybackController.transition(PlaybackController.inspect().generation, "playing");
     isPlaying = true;
     setAudioState("playing", currentStation ? currentStation.name
         : phonoActive ? "PHONO" : deckMode === "play" ? "TAPE" : "");
@@ -4383,8 +4840,24 @@ audio.addEventListener("playing", () => {
     }
     startVu();
     if (currentStation) {
+        cardsOf(currentStation.id).forEach((element) => {
+            element.classList.remove("loading");
+            element.classList.add("playing");
+        });
         playerSubtext.textContent = `${currentStation.name} 재생 중입니다.`;
     }
+});
+
+// PlayerCore를 거치지 않는 포노·테이프·이스터에그도 같은 오류 상태로 수렴한다.
+audio.addEventListener("error", () => {
+    if (!PlaybackController.acceptsMediaEvent()) return;
+    if (player) return; // PlayerCore가 HLS·native·direct 오류를 generation guard와 함께 처리한다
+    const token = PlaybackController.inspect().generation;
+    handlePlaybackFailure(token, {
+        label: "미디어 오류",
+        message: "오디오 파일을 재생하지 못했습니다. 다른 소스를 선택해 주세요.",
+        reason: audio.error && audio.error.code ? "media-error-" + audio.error.code : "media-error"
+    });
 });
 
 function openWidget() {
@@ -4468,7 +4941,7 @@ renderDeckPicker();
 renderTtPicker();
 renderTimerPicker();
 renderRackPresetPicker();
-tunerLoop();
+startRackAnimationLoop();
 mountCoach();
 
 // ----- 트레이 앱 연동 (chrome=tray) -----
@@ -4477,6 +4950,21 @@ mountCoach();
 (function () {
     if (new URLSearchParams(location.search).get("chrome") !== "tray") return;
     if (window.parent === window) return;
+
+    const electronShell = /Electron/i.test(navigator.userAgent);
+    let parentOrigin = null;
+    try {
+        if (document.referrer) parentOrigin = new URL(document.referrer).origin;
+    } catch (error) {}
+    // Electron의 file:// 셸은 opaque origin("null")이다. 일반 웹에서 referrer도 없는
+    // 임의 임베더에는 이 예외를 열지 않는다.
+    if ((!parentOrigin || parentOrigin === "null") && electronShell) parentOrigin = "null";
+    const postTargetOrigin = parentOrigin && parentOrigin !== "null" ? parentOrigin : "*";
+
+    function trustedTrayMessage(event) {
+        if (event.source !== window.parent || !parentOrigin) return false;
+        return event.origin === parentOrigin;
+    }
 
     function trayBroadcast(type) {
         try {
@@ -4488,7 +4976,7 @@ mountCoach();
                 playing: isPlaying,
                 loading: false,
                 volume: Math.round(volumeLevel * 100)
-            }, "*");
+            }, postTargetOrigin);
         } catch (error) {
             console.error(error);
         }
@@ -4499,11 +4987,12 @@ mountCoach();
         audio.addEventListener(name, () => trayBroadcast()));
 
     window.addEventListener("message", (event) => {
+        if (!trustedTrayMessage(event)) return;
         const data = event.data;
         if (!data || typeof data.type !== "string" || !data.type.startsWith("fmRadio:")) return;
         switch (data.type) {
             case "fmRadio:play":
-                if (data.station) selectStation(data.station);
+                if (data.station && stations.some((station) => station.id === data.station)) selectStation(data.station);
                 else if (!isPlaying) togglePlay();
                 break;
             case "fmRadio:pause":
@@ -4513,10 +5002,10 @@ mountCoach();
                 togglePlay();
                 break;
             case "fmRadio:setStation":
-                if (data.station) selectStation(data.station);
+                if (data.station && stations.some((station) => station.id === data.station)) selectStation(data.station);
                 break;
             case "fmRadio:setVolume":
-                if (typeof data.value === "number") {
+                if (typeof data.value === "number" && Number.isFinite(data.value) && data.value >= 0 && data.value <= 100) {
                     setVolumeLevel(data.value / 100);
                     saveJson("fmRadio.volume", volumeLevel);
                     trayBroadcast();
@@ -4558,22 +5047,35 @@ function minutesNow() {
 
 // 예약의 현재(진행 중 포함) 또는 다음 회차. once는 지정 날짜 고정,
 // 반복 예약은 어제(자정 넘김 진행분)부터 일주일 안에서 endTs가 남아 있는 첫 회차.
-function resOccurrence(res, nowTs) {
-    const mk = (base) => ({
-        startTs: base.getTime() + res.startMin * 60000,
-        endTs: base.getTime() + res.endMin * 60000,
-        ymd: FMSchedule.ymdOf(base)
-    });
-    if (res.repeat === "once") return mk(ymdToDate(res.ymd));
-    for (let i = -1; i <= 7; i++) {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        d.setDate(d.getDate() + i);
-        if (res.repeat === "weekly" && d.getDay() !== res.dow) continue;
-        const occ = mk(d);
-        if (occ.endTs > nowTs) return occ;
+const ReservationSchedule = Object.freeze({
+    occurrence(res, nowTs) {
+        if (!res || !Number.isFinite(res.startMin) || !Number.isFinite(res.endMin)) return null;
+        const ymdOf = (date) => {
+            const pad = (value) => String(value).padStart(2, "0");
+            return "" + date.getFullYear() + pad(date.getMonth() + 1) + pad(date.getDate());
+        };
+        const mk = (base) => ({
+            startTs: base.getTime() + res.startMin * 60000,
+            endTs: base.getTime() + res.endMin * 60000,
+            ymd: ymdOf(base)
+        });
+        if (res.repeat === "once") return /^\d{8}$/.test(res.ymd || "") ? mk(ymdToDate(res.ymd)) : null;
+        const today = new Date(nowTs);
+        today.setHours(0, 0, 0, 0);
+        for (let i = -1; i <= 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            if (res.repeat === "weekly" && d.getDay() !== res.dow) continue;
+            const occ = mk(d);
+            if (occ.endTs > nowTs) return occ;
+        }
+        return null;
     }
-    return null;
+});
+window.MFA_ReservationSchedule = ReservationSchedule;
+
+function resOccurrence(res, nowTs) {
+    return ReservationSchedule.occurrence(res, nowTs);
 }
 
 function resRepeatLabel(res) {
@@ -4911,7 +5413,7 @@ function updateResDiag() {
         parts.push(activeResRec.started ? "● 녹음 중" : (activeResRec.tuning ? "선국 중" : "시작 대기"));
         parts.push("「" + activeResRec.res.title + "」");
         if (bgRecPlayer) parts.push("수신 " + (bgRecPlayer.hls ? "hls" : "native") + (bgRecAudio && !bgRecAudio.paused ? "·재생" : "·정지"));
-        if (recorder && bgRecCap.bytes) parts.push((bgRecCap.bytes / 1024).toFixed(0) + "KB 캡처");
+        if (recorder && bgRecCap.bytes) parts.push((bgRecCap.bytes / 1024).toFixed(0) + "KB·" + Math.round(bgRecCap.sec) + "s 캡처");
         if (recorder && recorder.mimeType) parts.push(recorder.mimeType.split(";")[0]);
     } else {
         parts.push("진행 중 회차 없음");
@@ -5094,7 +5596,12 @@ function prepareReservedTape(active) {
         return;
     }
     if (active.tapeId) {
-        if (deckTape && deckTape.id === active.tapeId) return;
+        if (deckTape && deckTape.id === active.tapeId) {
+            // 파트가 끊겨 이어질 때 — 벽시계로 오버슛한 카운터를 실측 수록 끝에 맞춘다
+            tapePos = Math.min(tapeUsedSec(deckTape), tapeLenOf(deckTape) - 1);
+            deckTape.pos = tapePos;
+            return;
+        }
         const t = tapes.find((x) => x.id === active.tapeId);
         if (t && tapeUsedSec(t) < tapeLenOf(t) - 5) {
             if (deckTape) deckTape.pos = tapePos;
@@ -5116,7 +5623,11 @@ function prepareReservedTape(active) {
 // ----- 예약 전용 백그라운드 수신기 -----
 // 본체 <audio>(청취)와 분리된 히든 수신 체인. 스피커에 연결하지 않으므로
 // 현재 재생(라디오·음반·테이프)과 무관하게 무음으로 녹음된다.
-function bgRecStop() {
+function bgRecStop(preserveSession) {
+    if (bgRecNativeCapture) {
+        bgRecNativeCapture.destroy();
+        bgRecNativeCapture = null;
+    }
     if (bgRecPlayer) {
         bgRecPlayer.destroy();
         bgRecPlayer = null;
@@ -5126,11 +5637,18 @@ function bgRecStop() {
         bgRecAudio.removeAttribute("src");
         try { bgRecAudio.load(); } catch (e) {}
     }
+    // 캡처가 진행 중이면(녹음 도중 치명 오류 등) 세션을 지우지 않는다 — 모아 둔
+    // 바이트가 함께 지워져 파트를 통째로 잃는다. 워치독이 파트를 저장한 뒤
+    // 다시 이 함수를 지나며 그때 무효화된다.
+    if (!preserveSession && !bgRecCap.active) BackgroundCaptureSession.invalidate();
 }
 
 function bgRecReady() {
-    return !!(bgRecAudio && !bgRecAudio.paused && bgRecAudio.readyState >= 2
-        && bgRecPlayer && bgRecPlayer.hls);
+    if (!bgRecPlayer) return false;
+    if (bgRecPlayer.hls) {
+        return !!(bgRecAudio && !bgRecAudio.paused && bgRecAudio.readyState >= 2);
+    }
+    return !!(bgRecNativeCapture && bgRecNativeCapture.ready);
 }
 
 // 자동재생 차단 대응 — 페이지를 새로 연 뒤 조작이 없으면 백그라운드 수신기의
@@ -5140,7 +5658,12 @@ let bgRecGestureArmed = false;
 function bgRecKick() {
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     if (bgRecCtx && bgRecCtx.state === "suspended") bgRecCtx.resume();
-    if (bgRecAudio && bgRecAudio.paused && bgRecPlayer) bgRecAudio.play().catch(() => {});
+    // 제스처 안에서 불린다 — 자동재생 폴백으로 뮤트됐던 수신기를 되살린다 (VU 복구).
+    // Safari 계열은 어차피 무음 탭이라 뮤트를 유지한다.
+    if (bgRecAudio && bgRecAudio.muted && !SAFARI_LIKE) bgRecAudio.muted = false;
+    if (bgRecAudio && bgRecAudio.paused && bgRecPlayer && bgRecPlayer.kind !== "native-capture") {
+        bgRecAudio.play().catch(() => {});
+    }
     serviceReservationRecording(Date.now());
 }
 
@@ -5186,10 +5709,12 @@ function ensureBgRecElement() {
 
 // hls.js가 미디어 버퍼에 붙이는 오디오 바이트를 그대로 캡처한다.
 // fMP4(init: 'ftyp' 박스)면 audio/mp4, 아니면 MP3 패스스루(audio/mpeg).
-function bgRecOnChunk(event, data) {
+function bgRecOnChunk(event, data, generation) {
+    if (!BackgroundCaptureSession.isCurrent(generation)) return;
     if (!data || data.type !== "audio" || !data.data) return;
     const src = data.data instanceof Uint8Array ? data.data : new Uint8Array(data.data);
     const bytes = src.slice();   // hls.js가 버퍼를 재사용하므로 복사 필수
+    if (data.mime) bgRecCap.mime = data.mime;
     const isInit = bytes.length > 8 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70;
     if (isInit) {
         bgRecCap.init = bytes;
@@ -5198,61 +5723,164 @@ function bgRecOnChunk(event, data) {
         return;
     }
     if (!bgRecCap.mime) bgRecCap.mime = "audio/mpeg";
+    bgRecCap.lastAt = Date.now();
+    // 프래그먼트 단위 실측 — 같은 프래그먼트가 여러 청크로 나뉘어 와도 한 번만 센다.
+    // sec(실제 담긴 초)이 테이프 세그먼트의 길이가 된다. 파일 타임라인 오프셋은
+    // 저장 시 blob을 직접 프로브해 구한다 — frag.start(플레이리스트 좌표)는 재튠 후
+    // 리먹서의 실제 타임라인과 어긋나는 것을 실측으로 확인했다.
+    const frag = data.frag && data.frag.sn !== bgRecCap.lastSn ? data.frag : null;
+    if (frag) bgRecCap.lastSn = frag.sn;
     if (bgRecCap.active) {
         bgRecCap.chunks.push(bytes);
         bgRecCap.bytes += bytes.length;
+        if (frag) bgRecCap.sec += frag.duration || 0;
     }
     // 롤링 프리버퍼 — hls는 재생보다 앞서 버퍼를 붙여 두므로, 녹음 시작 시점에는
     // 새 청크가 한동안 안 올 수 있다. 최근 청크를 보관했다가 시작 시 시드한다.
-    bgRecCap.rolling.push({ t: Date.now(), bytes });
+    bgRecCap.rolling.push({ t: Date.now(), bytes, sec: frag ? frag.duration || 0 : 0 });
     let rollBytes = 0;
     for (const c of bgRecCap.rolling) rollBytes += c.bytes.length;
     while (bgRecCap.rolling.length > 1 && rollBytes > 4 * 1024 * 1024) {
         rollBytes -= bgRecCap.rolling.shift().bytes.length;
+    }
+    // 종료 시각 안전망 — 백그라운드에서 타이머가 굶주려도 스트림 청크는 계속 오므로,
+    // 여기서도 예약 종료를 보장한다 (finishReservedRecording은 재진입에 안전).
+    if (bgRecCap.active && activeResRec && recorder && Date.now() >= activeResRec.endTs) {
+        setTimeout(() => {
+            if (activeResRec && recorder && Date.now() >= activeResRec.endTs) finishReservedRecording();
+        }, 0);
     }
 }
 
 function bgCapStart() {
     bgRecCap.chunks = [];
     bgRecCap.bytes = 0;
+    bgRecCap.sec = 0;
+    bgRecCap.lastAt = Date.now();
     if (bgRecCap.init) {
         bgRecCap.chunks.push(bgRecCap.init);
         bgRecCap.bytes += bgRecCap.init.length;
     }
-    // 이미 버퍼에 붙어 있던 직전 구간(≤8초 전 수신분)을 시드 — 첫 초 누락 방지
+    // 이미 버퍼에 붙어 있던 직전 구간을 시드 — 시작 순간의 첫 초 누락 방지.
+    // 튠 직후에는 hls가 수십 초를 한꺼번에 붙여 두므로, 벽시계 8초 창 안에서도
+    // 미디어 기준 12초를 넘지 않게 프래그먼트 경계에서 자른다 (앞부분이 과녹음되지 않게).
     const cutoff = Date.now() - 8000;
-    bgRecCap.rolling.forEach((c) => {
-        if (c.t >= cutoff) {
-            bgRecCap.chunks.push(c.bytes);
-            bgRecCap.bytes += c.bytes.length;
+    const eligible = bgRecCap.rolling.filter((c) => c.t >= cutoff);
+    let seedSec = 0;
+    let from = eligible.length;
+    while (from > 0) {
+        const c = eligible[from - 1];
+        from -= 1;
+        if (c.sec) {
+            seedSec += c.sec;
+            if (seedSec >= 12) break;   // 이 프래그먼트의 머리(moof)까지 포함하고 멈춘다
         }
+    }
+    eligible.slice(from).forEach((c) => {
+        bgRecCap.chunks.push(c.bytes);
+        bgRecCap.bytes += c.bytes.length;
+        bgRecCap.sec += c.sec || 0;
     });
     bgRecCap.active = true;
 }
 
+// 캡처 종료 — blob과 함께 실측 길이(sec)를 돌려준다
 function bgCapStop() {
     bgRecCap.active = false;
-    const blob = new Blob(bgRecCap.chunks, { type: bgRecCap.mime || "audio/mp4" });
+    const out = {
+        blob: new Blob(bgRecCap.chunks, { type: bgRecCap.mime || "audio/mp4" }),
+        sec: bgRecCap.sec
+    };
     bgRecCap.chunks = [];
     bgRecCap.bytes = 0;
-    return blob;
+    return out;
+}
+
+// 자동재생 차단 폴백 — 캡처는 스트림 바이트 기반이라 뮤트 재생으로도 온전하다
+// (VU 표시만 잠잠해진다). 뮤트 재생은 자동재생 정책을 통과하므로 제스처 없이도
+// 예약이 시작된다. 제스처가 오면 bgRecKick이 뮤트를 되돌린다.
+function bgRecAutoplayFallback() {
+    if (!bgRecAudio || !bgRecPlayer || bgRecPlayer.kind === "native-capture") return;
+    bgRecAudio.muted = true;
+    bgRecAudio.play().catch(() => {});
+    bgRecArmGestureRetry();
 }
 
 async function bgRecTune(station) {
+    // URL 해석 중에도 이전 채널 청크가 들어올 수 있으므로 await보다 먼저 세대를 바꾼다.
+    const generation = BackgroundCaptureSession.begin(station.id);
     ensureBgRecElement();
     if (bgRecCtx && bgRecCtx.state === "suspended") bgRecCtx.resume();
     const url = await getStreamUrl(station);
-    bgRecStop();
-    bgRecCap.init = null;
-    bgRecCap.mime = "";
-    bgRecPlayer = PlayerCore.attach(bgRecAudio, url, {
-        onBlocked: bgRecArmGestureRetry,   // 자동재생 차단 — 다음 제스처에서 재시동
-        onFatal: () => bgRecStop()         // 다음 재시도 주기가 다시 튠한다
-    });
-    if (bgRecPlayer && bgRecPlayer.hls) {
-        bgRecPlayer.hls.on(Hls.Events.BUFFER_APPENDING, bgRecOnChunk);
+    if (!BackgroundCaptureSession.isCurrent(generation)) return;
+    bgRecStop(true);
+    const canUseHlsJs = typeof Hls !== "undefined" && Hls.isSupported();
+    const nativeFactory = window.MFA && window.MFA.createNativeHlsCapture;
+    if (!canUseHlsJs && typeof nativeFactory === "function") {
+        // Safari/WKWebView는 두 번째 네이티브 HLS <audio>를 재생할 때 현재 A웰/포노
+        // 오디오를 중단할 수 있다. 예약 녹음은 playlist fetch만으로 충분하므로 숨은
+        // 플레이어를 만들지 않고 수신 핸들만 유지한다.
+        const nextPlayer = {
+            kind: "native-capture",
+            hls: null,
+            destroyed: false,
+            destroy() { this.destroyed = true; }
+        };
+        if (!BackgroundCaptureSession.isCurrent(generation)) return;
+        bgRecPlayer = nextPlayer;
+        bgRecNativeCapture = nativeFactory({
+            url,
+            onChunk(chunk) {
+                bgRecOnChunk(null, {
+                    type: "audio",
+                    data: chunk.bytes,
+                    mime: chunk.mime,
+                    frag: { sn: chunk.sequence, duration: chunk.duration }
+                }, generation);
+            },
+            onError(error) {
+                if (BackgroundCaptureSession.isCurrent(generation)) {
+                    console.warn("네이티브 HLS 예약 캡처 재시도:", error);
+                }
+            }
+        }).start();
+        return;
     }
-    try { await bgRecAudio.play(); } catch (e) { bgRecArmGestureRetry(); }
+    const nextPlayer = PlayerCore.attach(bgRecAudio, url, {
+        onBlocked: () => {
+            if (BackgroundCaptureSession.isCurrent(generation)) bgRecAutoplayFallback();
+        },                                  // 자동재생 차단 — 뮤트로라도 즉시 시동
+        onFatal: () => {
+            if (BackgroundCaptureSession.isCurrent(generation)) bgRecStop();
+        },                                  // 다음 재시도 주기(또는 워치독)가 다시 튠한다
+        // 녹음용 수신기 정책: 라이브 엣지 추격(배속 캐치업)을 끄고, 장시간 녹음의
+        // MSE 메모리를 재생 지점 뒤 90초로 제한한다 (바이트는 붙는 순간 이미 떠 놓았다)
+        hlsConfig: { lowLatencyMode: false, backBufferLength: 90 }
+    });
+    if (!BackgroundCaptureSession.isCurrent(generation)) {
+        nextPlayer.destroy();
+        return;
+    }
+    bgRecPlayer = nextPlayer;
+    if (bgRecPlayer && bgRecPlayer.hls) {
+        bgRecPlayer.hls.on(Hls.Events.BUFFER_APPENDING,
+            (event, data) => bgRecOnChunk(event, data, generation));
+    }
+    const playAttempt = bgRecAudio.play();
+    if (bgRecPlayer && bgRecPlayer.hls) {
+        try {
+            await playAttempt;
+        } catch (e) {
+            if (BackgroundCaptureSession.isCurrent(generation)) bgRecAutoplayFallback();
+        }
+    } else {
+        // WebKit의 네이티브 HLS play() Promise는 실제 첫 미디어 프레임까지 수 초간
+        // pending일 수 있다. 바이트 캡처는 이미 fetch로 준비됐으므로 예약 시동을
+        // 가로막지 않고, 재생 실패만 비동기로 자동재생 폴백에 전달한다.
+        playAttempt.catch(() => {
+            if (BackgroundCaptureSession.isCurrent(generation)) bgRecAutoplayFallback();
+        });
+    }
 }
 
 // 매 틱: 예약 녹음을 굴린다. 백그라운드 수신기를 튠하고, 스트림이 열리면 REC.
@@ -5264,8 +5892,22 @@ function serviceReservationRecording(nowTs) {
         finishReservedRecording();
         return;
     }
-    if (recorder) return;
     const res = activeResRec.res;
+    if (recorder) {
+        // 예약과 무관한 수동(LINE/MIC) 녹음이 도는 중 — 끝날 때까지 기다린다
+        if (!activeResRec.started) return;
+        // 캡처 워치독 — 수신기가 죽었거나(치명 오류 후 정리됨) 오디오 바이트가 오래
+        // 끊겼으면, 지금까지를 한 파트로 저장하고 재튠해 같은 테이프에 이어 붙인다.
+        // 이 감시가 없으면 스트림이 죽은 뒤에도 벽시계만 흐르는 '빈 녹음'이 된다.
+        // 임계 65초: 워커 타이머가 무력화된 최악의 백그라운드 탭에서도 1분 배치 사이
+        // 정상 공백을 사고로 오인하지 않는 값 (실제 치명 오류는 !bgRecPlayer로 즉시 잡힌다).
+        const starving = bgRecCap.active && bgRecCap.lastAt && nowTs - bgRecCap.lastAt > 65000;
+        if (bgRecPlayer && !starving) return;
+        recSavedMsgOverride = "예약 녹음 스트림이 끊겨 여기까지를 저장했습니다 — 다시 연결해 이어 녹음합니다: " + res.title;
+        stopRecording();          // 파트 저장 (onstop이 테이프에 세그먼트를 올린다)
+        bgRecStop();              // 죽었거나 굶주린 수신기 정리 — 아래 재튠 루프가 다시 붙는다
+        activeResRec.tunedAt = 0; // 즉시 재튠 허용
+    }
     if (!isDoubleDeck() && (deckMode === "play" || deckMode === "wind")) {
         if (!activeResRec.deckBusyWarned) {
             activeResRec.deckBusyWarned = true;
@@ -5273,12 +5915,12 @@ function serviceReservationRecording(nowTs) {
         }
         return;
     }
-    if (bgRecPlayer && !bgRecPlayer.hls && !activeResRec.noCapWarned) {
-        // 구형 iOS 등 MSE가 없어 네이티브 HLS로 떨어진 경우 — 바이트 캡처가 불가능하다
+    if (bgRecPlayer && !bgRecPlayer.hls && !bgRecNativeCapture && !activeResRec.noCapWarned) {
+        // 캡처 모듈까지 사용할 수 없는 오래된 WebKit만 기능 제한을 알린다.
         activeResRec.noCapWarned = true;
         playerSubtext.textContent = "이 브라우저에서는 백그라운드 녹음을 지원하지 않습니다 (스트림 캡처 불가).";
     }
-    if (bgRecReady()) {
+    if (bgRecReady() && bgRecStationId === res.stationId) {
         prepareReservedTape(activeResRec);
         pendingRecName = res.title;
         toggleRecording({ source: "bg" });
@@ -5296,9 +5938,11 @@ function serviceReservationRecording(nowTs) {
     // 죽은 어태치 감지 — 수신기가 붙었는데 바이트가 전혀 흐르지 않으면(스로틀된 WebKit에서
     // 간헐 발생) 15초를 기다리지 말고 6초 만에 재튠한다. 짧은 예약 회차도 살릴 수 있다.
     const bgStuck = bgRecPlayer && bgRecAudio && bgRecCap.bytes === 0 && !bgRecCap.rolling.length
-        && bgRecAudio.currentTime < 0.3;
+        && !(bgRecNativeCapture && bgRecNativeCapture.ready) && bgRecAudio.currentTime < 0.3;
+    // 예열이 다른 채널을 물고 있으면(연달아 다른 채널 예약) 즉시 이 회차 채널로 재튠한다
+    const wrongStation = bgRecPlayer && bgRecStationId !== res.stationId;
     const retuneAfterMs = bgStuck ? 6000 : 15000;
-    if (!activeResRec.tuning && (!bgRecPlayer || nowTs - (activeResRec.tunedAt || 0) > retuneAfterMs)) {
+    if (!activeResRec.tuning && (!bgRecPlayer || wrongStation || nowTs - (activeResRec.tunedAt || 0) > retuneAfterMs)) {
         activeResRec.tuning = true;
         activeResRec.tunedAt = nowTs;
         // 주의: 재시도는 반드시 매크로태스크(setTimeout)로 — .finally에서 곧바로 재귀하면
@@ -5345,6 +5989,7 @@ function finishReservedRecording() {
                 tapePos = 0;
             }
             deckRefreshShelf();
+            deckStateSave();
         }
         recSavedMsgOverride = "예약 녹음 완료 — 카세트 「" + res.title + "」를 되감아 테이프 랙에 보관했습니다. 데크 TAPE RACK에서 눌러 장착한 뒤 PLAY를 누르세요.";
         playerSubtext.textContent = recSavedMsgOverride;
@@ -5377,11 +6022,14 @@ function cancelReservedRecording(msg) {
     if (!schedOverlayEl.hidden && schedState.view === "list") renderSched();
 }
 
+let resWarming = false;   // 예약 시작 직전 수신기 예열이 진행 중인가
+
 function reservationTick() {
     const nowTs = Date.now();
     serviceReservationRecording(nowTs);
     let changed = false;
     let missedFound = false;
+    let warmTarget = null;   // 45초 안에 시작하는 회차 — 수신기를 미리 튠해 둔다
     reservations.forEach((res) => {
         if (!res.enabled) return;
         const occ = resOccurrence(res, nowTs);
@@ -5406,7 +6054,26 @@ function reservationTick() {
             playerSubtext.textContent = "5분 뒤 예약 녹음이 시작됩니다 — " + res.title;
             notifyRes("예약 녹음 예정", res.title + " — 5분 뒤 시작됩니다. 앱을 켜 두세요.");
         }
+        if (timerArmed && occ.startTs > nowTs && occ.startTs - nowTs <= 45000) warmTarget = res;
     });
+    // 시작 45초 전 예열 — 미리 튠해 두면 시작 순간 롤링 프리버퍼가 차 있어,
+    // 프로그램 첫 초를 놓치지 않고 REC이 즉시 붙는다
+    if (warmTarget && !activeResRec && !recorder && !bgRecPlayer && !resWarming) {
+        resWarming = true;
+        const st = stations.find((s) => s.id === warmTarget.stationId);
+        Promise.resolve(st ? bgRecTune(st) : null)
+            .catch((e) => console.warn("예약 예열 튠 실패:", e))
+            .finally(() => { resWarming = false; });
+    }
+    // 예열/회차 종료 후 방치된 수신기 정리 — 2분 안에 쓸 일이 없으면 내린다
+    if (!warmTarget && !activeResRec && !recorder && bgRecPlayer && !resWarming) {
+        const soon = reservations.some((res) => {
+            if (!res.enabled) return false;
+            const occ = resOccurrence(res, nowTs);
+            return occ && nowTs < occ.endTs && occ.startTs - nowTs < 120000;
+        });
+        if (!soon) bgRecStop();
+    }
     if (changed) {
         resSave();
         renderResList();
@@ -5449,6 +6116,52 @@ document.addEventListener("keydown", (e) => {
 });
 
 setInterval(reservationTick, 10000);
+
+// 데크 장착 상태는 떠날 때도 남긴다 — 다음 세션이 같은 테이프·같은 위치로 시작한다
+["pagehide", "beforeunload"].forEach((ev) => window.addEventListener(ev, () => {
+    if (typeof deckStateSave === "function") deckStateSave();
+}));
+
+// ----- 숨은 탭 트랜스포트 틱 -----
+// 랙 애니메이션(ttFrame)은 rAF 기반이라 탭이 가려지면 완전히 멈춘다. 그 동안에도
+// 테이프는 굴러가야 한다 — 수록곡이 끝나면(ended) 다음 수록으로 넘어가는 일과
+// 테이프 끝 정지는 ttFrame의 일이었으므로, 숨은 탭에서는 소리가 곡 사이에서 영영
+// 끊기는 버그가 있었다. 워커 타이머 틱이 그 최소 몫만 대행한다 (표시는 어차피 안 보인다).
+let hiddenTickLast = 0;
+setInterval(() => {
+    if (!document.hidden) { hiddenTickLast = 0; return; }
+    const now = Date.now();
+    const dt = hiddenTickLast ? Math.min(3, (now - hiddenTickLast) / 1000) : 1;
+    hiddenTickLast = now;
+    // 녹음 중 테이프 끝 감시 (ttFrame의 rec 분기 대행)
+    if (deckMode === "rec" && recorder && !recOnB) {
+        tapePos = Math.min(tapeLenOf(deckTape), deckRecStartPos + (now - recStartMs) / 1000);
+        if (tapePos >= tapeLenOf(deckTape)) {
+            stopRecording();
+            playerSubtext.textContent = "테이프 끝 — 녹음이 정지되었습니다.";
+        }
+        return;
+    }
+    if (deckMode !== "play") return;
+    if (deckSegPlaying) {
+        // 수록곡 재생 중 — 카운터를 실제 재생 위치에 동기 (ttFrame의 몫 대행)
+        if (isFinite(audio.currentTime)) tapePos = deckSegPlaying.start + Math.max(0, audio.currentTime - (deckSegPlaying.offset || 0));
+        return;
+    }
+    // 빈 구간 전진 + 수록곡 자동 시작 + 테이프 끝 정지 (ttFrame의 play 분기 대행)
+    tapePos += dt;
+    const inSeg = deckTape ? segmentAt(deckTape, tapePos) : null;
+    const nx = inSeg || (deckTape ? nextSegmentAfter(deckTape, tapePos) : null);
+    if (inSeg) {
+        deckStartSegment(inSeg, tapePos - inSeg.start);
+    } else if (nx && tapePos >= nx.start) {
+        deckStartSegment(nx, tapePos - nx.start);
+    } else if (deckTape && tapePos >= tapeLenOf(deckTape)) {
+        tapePos = tapeLenOf(deckTape);
+        deckStopTransport();
+        playerSubtext.textContent = "테이프가 끝났습니다 — 되감으세요.";
+    }
+}, 1000);
 setInterval(updateNowProgram, 30000);
 updateResChip();
 reservationTick();

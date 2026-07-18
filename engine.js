@@ -5,11 +5,15 @@
 // 청취 볼륨과 출력관 구동을 분리해 작은 음량에서도 모델 고유의 배음·댐핑이 유지된다.
 let audioCtx = null;
 let gainNode = null;
+let audioGraphInitState = "idle"; // idle | initializing | ready | failed
+let audioGraphFallbackContext = null;
 // 예약 녹음 전용 백그라운드 수신기 — 본체 <audio>(청취)와 완전히 분리된 히든 체인.
 // bgRecAudio → MediaElementSource → 녹음 탭/분석기만 연결, 스피커에는 연결하지 않는다.
 // 따라서 현재 재생(라디오·음반·테이프)과 무관하게 무음으로 녹음된다.
 let bgRecAudio = null;
 let bgRecPlayer = null;
+let bgRecNativeCapture = null; // Safari/WKWebView용 playlist/segment fetch 캡처
+let bgRecStationId = null;   // 수신기가 현재 물고 있는 채널 — 예열과 발화 회차의 불일치 감지용
 let bgRecCtx = null;      // 전용 AudioContext — VU 레벨 표시용 (WebKit에선 무음 탭이라 참고용)
 let bgRecSource = null;
 let bgRecDest = null;
@@ -17,7 +21,52 @@ let bgRecAnalyser = null;
 // 스트림 원본 바이트 캡처 — WebKit은 MediaElementSource가 MSE/HLS 요소에서 무음이라
 // 오디오 스택을 태핑하는 녹음이 불가능하다. 대신 hls.js가 버퍼에 붙이는 fMP4/MP3
 // 바이트를 그대로 이어붙여 원본 음질의 재생 가능한 파일을 만든다 (모든 엔진 공통 경로).
-let bgRecCap = { active: false, mime: "", init: null, chunks: [], bytes: 0, rolling: [] };
+// sec: 프래그먼트 실측 누계 초 — 벽시계 대신 이 값이 테이프 세그먼트의 길이가 된다
+// (스트림이 끊겼던 시간을 세지 않아 정직하다). 파일 타임라인 오프셋은 저장 시 blob을
+// 직접 프로브해 구한다. lastAt: 마지막 오디오 청크 수신 시각 — 녹음 중 워치독용.
+let bgRecCap = { active: false, mime: "", init: null, chunks: [], bytes: 0, rolling: [], lastAt: 0, sec: 0, lastSn: null };
+
+// 예약 수신기 세션 경계. 튠을 시작하는 순간 generation을 올리고 이전 채널의 init,
+// rolling, 늦은 HLS 이벤트를 함께 폐기한다. app.js는 토큰을 캡처한 리스너만 등록한다.
+const BackgroundCaptureSession = (() => {
+    let generation = 0;
+    function resetCapture() {
+        bgRecCap.active = false;
+        bgRecCap.mime = "";
+        bgRecCap.init = null;
+        bgRecCap.chunks = [];
+        bgRecCap.bytes = 0;
+        bgRecCap.rolling = [];
+        bgRecCap.lastAt = 0;
+        bgRecCap.sec = 0;
+        bgRecCap.lastSn = null;
+    }
+    return Object.freeze({
+        begin(stationId) {
+            generation += 1;
+            bgRecStationId = stationId || null;
+            resetCapture();
+            return generation;
+        },
+        invalidate() {
+            generation += 1;
+            bgRecStationId = null;
+            resetCapture();
+            return generation;
+        },
+        isCurrent(token) { return token === generation; },
+        current() { return generation; },
+        inspect() {
+            return Object.freeze({
+                generation,
+                stationId: bgRecStationId,
+                rollingChunks: bgRecCap.rolling.length,
+                active: bgRecCap.active
+            });
+        }
+    });
+})();
+window.MFA_BackgroundCaptureSession = BackgroundCaptureSession;
 // ----- 마이크 입력 (REC INPUT: LINE/MIC) -----
 // 실제 데크의 MIC 단자 — 본체 그래프와 완전 분리된 getUserMedia 스트림을
 // MediaRecorder로 직접 녹음한다 (MediaElementSource가 아니므로 WebKit에서도 동작).
@@ -337,10 +386,17 @@ function sampleValveStage(stage, x) {
     return curve[index];
 }
 
+function ampAudioProfile(id) {
+    const registry = window.MFA && window.MFA.models;
+    const descriptor = registry && typeof registry.get === "function"
+        ? registry.get("amplifier", id) : null;
+    return descriptor && descriptor.audioProfile ? descriptor.audioProfile : AMP_MODELS[id];
+}
+
 // 자동 검증과 설명서 수치 확인용 읽기 전용 진단 표면.
 window.MFA_AmpDSP = Object.freeze({
     inspect(id) {
-        const model = AMP_MODELS[id];
+        const model = ampAudioProfile(id);
         const c = model && model.circuit;
         if (!c) return null;
         const speaker = speakerLoadProfile(c);
@@ -355,12 +411,12 @@ window.MFA_AmpDSP = Object.freeze({
         };
     },
     sample(id, stageName, x) {
-        const model = AMP_MODELS[id];
+        const model = ampAudioProfile(id);
         const stage = model && model.circuit && model.circuit[stageName];
         return sampleValveStage(stage, x);
     },
     sampleChain(id, x) {
-        const model = AMP_MODELS[id];
+        const model = ampAudioProfile(id);
         const circuit = model && model.circuit;
         if (!circuit) return x;
         const pre = sampleValveStage(circuit.pre, x * circuit.pre.drive);
@@ -389,7 +445,7 @@ function setAudioParam(param, value, time) {
 
 function applyAmp() {
     if (!ampDrive) return;
-    const m = AMP_MODELS[ampModelId];
+    const m = ampAudioProfile(ampModelId);
     const circuit = m.circuit || {};
     const pre = circuit.pre || { drive: m.drive, k: m.k, asym: m.asym, kind: "pentode" };
     const power = circuit.power || { drive: 1, k: 0, asym: 0, kind: "pentode" };
@@ -526,7 +582,7 @@ let ampLoudnessOn = false;
 
 function applyLoudnessComp() {
     if (!ampBass || !ampTreble) return;
-    const m = AMP_MODELS[ampModelId];
+    const m = ampAudioProfile(ampModelId);
     if (!m) return;
     const comp = (ampModelId === "e303" && ampLoudnessOn) ? Math.max(0, 1 - volumeLevel) : 0;
     ampBass.gain.value = m.bass[1] + comp * 6;
@@ -622,14 +678,21 @@ const SAFARI_LIKE = /AppleWebKit/i.test(navigator.userAgent) && !/Chrome|CriOS|E
 
 function ensureAudioGraph() {
     if (SAFARI_LIKE) return false;
-    if (audioCtx) return true;
+    if (audioGraphInitState === "ready") return true;
+    // MediaElementSource는 같은 media 요소에 재생성할 수 없다. 중간 실패·재진입 뒤
+    // 두 번째 생성을 시도하지 않고, 실패한 세션은 네이티브 직결 폴백으로 고정한다.
+    if (audioGraphInitState === "initializing" || audioGraphInitState === "failed") return false;
 
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx || !window.MediaRecorder) return false;
 
+    let source = null;
+    let candidateCtx = null;
+    audioGraphInitState = "initializing";
     try {
-        audioCtx = new Ctx();
-        const source = audioCtx.createMediaElementSource(audio);
+        candidateCtx = new Ctx();
+        audioCtx = candidateCtx;
+        source = audioCtx.createMediaElementSource(audio);
         gainNode = audioCtx.createGain();
         recDest = audioCtx.createMediaStreamDestination();
         analyser = audioCtx.createAnalyser();
@@ -767,9 +830,25 @@ function ensureAudioGraph() {
             audioCtx.resume();
         }
         if (isPlaying) startVu();
+        audioGraphInitState = "ready";
         return true;
     } catch (error) {
         console.error(error);
+        // source 생성 뒤 실패했다면 context를 닫으면 media 요소가 영구 무음이 될 수 있다.
+        // 실패 그래프를 모두 끊고 destination에 직결해 소리부터 보존한다. source 생성 전
+        // 실패라면 context를 닫아 자원을 돌려준다.
+        if (source && candidateCtx) {
+            try {
+                source.disconnect();
+                source.connect(candidateCtx.destination);
+                audioGraphFallbackContext = candidateCtx;
+                if (candidateCtx.state === "suspended") candidateCtx.resume().catch(() => {});
+            } catch (fallbackError) {
+                console.error("오디오 직결 폴백 실패:", fallbackError);
+            }
+        } else if (candidateCtx && typeof candidateCtx.close === "function") {
+            candidateCtx.close().catch(() => {});
+        }
         audioCtx = null;
         gainNode = null;
         ampInputTrim = null;
@@ -778,6 +857,7 @@ function ensureAudioGraph() {
         blendFilter = null;
         monoGain = null;
         eqNodes = null;
+        eqBufferShaper = null;
         ampDrive = null;
         ampShaper = null;
         ampBass = null;
@@ -798,7 +878,10 @@ function ensureAudioGraph() {
         ampSpeakerFeedback = null;
         ampSpeakerWet = null;
         ampOut = null;
+        voiceLow = null;
+        voiceHigh = null;
         fp = null;
+        recSatShaper = null;
         recMpx = null;
         recBias = null;
         recSplit = null;
@@ -807,9 +890,18 @@ function ensureAudioGraph() {
         recTrimR = null;
         crackleGain = null;
         scratchGain = null;
+        audioGraphInitState = "failed";
         return false;
     }
 }
+
+window.MFA_AudioGraph = Object.freeze({
+    inspect: () => Object.freeze({
+        state: audioGraphInitState,
+        ready: audioGraphInitState === "ready",
+        fallback: !!audioGraphFallbackContext
+    })
+});
 
 function pickRecMime() {
     const candidates = [

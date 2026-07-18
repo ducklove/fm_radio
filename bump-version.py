@@ -11,9 +11,11 @@ sw = (root / "sw.js").read_text(encoding="utf-8")
 n = int(re.search(r"fm-radio-v(\d+)", sw).group(1)) + 1
 sw = re.sub(r"fm-radio-v\d+", f"fm-radio-v{n}", sw)
 
-ASSETS = ["styles.css", "stations.js", "player-core.js", "store.js", "schedule.js",
-          "skins.js", "component-skins.js", "engine.js", "deck.js", "records.json",
-          "bootstrap.js", "app.js"]
+ASSETS = [
+    "styles.css", "stations.js", "player-core.js", "native-hls-capture.js", "store.js", "schedule.js",
+    "skins.js", "component-skins.js", "model-registry.js", "animation-scheduler.js",
+    "engine.js", "deck.js", "records.json", "bootstrap.js", "ui-controls.js", "app.js",
+]
 
 idx = (root / "index.html").read_text(encoding="utf-8")
 for a in ASSETS:

@@ -261,13 +261,16 @@
                     <tr><td><code>skin</code></td><td><code>tuner</code></td><td>빈티지 FM 튜너 디자인 — 주파수 다이얼·바늘·LED 주파수 표시창·STEREO 램프가 있는 페이스플레이트로 표시됩니다. 권장 크기 460×280.</td></tr>
                     <tr><td><code>mp3</code></td><td>오디오 파일 URL</td><td>라디오 대신 MP3(또는 브라우저가 재생 가능한 오디오) 파일을 여는 미디어 모드로 시작합니다. 위젯 크기는 그대로 유지되며, 튜너 스킨에서는 다이얼이 시간 눈금으로 바뀌어 클릭·드래그로 탐색할 수 있습니다.</td></tr>
                     <tr><td><code>title</code></td><td>표시할 제목</td><td><code>mp3</code>와 함께 사용. 생략하면 파일명이 제목이 됩니다.</td></tr>
+                    <tr><td><code>allowedOrigin</code></td><td>부모 페이지의 정확한 origin</td><td>교차 출처 postMessage 연동에 필요합니다. 스킴·호스트·포트를 포함한 값만 허용하며, 생략하면 위젯과 같은 출처만 허용합니다.</td></tr>
+                    <tr><td><code>nonce</code></td><td>예측하기 어려운 세션 값</td><td>설정하면 모든 명령과 상태 이벤트에 같은 <code>nonce</code>가 있어야 합니다. 연동 세션마다 새 값을 권장합니다.</td></tr>
                 </table>
             </div>
         </section>
 
         <section>
             <h2>4. postMessage로 제어하기 (연동 API)</h2>
-            <p>iframe이나 팝업으로 연 위젯에 메시지를 보내 제어하고, 위젯이 보내는 상태 이벤트를 받을 수 있습니다.</p>
+            <p>iframe이나 팝업으로 연 위젯에 메시지를 보내 제어하고, 위젯이 보내는 상태 이벤트를 받을 수 있습니다. 위젯은 <code>window.parent</code> 또는 <code>window.opener</code>에서 온 메시지만 받고, <code>allowedOrigin</code>과 선택적 <code>nonce</code>를 함께 검증합니다.</p>
+            <p class="note"><strong>보안 경계:</strong> 교차 출처 연동은 위젯 URL에 부모 페이지의 정확한 <code>allowedOrigin</code>을 넣으세요. 송신 시 <code>targetOrigin</code>에 <code>*</code>를 쓰지 말고 위젯의 origin을 사용하며, 수신 시에도 <code>event.source</code>·<code>event.origin</code>·<code>nonce</code>를 모두 확인해야 합니다.</p>
 
             <p><strong>보낼 수 있는 명령</strong></p>
             <div class="table-wrap">
@@ -284,7 +287,7 @@
                 </table>
             </div>
 
-            <p><strong>위젯이 보내는 이벤트</strong> — <code>fmRadio:ready</code>(로드 완료), <code>fmRadio:state</code>(상태 변경·회신), <code>fmRadio:ended</code>(미디어 재생 완료). 모든 이벤트에 <code>mode</code>(<code>radio</code>/<code>media</code>), <code>station</code>, <code>stationName</code>, <code>playing</code>, <code>loading</code>, <code>volume</code> 필드가 있고, 미디어 모드에서는 <code>title</code>, <code>url</code>, <code>currentTime</code>, <code>duration</code>이 추가됩니다.</p>
+            <p><strong>위젯이 보내는 이벤트</strong> — <code>fmRadio:ready</code>(로드 완료), <code>fmRadio:state</code>(상태 변경·회신), <code>fmRadio:ended</code>(미디어 재생 완료). 모든 이벤트에 <code>mode</code>(<code>radio</code>/<code>media</code>), <code>station</code>, <code>stationName</code>, <code>playing</code>, <code>loading</code>, <code>volume</code> 필드가 있고, 미디어 모드에서는 <code>title</code>, <code>url</code>, <code>currentTime</code>, <code>duration</code>이 추가됩니다. URL에 <code>nonce</code>를 설정했다면 상태 이벤트에도 같은 값이 포함됩니다.</p>
 
             <div class="code-block">
                 <button class="copy-btn" type="button">복사</button>
@@ -340,20 +343,36 @@
 
         document.getElementById("snippetApi").textContent =
 `const frame = document.querySelector('iframe'); // 위젯 iframe
+const nonce = crypto.randomUUID();
+const securedWidgetUrl = new URL(frame.src);
+const widgetOrigin = securedWidgetUrl.origin;
+securedWidgetUrl.searchParams.set('allowedOrigin', location.origin);
+securedWidgetUrl.searchParams.set('nonce', nonce);
 
 // 상태 이벤트 수신
 window.addEventListener('message', (event) => {
   const data = event.data;
+  if (event.source !== frame.contentWindow || event.origin !== widgetOrigin) return;
+  if (!data || data.nonce !== nonce) return;
   if (!data || typeof data.type !== 'string' || !data.type.startsWith('fmRadio:')) return;
   if (data.type === 'fmRadio:state' || data.type === 'fmRadio:ready') {
     console.log(data.stationName, data.playing ? '재생 중' : '정지', '볼륨', data.volume);
   }
 });
 
-// 명령 보내기 (버튼 클릭 등 사용자 제스처 안에서)
-frame.contentWindow.postMessage({ type: 'fmRadio:play', station: 'kbs1fm' }, '*');
-frame.contentWindow.postMessage({ type: 'fmRadio:setVolume', value: 40 }, '*');
-frame.contentWindow.postMessage({ type: 'fmRadio:getState' }, '*');`;
+frame.src = securedWidgetUrl.href;
+
+function sendToWidget(command) {
+  frame.contentWindow.postMessage({ ...command, nonce }, widgetOrigin);
+}
+
+// 최초 재생 명령은 실제 버튼의 클릭 핸들러 안에서 호출하세요.
+document.querySelector('#playRadio').addEventListener('click', () => {
+  sendToWidget({ type: 'fmRadio:play', station: 'kbs1fm' });
+});
+// 위젯의 fmRadio:ready 이벤트를 받은 뒤 다음 명령도 보낼 수 있습니다.
+// sendToWidget({ type: 'fmRadio:setVolume', value: 40 });
+// sendToWidget({ type: 'fmRadio:getState' });`;
 
         document.getElementById("snippetMedia").textContent =
 `<!-- 방법 1: URL 파라미터로 바로 열기 (mp3·title 값은 URL 인코딩) -->
@@ -364,17 +383,32 @@ frame.contentWindow.postMessage({ type: 'fmRadio:getState' }, '*');`;
 <!-- 방법 2: postMessage로 동적으로 재생/제어 -->
 <script>
   const frame = document.querySelector('iframe');
-  // 재생 시작 (버튼 클릭 등 사용자 제스처 안에서)
-  frame.contentWindow.postMessage({
-    type: 'fmRadio:playMedia',
-    url: 'https://example.com/podcast.mp3',
-    title: '팟캐스트 12화'
-  }, '*');
+  const nonce = crypto.randomUUID();
+  const securedWidgetUrl = new URL(frame.src);
+  const widgetOrigin = securedWidgetUrl.origin;
+  securedWidgetUrl.searchParams.set('allowedOrigin', location.origin);
+  securedWidgetUrl.searchParams.set('nonce', nonce);
+  frame.src = securedWidgetUrl.href;
+
+  const sendToWidget = (command) => {
+    frame.contentWindow.postMessage({ ...command, nonce }, widgetOrigin);
+  };
+  // 재생 시작 (실제 버튼 클릭 등 사용자 제스처 안에서)
+  document.querySelector('#playMedia').addEventListener('click', () => {
+    sendToWidget({
+      type: 'fmRadio:playMedia',
+      url: 'https://example.com/podcast.mp3',
+      title: '팟캐스트 12화'
+    });
+  });
   // 3분 지점으로 이동
-  frame.contentWindow.postMessage({ type: 'fmRadio:seek', time: 180 }, '*');
+  // sendToWidget({ type: 'fmRadio:seek', time: 180 });
   // 재생 완료 감지
   window.addEventListener('message', (e) => {
-    if (e.data && e.data.type === 'fmRadio:ended') console.log('재생 완료:', e.data.title);
+    if (e.source !== frame.contentWindow || e.origin !== widgetOrigin) return;
+    if (e.data && e.data.nonce === nonce && e.data.type === 'fmRadio:ended') {
+      console.log('재생 완료:', e.data.title);
+    }
   });
 <\/script>`;
 
