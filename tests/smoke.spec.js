@@ -959,9 +959,18 @@ test.describe("데스크톱", () => {
             focusScheduleFit();
         });
         await page.waitForFunction(() => {
-            const rect = document.querySelector(".hero-visual").getBoundingClientRect();
+            const hero = document.querySelector(".hero-visual");
+            const rect = hero.getBoundingClientRect();
+            const style = getComputedStyle(hero);
+            const units = [...document.querySelectorAll("#rackColumn > *")]
+                .filter((el) => getComputedStyle(el).display !== "none")
+                .map((el) => el.getBoundingClientRect());
+            const systemTop = Math.min(...units.map((bounds) => bounds.top));
+            const systemBottom = Math.max(...units.map((bounds) => bounds.bottom));
             return Math.abs(rect.left - 31.5) < 1 && Math.abs(rect.top - 47.25) < 1 &&
-                Math.abs(rect.width - 900.5) < 1 && Math.abs(rect.height - 600.25) < 1;
+                Math.abs(rect.width - 900.5) < 1 && Math.abs(rect.height - 600.25) < 1 &&
+                systemTop >= rect.top + parseFloat(style.paddingTop) - 2 &&
+                systemBottom <= rect.bottom - parseFloat(style.paddingBottom) + 2;
         });
         const compact = await page.evaluate(() => {
             const hero = document.querySelector(".hero-visual");
