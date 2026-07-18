@@ -450,6 +450,7 @@ body.mode-focus.focus-room .hero-visual {
     --focus-system-left: calc(50% - 190px);
     --focus-system-right: calc(50% + 190px);
     --focus-speaker-gap: clamp(12px, 1.25vw, 24px);
+    --focus-floor-inset: clamp(12px, 1.5vh, 18px);
     flex-direction: row;
     align-items: flex-end;
     justify-content: center;
@@ -457,14 +458,14 @@ body.mode-focus.focus-room .hero-visual {
     height: 100vh;
     height: 100dvh;
     margin: 0;
-    padding: 0;
+    padding: 0 0 var(--focus-floor-inset);
     overflow: hidden;
 }
 
 body.mode-focus.focus-room .focus-speaker {
     display: block;
     position: absolute;
-    bottom: 0;
+    bottom: var(--focus-floor-inset);
     z-index: 0;
     width: clamp(320px, 35vw, 612px);
     height: auto;

@@ -645,7 +645,8 @@ test.describe("데스크톱", () => {
         });
         expect(speakers.natural).toEqual([612, 1001]);
         expect(speakers.left.height, "MacBook 화면에서 스피커가 충분히 커야 한다").toBeGreaterThanOrEqual(speakers.viewport[1] * .8);
-        expect(Math.abs(speakers.system.bottom - speakers.viewport[1]), "랙 바닥 = 화면 바닥").toBeLessThanOrEqual(2);
+        expect(speakers.viewport[1] - speakers.system.bottom, "랙 바닥 안전 여백 최소값").toBeGreaterThanOrEqual(10);
+        expect(speakers.viewport[1] - speakers.system.bottom, "랙 바닥 안전 여백 최대값").toBeLessThanOrEqual(20);
         expect(Math.abs(speakers.left.visualBottom - speakers.system.bottom), "왼쪽 스피커 실물 바닥 = 랙 바닥").toBeLessThanOrEqual(2);
         expect(Math.abs(speakers.right.visualBottom - speakers.system.bottom), "오른쪽 스피커 실물 바닥 = 랙 바닥").toBeLessThanOrEqual(2);
         expect(speakers.left.right, "왼쪽 스피커는 랙과 겹치지 않음").toBeLessThanOrEqual(speakers.system.left - 10);
@@ -673,7 +674,8 @@ test.describe("데스크톱", () => {
                 viewportBottom: innerHeight
             };
         });
-        expect(Math.abs(zoomLayout.deck.bottom - zoomLayout.viewportBottom), "확대 유닛 바닥 = 화면 바닥").toBeLessThanOrEqual(2);
+        expect(zoomLayout.viewportBottom - zoomLayout.deck.bottom, "확대 유닛 바닥 안전 여백 최소값").toBeGreaterThanOrEqual(10);
+        expect(zoomLayout.viewportBottom - zoomLayout.deck.bottom, "확대 유닛 바닥 안전 여백 최대값").toBeLessThanOrEqual(20);
         expect(zoomLayout.deck.left, "확대 유닛 왼쪽은 화면 안").toBeGreaterThanOrEqual(0);
         expect(zoomLayout.deck.right, "확대 유닛 오른쪽은 화면 안").toBeLessThanOrEqual(zoomLayout.viewportRight);
         expect(Math.abs(zoomLayout.left.visualBottom - zoomLayout.deck.bottom), "확대 시 왼쪽 스피커 바닥").toBeLessThanOrEqual(2);
