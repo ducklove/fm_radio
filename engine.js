@@ -487,21 +487,18 @@ function applyFrontPanel() {
     if (!fp || !audioCtx) return;
     const m = typeof ampModelId !== "undefined" ? ampModelId : "";
     const tc = 0.03;
-    fp.bass.gain.setTargetAtTime(m === "e303" ? fpGet("e303.bass", 0) : m === "quad303" ? fpGet("quad.bass", 0) : 0, audioCtx.currentTime, tc);
-    fp.treble.gain.setTargetAtTime(m === "e303" ? fpGet("e303.treble", 0) : m === "quad303" ? fpGet("quad.treble", 0) : 0, audioCtx.currentTime, tc);
-    // QUAD 33 SLOPE — 고역이 접히기 시작하는 모서리를 옮기는 틸트 (0=개방 … 1=3.8kHz)
-    const slope = m === "quad303" ? fpGet("quad.slope", 0) : 0;
-    fp.slope.frequency.setTargetAtTime(20000 * Math.pow(0.19, slope), audioCtx.currentTime, tc);
+    fp.bass.gain.setTargetAtTime(m === "e303" ? fpGet("e303.bass", 0) : 0, audioCtx.currentTime, tc);
+    fp.treble.gain.setTargetAtTime(m === "e303" ? fpGet("e303.treble", 0) : 0, audioCtx.currentTime, tc);
     fp.bands.forEach((b, i) => {
         b.gain.setTargetAtTime(m === "ma2375" ? fpGet("ma2375.tone" + i, 0) : 0, audioCtx.currentTime, tc);
     });
     fp.subsonic.frequency.setTargetAtTime(m === "e303" && fpGet("e303.subsonic", false) ? 30 : 12, audioCtx.currentTime, tc);
     // 감쇠: SPEAKERS OFF(무음) × E-303 MUTING(-20dB) — 모두 세션 한정이라 무음 고착이 없다
     fp.att.gain.setTargetAtTime((speakersOff ? 0 : 1) * (m === "e303" && ampMuting20 ? 0.1 : 1), audioCtx.currentTime, tc);
-    // 스테레오 매트릭스: 채널 트림(MC2105 L/R GAIN) × 밸런스(E-303·QUAD 33) × 폭(GE-5 SPATIAL)
+    // 스테레오 매트릭스: 채널 트림(MC2105 L/R GAIN) × 밸런스(E-303) × 폭(GE-5 SPATIAL)
     const gl = m === "mc2105" ? fpGet("mc2105.gainL", 1) : 1;
     const gr = m === "mc2105" ? fpGet("mc2105.gainR", 1) : 1;
-    const bal = m === "e303" ? fpGet("e303.balance", 0) : m === "quad303" ? fpGet("quad.balance", 0) : 0;
+    const bal = m === "e303" ? fpGet("e303.balance", 0) : 0;
     const width = typeof eqModelId !== "undefined" && eqModelId === "ge5" && eqLive() ? fpGet("ge5.spatial", 0) : 0;
     const balL = Math.min(1, 1 - bal);
     const balR = Math.min(1, 1 + bal);
@@ -526,22 +523,6 @@ function applyRecPanel() {
 // E-303 LOUDNESS COMP — 저음량 등청감 보상. 볼륨이 낮을수록 저·고역 셸프를 올린다.
 // (그려져 있던 LOUDNESS 노브 소생 — 실물 E-303의 컴펜세이터)
 let ampLoudnessOn = false;
-// QUAD 33의 실제 고역 필터 선택. 전용 필터 노드를 늘리지 않고 기존 하이 셸프를
-// 선택 주파수별 완만한 감쇄로 재사용해 재생 중에도 끊김 없이 전환한다.
-let quadFilterMode = "cancel";
-
-function applyQuadFilter() {
-    if (!ampTreble || ampModelId !== "quad303") return;
-    const m = AMP_MODELS[ampModelId];
-    const filter = {
-        cancel: [m.treble[0], 0],
-        "10k": [10000, -3.4],
-        "7k": [7000, -5.4],
-        "5k": [5000, -7.8]
-    }[quadFilterMode] || [m.treble[0], 0];
-    ampTreble.frequency.value = filter[0];
-    ampTreble.gain.value = m.treble[1] + filter[1];
-}
 
 function applyLoudnessComp() {
     if (!ampBass || !ampTreble) return;
@@ -550,7 +531,6 @@ function applyLoudnessComp() {
     const comp = (ampModelId === "e303" && ampLoudnessOn) ? Math.max(0, 1 - volumeLevel) : 0;
     ampBass.gain.value = m.bass[1] + comp * 6;
     ampTreble.gain.value = m.treble[1] + comp * 2.5;
-    applyQuadFilter();
 }
 
 function setVolumeLevel(v) {
@@ -710,7 +690,7 @@ function ensureAudioGraph() {
         ampSpeakerResonance.connect(ampSpeakerDelay);
         ampSpeakerDelay.connect(ampSpeakerTone).connect(ampSpeakerWet).connect(ampOut);
         ampSpeakerDelay.connect(ampSpeakerFeedback).connect(ampSpeakerResonance);
-        // 프런트패널 스테이지: 톤 → 슬로프 → 5밴드 → 서브소닉 → 감쇠 → 스테레오 매트릭스
+        // 프런트패널 스테이지: 톤 → 5밴드 → 서브소닉 → 감쇠 → 스테레오 매트릭스
         fp = { bands: [] };
         fp.bass = audioCtx.createBiquadFilter();
         fp.bass.type = "lowshelf";
@@ -718,10 +698,6 @@ function ensureAudioGraph() {
         fp.treble = audioCtx.createBiquadFilter();
         fp.treble.type = "highshelf";
         fp.treble.frequency.value = 8000;
-        fp.slope = audioCtx.createBiquadFilter();
-        fp.slope.type = "lowpass";
-        fp.slope.frequency.value = 20000;
-        fp.slope.Q.value = 0.5;
         [30, 250, 1000, 4000, 10000].forEach((f, i) => {
             const b = audioCtx.createBiquadFilter();
             b.type = i === 0 ? "lowshelf" : i === 4 ? "highshelf" : "peaking";
@@ -739,8 +715,8 @@ function ensureAudioGraph() {
         fp.mLR = audioCtx.createGain();
         fp.mRL = audioCtx.createGain();
         fp.mRR = audioCtx.createGain();
-        ampOut.connect(fp.bass).connect(fp.treble).connect(fp.slope);
-        let fpHead = fp.slope;
+        ampOut.connect(fp.bass).connect(fp.treble);
+        let fpHead = fp.treble;
         fp.bands.forEach((b) => { fpHead = fpHead.connect(b); });
         fpHead.connect(fp.subsonic).connect(fp.att).connect(fp.split);
         fp.split.connect(fp.mLL, 0);

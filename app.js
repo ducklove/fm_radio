@@ -1717,50 +1717,10 @@ function mountAmp() {
     ampRectUntil = 0;
     bindAmpBiasMeter();
     bindAmpLoudness();
-    bindQuadFilters();
     bindAmpFrontPanel();
     applyFrontPanel();
     applyGainStaging();
     renderAmpPicker();
-}
-
-function paintQuadFilters() {
-    document.querySelectorAll("#ampStage .quad-filter-button").forEach((button) => {
-        const active = button.dataset.quadFilter === quadFilterMode;
-        const face = button.querySelector(".quad-filter-face");
-        if (face) {
-            face.setAttribute("fill", active ? "#e68a43" : "#eee7c8");
-            face.setAttribute("stroke", active ? "#8b4622" : "#665d4f");
-            face.setAttribute("stroke-width", active ? "2.4" : "1.5");
-        }
-        button.setAttribute("aria-pressed", String(active));
-    });
-}
-
-// QUAD 33의 CANCEL/5k/7k/10k 버튼은 장식이 아니라 실제 고역 필터다.
-function bindQuadFilters() {
-    if (ampModelId !== "quad303") return;
-    const buttons = document.querySelectorAll("#ampStage .quad-filter-button");
-    const select = (button) => {
-        quadFilterMode = button.dataset.quadFilter || "cancel";
-        applyQuadFilter();
-        paintQuadFilters();
-        playerSubtext.textContent = quadFilterMode === "cancel"
-            ? "QUAD 33 필터: CANCEL — 원 신호 대역을 유지합니다."
-            : "QUAD 33 필터: " + quadFilterMode.toUpperCase() + " — 오래된 레코드의 고역 잡음을 완만하게 줄입니다.";
-    };
-    buttons.forEach((button) => {
-        button.setAttribute("tabindex", "0");
-        button.setAttribute("role", "button");
-        button.setAttribute("aria-label", "QUAD 33 고역 필터 " + button.dataset.quadFilter);
-        button.addEventListener("click", () => select(button));
-        button.addEventListener("keydown", (event) => {
-            if (event.key !== "Enter" && event.key !== " ") return;
-            event.preventDefault();
-            select(button);
-        });
-    });
-    paintQuadFilters();
 }
 
 // ===== 프런트패널 소생 — 그려져 있던 조작부 전부에 실제 기능을 배선한다 =====
@@ -1945,23 +1905,6 @@ function bindAmpFrontPanel() {
         });
         power(1458, 680, 64, 62);
         phones(540, 707);
-    } else if (ampModelId === "quad303") {
-        fpKnob(svg, 786, 327, 54, "quad.bass", { label: "BASS", min: -8, max: 8, def: 0, fmt: FP_DB, ink: "#4d3827" });
-        fpKnob(svg, 936, 327, 54, "quad.treble", { label: "TREBLE", min: -8, max: 8, def: 0, fmt: FP_DB, ink: "#4d3827" });
-        fpKnob(svg, 1086, 327, 54, "quad.slope", { label: "SLOPE — 고역 접힘 모서리", min: 0, max: 1, def: 0, fmt: FP_PCT, ink: "#4d3827" });
-        fpKnob(svg, 431, 415, 40, "quad.balance", { label: "BALANCE", min: -1, max: 1, def: 0, fmt: (v) => Math.abs(v) < 0.03 ? "CENTER" : (v < 0 ? "L" : "R") + Math.round(Math.abs(v) * 100) });
-        [[276, 76, "모노", "MONO — 모노 합성", () => { monoOn = true; applyMono(); fpNote("MONO — 두 채널을 합쳐 듣습니다."); }],
-         [354, 76, "모노", "MONO — 모노 합성", () => { monoOn = true; applyMono(); fpNote("MONO — 두 채널을 합쳐 듣습니다."); }],
-         [432, 82, "스테레오", "STEREO — 스테레오 복귀", () => { monoOn = false; applyMono(); fpNote("STEREO"); }],
-         [516, 68, "디스크 입력", "DISC — 턴테이블 재생", () => fpSourceSelect("phono")],
-         [586, 92, "라디오 1", "RADIO 1 — 마지막 채널 연결", () => fpSourceSelect("radio")],
-         [680, 92, "라디오 2", "RADIO 2 — 다음 채널", () => fpSourceSelect("radio2")],
-         [774, 80, "테이프 입력", "TAPE — 카세트 재생", () => fpSourceSelect("tape")]
-        ].forEach(([x, w, label, title, fn]) => fpButton(svg, x, 444, w, 31, label, title, fn));
-        fpButton(svg, 1480, 187, 48, 48, "전압 셀렉터", "MAINS — 전원 전압 셀렉터", () =>
-            fpNote("MAINS 240V — 1967년 런던의 벽 전압 그대로 두는 편이 좋겠습니다."));
-        fpButton(svg, 1603, 190, 40, 40, "퓨즈", "2A FUSE — 퓨즈 홀더", () =>
-            fpNote("2A 퓨즈 — 반세기 동안 한 번도 끊어진 적이 없습니다."));
     }
 }
 

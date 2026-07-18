@@ -131,10 +131,10 @@ test.describe("데스크톱", () => {
         await expect(page.locator("#settingsOverlay")).toBeHidden();
     });
 
-    test("실물 정체성 선별 20종: 피커 등록·기기군별 스킨 전환", async ({ page }) => {
+    test("실물 정체성 선별 19종: 피커 등록·기기군별 스킨 전환", async ({ page }) => {
         await page.click('button:has-text("오디오 구성")');
         await expect(page.locator("#skinPicker .skin-btn")).toHaveCount(4);
-        await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(7);
+        await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(5);
         await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(3);
@@ -172,13 +172,6 @@ test.describe("데스크톱", () => {
         await expect(maVolume).toHaveAttribute("cx", "1753.2");
         await expect(maVolume).toHaveAttribute("cy", "742.44");
         await expect(page.locator("#ampVolMark")).toHaveAttribute("transform", /1753\.2 742\.44/);
-        await page.locator('#ampPicker .skin-btn', { hasText: "QUAD 33/303" }).click();
-        await expect(page.locator('#ampStage svg[aria-label*="QUAD 33"]')).toHaveCount(1);
-        await expect(page.locator("#ampStage .quad-filter-button")).toHaveCount(4);
-        await page.keyboard.press("Escape");
-        await page.locator('#ampStage .quad-filter-button[data-quad-filter="5k"]').click();
-        await expect(page.locator('#ampStage .quad-filter-button[data-quad-filter="5k"]')).toHaveAttribute("aria-pressed", "true");
-        await page.click('button:has-text("오디오 구성")');
         await page.locator('#deckPicker .skin-btn', { hasText: "PIONEER CT-F1250" }).click();
         await expect(page.locator('#deckStage svg[aria-label*="PIONEER CT-F1250"]')).toHaveCount(1);
         await expect(page.locator("#deckBtnPlay")).toHaveClass(/lz-hardware-button/);
@@ -203,7 +196,7 @@ test.describe("데스크톱", () => {
             deck: JSON.parse(localStorage.getItem("fmRadio.deck")),
             turntable: JSON.parse(localStorage.getItem("fmRadio.turntable")),
         }));
-        expect(saved).toEqual({ tuner: "m10b", amp: "quad303", deck: "b215", turntable: "sl1200" });
+        expect(saved).toEqual({ tuner: "m10b", amp: "ma2375", deck: "b215", turntable: "sl1200" });
         expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.eq")).model)).toBe("se9");
     });
 
@@ -577,7 +570,7 @@ test.describe("데스크톱", () => {
         await page.waitForFunction(() => eqState.gains.ge5.some((g) => g !== 0), null, { timeout: 3000 });
     });
 
-    test("프런트패널 소생: 앰프 톤 영속·EQ 전원·데크 NR 히스·QUAD 모노", async ({ page }) => {
+    test("프런트패널 소생: 앰프 톤 영속·EQ 전원·데크 NR 히스", async ({ page }) => {
         await page.evaluate(() => { ampModelId = "e303"; mountAmp(); });
         await page.evaluate(() => {
             const k = [...document.querySelectorAll("#ampStage svg [role=slider]")].find((e) => e.getAttribute("aria-label") === "BASS");
@@ -592,12 +585,6 @@ test.describe("데스크톱", () => {
         const m0 = await page.evaluate(() => deckHissMult());
         await page.evaluate(() => deckCycleNr());
         expect(await page.evaluate(() => deckHissMult()), "돌비 B = 히스 감소").toBeLessThan(m0);
-        await page.evaluate(() => { ampModelId = "quad303"; mountAmp(); });
-        await page.evaluate(() => {
-            const b = [...document.querySelectorAll("#ampStage svg [role=button]")].find((e) => (e.getAttribute("aria-label") || "") === "모노");
-            b.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        });
-        expect(await page.evaluate(() => monoOn), "QUAD mono").toBe(true);
     });
 
     test("죽은 조작부 재생: SL-1200 피치·쿼츠 록, TD124 4속, GARRARD 브레이크", async ({ page }) => {
@@ -1006,7 +993,7 @@ test.describe("데스크톱", () => {
 
     test("설명서에 선별 잔존 기기의 음색·동작 차이가 기록됨", async ({ page }) => {
         await page.goto("/manual.html");
-        for (const name of ["T-2 FM Stereo Tuner", "MR-78", "Model 10B", "GE-5", "SE-9", "MC2105", "QUAD 33/303", "8B", "91E", "E-303", "MA2375", "DRAGON", "B215", "TCD 3014A", "CT-F1250", "W-990RX", "SL-1200MK2", "TD 124", "GARRARD", "Sondek LP12", "DT-540"]) {
+        for (const name of ["T-2 FM Stereo Tuner", "MR-78", "Model 10B", "GE-5", "SE-9", "MC2105", "8B", "91E", "E-303", "MA2375", "DRAGON", "B215", "TCD 3014A", "CT-F1250", "W-990RX", "SL-1200MK2", "TD 124", "GARRARD", "Sondek LP12", "DT-540"]) {
             await expect(page.locator("body")).toContainText(name);
         }
     });
@@ -1094,7 +1081,7 @@ test.describe("데스크톱", () => {
         expect(dsp.solidStateBypass).toBeCloseTo(.4, 6);
     });
 
-    test("재생 중 잔존 앰프 6종 전환: Web Audio 회로 재설정 후에도 재생 유지", async ({ page }) => {
+    test("재생 중 잔존 앰프 5종 전환: Web Audio 회로 재설정 후에도 재생 유지", async ({ page }) => {
         await page.click("#tsRfHit");
         await page.locator("#kbsList .station").first().click();
         await page.waitForFunction(() => {
@@ -1103,7 +1090,7 @@ test.describe("데스크톱", () => {
         }, null, { timeout: 15000 });
 
         await page.click('button:has-text("오디오 구성")');
-        for (const label of ["TR · MC2105", "EL34 · 8B TRIBUTE", "300B · 91E TRIBUTE", "TR · E-303 TRIBUTE", "KT88 · MA2375", "TR · QUAD 33/303"]) {
+        for (const label of ["TR · MC2105", "EL34 · 8B TRIBUTE", "300B · 91E TRIBUTE", "TR · E-303 TRIBUTE", "KT88 · MA2375"]) {
             await page.locator("#ampPicker .skin-btn", { hasText: label }).click();
             await page.waitForTimeout(100);
             await expect(page.locator("#audioPlayer")).toHaveJSProperty("paused", false);

@@ -10,7 +10,7 @@ const ONLY_GROUP = process.env.MFA_CAPTURE_GROUP || "";
 const groups = {
     tuner: ["t2", "mr78", "m10b"],
     eq: ["ge5", "se9"],
-    amp: ["mc2105", "el34", "300b", "e303", "ma2375", "quad303"],
+    amp: ["mc2105", "el34", "300b", "e303", "ma2375"],
     deck: ["dragon", "b215", "tcd3014", "ctf1250", "w990"],
     turntable: ["sl1200", "td124", "g301", "lp12"],
 };
