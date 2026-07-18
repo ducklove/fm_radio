@@ -113,6 +113,7 @@ export const ReservationSchedule = Object.freeze({
 export function recFileExtension(mimeType) {
     const type = String(mimeType || "");
     if (type.includes("mp2t")) return "ts";
+    if (type.includes("aac")) return "aac";              // 원본 ADTS AAC 세그먼트 패스스루
     if (type.includes("mpeg") || type.includes("mp3")) return "mp3";
     if (type.includes("mp4")) return "m4a";
     if (type.includes("ogg")) return "ogg";

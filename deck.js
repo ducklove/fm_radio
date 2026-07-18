@@ -1091,6 +1091,28 @@ function deckGuardReservedRec(touchesRec) {
     return true;
 }
 
+// STOP/REC로 진행 중인 녹음을 사용자가 직접 멈추는 공통 경로.
+// STOP·REC는 "멈추고 싶다"는 자연스러운 표현이므로, 다른 트랜스포트 조작(PLAY·감기·EJECT)과
+// 달리 확인 없이 한 번에 멈추고 저장한다 — 싱글·더블데크(B웰) 모두 동일. 지금까지 담긴
+// 구간은 stopRecording의 onstop이 테이프에 남긴다. 예약이면 회차를 취소로 표시(재발화 안 함).
+function stopActiveRecordingByUser() {
+    if (!recorder) return false;
+    const wasReserved = typeof activeResRec !== "undefined" && activeResRec && activeResRec.started;
+    const wasB = recOnB;
+    resRecDeckWarnedAt = 0;
+    stopRecording();
+    if (wasReserved) {
+        cancelReservedRecording(wasB
+            ? "B웰 예약 녹음을 멈추고 카세트를 테이프 랙에 보관했습니다."
+            : "예약 녹음을 멈추고 지금까지를 테이프에 저장했습니다.");
+    } else {
+        playerSubtext.textContent = wasB
+            ? "B웰 녹음을 멈추고 카세트를 테이프 랙에 보관했습니다."
+            : "녹음을 멈추고 테이프에 기록했습니다.";
+    }
+    return true;
+}
+
 function deckInsertTape(id) {
     const t = tapes.find((x) => x.id === id);
     if (!t || t === deckTape) return;
@@ -1156,14 +1178,25 @@ function deckPlay() {
 }
 
 function deckStopTransport() {
-    // 더블데크(recOnB)에서 STOP은 A웰 전용 — B웰 녹음은 REC 버튼으로 제어한다
-    if (recorder && !recOnB && activeResRec && activeResRec.started) {
-        if (!deckGuardReservedRec()) return;   // 1차: 경고만
-        return;                                 // 2차: 가드가 녹음 중단까지 처리했다
+    // 더블데크: A웰이 재생 중이면 STOP은 그 재생을 멈추는 것이 우선이다 (B웰 녹음은 계속).
+    // 무엇이 STOP되는지 헷갈리지 않게, 녹음이 여전히 도는 중임과 멈추는 법을 함께 알린다.
+    if (recOnB && recorder && deckMode === "play") {
+        PlaybackController.invalidate();
+        deckSeekGeneration += 1;
+        deckSeekFixing = false;
+        audio.pause();
+        deckSegPlaying = null;
+        deckMode = "stop";
+        windDir = 0;
+        deckPlaying = false;
+        if (hissGain) hissGain.gain.value = 0;
+        deckSyncTape();
+        playerSubtext.textContent = "A웰 재생을 정지했습니다 — B웰 녹음은 계속됩니다. 녹음을 멈추려면 STOP이나 REC를 다시 누르세요.";
+        return;
     }
-    if (recorder && !recOnB) {
-        stopRecording();
-        playerSubtext.textContent = "녹음을 정지했습니다 — 테이프에 기록되었습니다.";
+    // 녹음이 도는 중(싱글=A웰, 더블=B웰)이고 A웰이 재생 중이 아니면 STOP이 녹음을 멈춘다
+    if (recorder) {
+        stopActiveRecordingByUser();
         return;
     }
     if (deckMode === "play") {
@@ -1181,16 +1214,9 @@ function deckStopTransport() {
 }
 
 function deckRec() {
-    if (recorder && activeResRec && activeResRec.started) {
-        if (!deckGuardReservedRec(true)) return;   // 1차: 경고만 (더블데크도 REC는 B웰 녹음을 건드린다)
-        return;                                     // 2차: 가드가 녹음 중단까지 처리했다
-    }
+    // REC는 녹음의 시작/정지 버튼이다 — 예약이든 수동이든, 눌리면 멈추고 저장한다 (확인 없이 한 번에).
     if (recorder) {
-        const wasB = recOnB;
-        stopRecording();
-        playerSubtext.textContent = wasB
-            ? "B웰 녹음을 정지했습니다 — 카세트를 되감아 랙에 보관했습니다."
-            : "녹음을 정지했습니다 — 테이프에 기록되었습니다.";
+        stopActiveRecordingByUser();
         return;
     }
     // 예약 시각인데 아직 시작 전(자동재생 차단·튠 대기) — REC 누름이 곧 시동이다

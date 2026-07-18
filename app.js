@@ -4371,12 +4371,11 @@ function toggleRecording(opts) {
         const durationMs = rec.capturedMs || (Date.now() - startMs);
         const type = rec.mimeType || chunks[0].type || "audio/mp4";
         const blob = new Blob(chunks, { type });
-        // 캡처 파일의 타임라인 오프셋 실측 — hls 라이브 캡처는 0이 아니라 라이브 재생
-        // 위치에서 시작한다. blob의 끝 시각(duration)에서 담긴 초를 빼면 시작점이다.
-        // 네이티브 HLS 폴백은 MPEG-TS 세그먼트를 그대로 이어 붙인다. TS는 fMP4처럼
-        // 브라우저 메타데이터에서 절대 타임라인 오프셋을 안정적으로 노출하지 않으므로
-        // 0을 사용하고, 불필요한 4초 probe 대기를 피한다.
-        const mediaStart = rec.capturedMs && !type.includes("mp2t")
+        // 캡처 파일의 타임라인 오프셋 실측 — hls.js 리먹스 fMP4만 라이브 재생 위치에서
+        // baseMediaDecodeTime이 시작하므로 blob 끝 시각 − 담긴 초 = 시작점을 구해 건너뛴다.
+        // 원본 세그먼트 패스스루(AAC/TS)는 이어 붙인 타임라인이 0에서 시작하므로 오프셋 0,
+        // 불필요한 4초 probe 대기도 피한다.
+        const mediaStart = rec.capturedMs && type.includes("mp4")
             ? await probeRecordingOffset(blob, durationMs / 1000)
             : 0;
         const record = {
@@ -5968,53 +5967,19 @@ function bgRecAutoplayFallback() {
     bgRecArmGestureRetry();
 }
 
-async function bgRecTune(station) {
-    // URL 해석 중에도 이전 채널 청크가 들어올 수 있으므로 await보다 먼저 세대를 바꾼다.
-    const generation = BackgroundCaptureSession.begin(station.id);
-    ensureBgRecElement();
-    if (bgRecCtx && bgRecCtx.state === "suspended") bgRecCtx.resume();
-    const url = await getStreamUrl(station);
-    if (!BackgroundCaptureSession.isCurrent(generation)) return;
-    bgRecStop(true);
-    const canUseHlsJs = typeof Hls !== "undefined" && Hls.isSupported();
-    const nativeFactory = window.MFA && window.MFA.createNativeHlsCapture;
-    if (!canUseHlsJs && typeof nativeFactory === "function") {
-        // Safari/WKWebView는 두 번째 네이티브 HLS <audio>를 재생할 때 현재 A웰/포노
-        // 오디오를 중단할 수 있다. 예약 녹음은 playlist fetch만으로 충분하므로 숨은
-        // 플레이어를 만들지 않고 수신 핸들만 유지한다.
-        const nextPlayer = {
-            kind: "native-capture",
-            hls: null,
-            destroyed: false,
-            destroy() { this.destroyed = true; }
-        };
-        if (!BackgroundCaptureSession.isCurrent(generation)) return;
-        bgRecPlayer = nextPlayer;
-        bgRecNativeCapture = nativeFactory({
-            url,
-            onChunk(chunk) {
-                bgRecOnChunk(null, {
-                    type: "audio",
-                    data: chunk.bytes,
-                    mime: chunk.mime,
-                    frag: { sn: chunk.sequence, duration: chunk.duration }
-                }, generation);
-            },
-            onError(error) {
-                if (BackgroundCaptureSession.isCurrent(generation)) {
-                    console.warn("네이티브 HLS 예약 캡처 재시도:", error);
-                }
-            }
-        }).start();
-        return;
-    }
+// hls.js MSE 경로로 예약 수신기를 튠한다 — TS 세그먼트를 Chromium <audio>가 재생 못 하는
+// 경우의 폴백 전용. (원본 AAC/fMP4는 네이티브 캡처가 그대로 받아 저장한다.)
+function bgRecStartHlsCapture(url, generation) {
+    bgRecCap.init = null;
+    bgRecCap.mime = "";
+    bgRecCap.lastSn = null;
     const nextPlayer = PlayerCore.attach(bgRecAudio, url, {
         onBlocked: () => {
             if (BackgroundCaptureSession.isCurrent(generation)) bgRecAutoplayFallback();
-        },                                  // 자동재생 차단 — 뮤트로라도 즉시 시동
+        },
         onFatal: () => {
             if (BackgroundCaptureSession.isCurrent(generation)) bgRecStop();
-        },                                  // 다음 재시도 주기(또는 워치독)가 다시 튠한다
+        },
         // 녹음용 수신기 정책: 라이브 엣지 추격(배속 캐치업)을 끄고, 장시간 녹음의
         // MSE 메모리를 재생 지점 뒤 90초로 제한한다 (바이트는 붙는 순간 이미 떠 놓았다)
         hlsConfig: { lowLatencyMode: false, backBufferLength: 90 }
@@ -6028,21 +5993,58 @@ async function bgRecTune(station) {
         bgRecPlayer.hls.on(Hls.Events.BUFFER_APPENDING,
             (event, data) => bgRecOnChunk(event, data, generation));
     }
-    const playAttempt = bgRecAudio.play();
-    if (bgRecPlayer && bgRecPlayer.hls) {
-        try {
-            await playAttempt;
-        } catch (e) {
-            if (BackgroundCaptureSession.isCurrent(generation)) bgRecAutoplayFallback();
-        }
-    } else {
-        // WebKit의 네이티브 HLS play() Promise는 실제 첫 미디어 프레임까지 수 초간
-        // pending일 수 있다. 바이트 캡처는 이미 fetch로 준비됐으므로 예약 시동을
-        // 가로막지 않고, 재생 실패만 비동기로 자동재생 폴백에 전달한다.
-        playAttempt.catch(() => {
-            if (BackgroundCaptureSession.isCurrent(generation)) bgRecAutoplayFallback();
-        });
+    bgRecAudio.play().catch(() => {
+        if (BackgroundCaptureSession.isCurrent(generation)) bgRecAutoplayFallback();
+    });
+}
+
+async function bgRecTune(station) {
+    // URL 해석 중에도 이전 채널 청크가 들어올 수 있으므로 await보다 먼저 세대를 바꾼다.
+    const generation = BackgroundCaptureSession.begin(station.id);
+    ensureBgRecElement();
+    if (bgRecCtx && bgRecCtx.state === "suspended") bgRecCtx.resume();
+    const url = await getStreamUrl(station);
+    if (!BackgroundCaptureSession.isCurrent(generation)) return;
+    bgRecStop(true);
+    const canUseHlsJs = typeof Hls !== "undefined" && Hls.isSupported();
+    const nativeFactory = window.MFA && window.MFA.createNativeHlsCapture;
+
+    // 예약·"지금부터" 녹음은 방송사 원본 세그먼트를 그대로 받아 저장한다 — 모든 플랫폼 공통.
+    // hls.js의 ADTS→fMP4 리먹싱은 Chromium(윈도우 트레이 앱 포함)에서 음질을 망가뜨렸고
+    // (인터샘플 오버슛 peak>1.0 등), 맥의 네이티브 경로(원본 패스스루)만 멀쩡했다. 그래서
+    // 리먹싱을 걷어내고 원본 패스스루를 표준 경로로 삼는다. TS 세그먼트만은 Chromium
+    // <audio>가 재생 못 하므로 그때만 hls.js 리먹스로 폴백한다 (Safari는 TS도 직접 재생).
+    if (typeof nativeFactory === "function") {
+        const nextPlayer = { kind: "native-capture", hls: null, destroyed: false, destroy() { this.destroyed = true; } };
+        bgRecPlayer = nextPlayer;
+        let switched = false;
+        bgRecNativeCapture = nativeFactory({
+            url,
+            onChunk(chunk) {
+                if (switched || !BackgroundCaptureSession.isCurrent(generation)) return;
+                // TS는 Safari만 <audio>로 직접 재생 가능 — Chromium이면 hls.js 리먹스로 전환.
+                // 전환은 REC(bgCapStart) 이전 예열 중에만 일어나므로 캡처가 섞이지 않는다.
+                if (chunk.mime === "video/mp2t" && !SAFARI_LIKE && canUseHlsJs) {
+                    switched = true;
+                    if (bgRecNativeCapture) { bgRecNativeCapture.destroy(); bgRecNativeCapture = null; }
+                    bgRecStartHlsCapture(url, generation);
+                    return;
+                }
+                bgRecOnChunk(null, {
+                    type: "audio", data: chunk.bytes, mime: chunk.mime,
+                    frag: { sn: chunk.sequence, duration: chunk.duration }
+                }, generation);
+            },
+            onError(error) {
+                if (BackgroundCaptureSession.isCurrent(generation)) {
+                    console.warn("네이티브 예약 캡처 재시도:", error && error.message);
+                }
+            }
+        }).start();
+        return;
     }
+    // 네이티브 캡처 모듈이 없는 구형 번들 — hls.js 리먹스로 폴백
+    if (canUseHlsJs) bgRecStartHlsCapture(url, generation);
 }
 
 // 매 틱: 예약 녹음을 굴린다. 백그라운드 수신기를 튠하고, 스트림이 열리면 REC.
@@ -6295,12 +6297,20 @@ setInterval(() => {
     const now = Date.now();
     const dt = hiddenTickLast ? Math.min(3, (now - hiddenTickLast) / 1000) : 1;
     hiddenTickLast = now;
-    // 녹음 중 테이프 끝 감시 (ttFrame의 rec 분기 대행)
-    if (deckMode === "rec" && recorder && !recOnB) {
+    // 녹음 중 테이프 끝 감시 (ttFrame의 rec 분기 대행) — 싱글=A웰, 더블=B웰
+    if (recorder && !recOnB && deckMode === "rec") {
         tapePos = Math.min(tapeLenOf(deckTape), deckRecStartPos + (now - recStartMs) / 1000);
         if (tapePos >= tapeLenOf(deckTape)) {
             stopRecording();
             playerSubtext.textContent = "테이프 끝 — 녹음이 정지되었습니다.";
+        }
+        return;
+    }
+    if (recOnB && recorder) {
+        deckBPos = Math.min(tapeLenOf(deckBTape), deckBRecStartPos + (now - recStartMs) / 1000);
+        if (deckBPos >= tapeLenOf(deckBTape)) {
+            stopRecording();
+            playerSubtext.textContent = "B웰 테이프 끝 — 녹음이 정지되었습니다.";
         }
         return;
     }
