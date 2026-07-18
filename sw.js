@@ -4,7 +4,7 @@
  * 네트워크로 그대로 통과시킨다 — 오디오 range 요청과 실시간성을 깨지 않기 위함.
  */
 const CACHE_PREFIX = "fm-radio-";
-const CACHE = "fm-radio-v127";
+const CACHE = "fm-radio-v128";
 // 일반 URL과 분리한 합성 키를 사용한다. manual.html 같은 다른 내비게이션 응답이
 // 오프라인 앱 셸을 덮어쓰지 못하게 하기 위함이다.
 const NAVIGATION_CACHE_KEY = new URL("__mfa_navigation_shell__", self.registration.scope).href;
@@ -16,33 +16,33 @@ const CORE = [
     "manual.html",
     "widget.html",
     "embed.html",
-    "styles.css?v=127",
-    "styles-foundation.css?v=127",
-    "styles-library.css?v=127",
-    "styles-schedule.css?v=127",
-    "styles-tape.css?v=127",
-    "stations.js?v=127",
-    "player-core.js?v=127",
-    "app-runtime-core.js?v=127",
-    "native-hls-capture.js?v=127",
-    "store.js?v=127",
-    "schedule.js?v=127",
-    "model-registry.js?v=127",
-    "skins.js?v=127",
-    "component-skins.js?v=127",
-    "engine.js?v=127",
-    "animation-scheduler.js?v=127",
-    "deck.js?v=127",
-    "ui-controls.js?v=127",
-    "records.json?v=127",
-    "bootstrap.js?v=127",
-    "app.js?v=127",
+    "styles.css?v=128",
+    "styles-foundation.css?v=128",
+    "styles-library.css?v=128",
+    "styles-schedule.css?v=128",
+    "styles-tape.css?v=128",
+    "stations.js?v=128",
+    "player-core.js?v=128",
+    "app-runtime-core.js?v=128",
+    "native-hls-capture.js?v=128",
+    "store.js?v=128",
+    "schedule.js?v=128",
+    "model-registry.js?v=128",
+    "skins.js?v=128",
+    "component-skins.js?v=128",
+    "engine.js?v=128",
+    "animation-scheduler.js?v=128",
+    "deck.js?v=128",
+    "ui-controls.js?v=128",
+    "records.json?v=128",
+    "bootstrap.js?v=128",
+    "app.js?v=128",
     "manifest.webmanifest",
     "icons/icon.svg",
     "icons/icon-192.png",
     "icons/icon-512.png",
     "icons/apple-touch-icon.png",
-    "images/side-speaker.jpg"
+    "images/side-speaker.webp"
 ];
 
 // 오프라인에서도 UI가 뜨도록 캐싱하는 CDN 라이브러리(버전 고정 = 불변).

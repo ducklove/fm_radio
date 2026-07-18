@@ -636,8 +636,8 @@ test.describe("데스크톱", () => {
         await page.evaluate(() => applyFocusMode(true));
         await expect(page.locator("#speakerL")).toBeVisible();
         await expect(page.locator("#speakerR")).toBeVisible();
-        await expect(page.locator("#speakerL")).toHaveAttribute("src", "images/side-speaker.jpg");
-        await expect(page.locator("#speakerR")).toHaveAttribute("src", "images/side-speaker.jpg");
+        await expect(page.locator("#speakerL")).toHaveAttribute("src", "images/side-speaker.webp");
+        await expect(page.locator("#speakerR")).toHaveAttribute("src", "images/side-speaker.webp");
         await expect(page.locator(".speaker-svg")).toHaveCount(0);
         await page.waitForTimeout(50);
         const speakers = await page.evaluate(() => {

@@ -500,7 +500,9 @@ body.mode-focus.focus-room .focus-speaker {
     max-height: 1200px;
     object-fit: contain;
     object-position: center bottom;
-    mix-blend-mode: lighten;
+    /* 블렌드 없음 — 사진 배경은 에셋(webp) 알파로 걷어냈다. lighten 블렌드는 합성
+       레이어의 톤 처리 차이(HDR 등)로 사진의 검은 상자가 바탕과 어긋나 보이게 했다. */
+    mix-blend-mode: normal;
     filter: none;
 }
 
