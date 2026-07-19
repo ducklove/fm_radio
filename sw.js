@@ -4,7 +4,7 @@
  * 네트워크로 그대로 통과시킨다 — 오디오 range 요청과 실시간성을 깨지 않기 위함.
  */
 const CACHE_PREFIX = "fm-radio-";
-const CACHE = "fm-radio-v134";
+const CACHE = "fm-radio-v135";
 // 일반 URL과 분리한 합성 키를 사용한다. manual.html 같은 다른 내비게이션 응답이
 // 오프라인 앱 셸을 덮어쓰지 못하게 하기 위함이다.
 const NAVIGATION_CACHE_KEY = new URL("__mfa_navigation_shell__", self.registration.scope).href;
@@ -16,27 +16,27 @@ const CORE = [
     "manual.html",
     "widget.html",
     "embed.html",
-    "styles.css?v=134",
-    "styles-foundation.css?v=134",
-    "styles-library.css?v=134",
-    "styles-schedule.css?v=134",
-    "styles-tape.css?v=134",
-    "stations.js?v=134",
-    "player-core.js?v=134",
-    "app-runtime-core.js?v=134",
-    "native-hls-capture.js?v=134",
-    "store.js?v=134",
-    "schedule.js?v=134",
-    "model-registry.js?v=134",
-    "skins.js?v=134",
-    "component-skins.js?v=134",
-    "engine.js?v=134",
-    "animation-scheduler.js?v=134",
-    "deck.js?v=134",
-    "ui-controls.js?v=134",
-    "records.json?v=134",
-    "bootstrap.js?v=134",
-    "app.js?v=134",
+    "styles.css?v=135",
+    "styles-foundation.css?v=135",
+    "styles-library.css?v=135",
+    "styles-schedule.css?v=135",
+    "styles-tape.css?v=135",
+    "stations.js?v=135",
+    "player-core.js?v=135",
+    "app-runtime-core.js?v=135",
+    "native-hls-capture.js?v=135",
+    "store.js?v=135",
+    "schedule.js?v=135",
+    "model-registry.js?v=135",
+    "skins.js?v=135",
+    "component-skins.js?v=135",
+    "engine.js?v=135",
+    "animation-scheduler.js?v=135",
+    "deck.js?v=135",
+    "ui-controls.js?v=135",
+    "records.json?v=135",
+    "bootstrap.js?v=135",
+    "app.js?v=135",
     "manifest.webmanifest",
     "icons/icon.svg",
     "icons/icon-192.png",
@@ -55,7 +55,7 @@ const CDN = [
 // 특정 셸에서만 쓰는 자산은 설치 실패를 유발하지 않게 best-effort로 캐싱한다.
 // 트레이 iframe이 오프라인으로 열릴 때는 캐시가 있으면 그대로 사용할 수 있다.
 const OPTIONAL = [
-    "tray-bridge.js?v=134"
+    "tray-bridge.js?v=135"
 ];
 
 const CORE_PATHS = new Set(CORE.map((asset) => new URL(asset, self.registration.scope).pathname));
