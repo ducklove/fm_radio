@@ -1,4 +1,4 @@
-# 하이파이 컴포넌트 SVG 레퍼런스 — v131
+# 하이파이 컴포넌트 SVG 레퍼런스 — v136
 
 현재 공개 카탈로그 20종과 단일 타이머 DT-540의 외형·조작 근거다. 사진과 설명서는
 비례, 재질, 계기와 대표 조작을 확인하는 용도로만 사용하며 원본 이미지를 배포 파일에
@@ -13,8 +13,8 @@ E-303 TRIBUTE를 포함해 실명을 쓰는 모델은 공개 사진과 설명서
 | 공개 모델 | 사진·자료 | SVG에 반영한 식별 포인트 |
 |---|---|---|
 | Yamaha T-2 | [HiFi Engine · 설명서/사양](https://www.hifiengine.com/manual_library/yamaha/t-2.shtml) | 70mm급 슬림 패널, 긴 아날로그 다이얼, 녹색 조명, 트윈 미터와 일렬 스위치 |
-| McIntosh MR78 | [McIntosh Compendium · MR78 자료](https://www.mcintoshcompendium.com/Compendium%20Docs/Tuners/PDFs/MR78.pdf) | 블랙 글라스, 균일한 블루 다이얼, FUNCTION/MULTIPATH·SIGNAL/TUNING 미터, PANLOC 형상과 NORMAL/NARROW/SUPER NARROW 선택도 |
-| Marantz Model 10B | [10B 사용 설명서](https://dadaelectronics.com.au/doc/Audio/Marantz/10B/Marantz_10B_Instruction_Manual.pdf) | 샴페인 골드, 세리프 레전드, CRT 튜닝 스코프와 롱 다이얼 |
+| McIntosh MR78 | [McIntosh Compendium · MR78 자료](https://www.mcintoshcompendium.com/Compendium%20Docs/Tuners/PDFs/MR78.pdf), [1977 Audio 실기 리뷰](http://www.gammaelectronics.xyz/audio_02-1977_mac.html) | 블랙 글라스, 균일한 블루 다이얼, FUNCTION/MULTIPATH·SIGNAL/TUNING 미터, PANLOC 형상과 NORMAL/NARROW/SUPER NARROW 선택도. **전원은 별도 스위치 없이 VOLUME 노브 통합**(반시계 끝 = OFF) — 리뷰에서 확인, 앱도 동일 문법 |
+| Marantz Model 10B | [10B 사용 설명서](https://dadaelectronics.com.au/doc/Audio/Marantz/10B/Marantz_10B_Instruction_Manual.pdf) | 샴페인 골드, 세리프 레전드, CRT 튜닝 스코프와 롱 다이얼. **전원은 OFF·ON·DIM 3위치**(DIM = 패널 조명 감광) — 설명서 확인, 앱은 3위치 순환으로 재현 |
 
 ## 그래픽 이퀄라이저 3종
 

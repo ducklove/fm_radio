@@ -24,7 +24,7 @@ module.exports = defineConfig({
             // Safari 경로 회귀 방지 — 예약·테이프와 Mac 전체 화면/DRAGON 기하를 WebKit으로 한 번 더
             name: "webkit",
             use: { browserName: "webkit" },
-            grep: /예약 녹음|예약 발화|테이프 보관함|테이프 가져오기|몰입 모드|DRAGON 릴 정렬|스코프된 하드웨어 필터|실물 정체성|프런트패널 소생/,
+            grep: /예약 녹음|예약 발화|테이프 보관함|테이프 가져오기|몰입 모드|DRAGON 릴 정렬|스코프된 하드웨어 필터|실물 정체성|프런트패널 소생|음반 장르/,
         },
     ],
     webServer: {

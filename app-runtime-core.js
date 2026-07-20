@@ -72,6 +72,208 @@ export function createPlaybackController(options) {
     return Object.freeze({ begin, bind, transition, isCurrent, acceptsMediaEvent, invalidate, inspect });
 }
 
+// ----- 음반 카탈로그 검색·연속 재생 코어 -----
+// UI 표현과 재생 엘리먼트에서 분리해, 수납장 검색과 랜덤 연속 재생이 같은
+// 장르·분위기 상속 규칙을 사용하도록 한다.
+export function normalizeCatalogText(value) {
+    return String(value == null ? "" : value)
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .normalize("NFC")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function catalogValues(value) {
+    const source = Array.isArray(value) ? value : [value];
+    const seen = new Set();
+    const values = [];
+    source.forEach((item) => {
+        const normalized = normalizeCatalogText(item);
+        if (!normalized || seen.has(normalized)) return;
+        seen.add(normalized);
+        values.push(normalized);
+    });
+    return values;
+}
+
+function ownCatalogTags(item, singular, plural) {
+    if (!item || typeof item !== "object") return [];
+    const pluralValues = catalogValues(item[plural]);
+    if (pluralValues.length) return pluralValues;
+    return catalogValues(item[singular]);
+}
+
+function inheritedCatalogTags(record, track, singular, plural) {
+    const trackValues = ownCatalogTags(track, singular, plural);
+    return trackValues.length ? trackValues : ownCatalogTags(record, singular, plural);
+}
+
+function pushSearchValues(target, value) {
+    if (Array.isArray(value)) {
+        value.forEach((item) => pushSearchValues(target, item));
+        return;
+    }
+    if (value != null && value !== "") target.push(value);
+}
+
+export function catalogSearchText(record, track) {
+    const rec = record && typeof record === "object" ? record : {};
+    const tr = track && typeof track === "object" ? track : {};
+    const genres = inheritedCatalogTags(rec, tr, "genre", "genres");
+    const moods = inheritedCatalogTags(rec, tr, "mood", "moods");
+    const values = [];
+
+    [
+        rec.id, rec.title, rec.artist, rec.composer, rec.performer,
+        rec.catalogNo, rec.bwv, rec.description, rec.credit,
+        rec.jTitle, rec.jSub1, rec.jSub2, rec.labelTitle, rec.labelArtist,
+        rec.genreLabel, rec.moodLabels, rec.tags,
+        tr.id, tr.title, tr.t, tr.artist, tr.composer, tr.performer,
+        tr.sourceArtist, tr.description, tr.genreLabel, tr.moodLabels, tr.tags,
+        genres, moods
+    ].forEach((value) => pushSearchValues(values, value));
+
+    return normalizeCatalogText(values.join(" "));
+}
+
+export function catalogTrackMetadata(record, track) {
+    const genres = inheritedCatalogTags(record, track, "genre", "genres");
+    const moods = inheritedCatalogTags(record, track, "mood", "moods");
+    return Object.freeze({
+        genre: genres[0] || "",
+        genres: Object.freeze(genres.slice()),
+        mood: moods[0] || "",
+        moods: Object.freeze(moods.slice()),
+        searchText: catalogSearchText(record, track)
+    });
+}
+
+export function catalogTrackKey(record, track, recordIndex, trackIndex) {
+    const recordId = record && record.id != null && String(record.id).trim()
+        ? String(record.id).trim()
+        : `record-${recordIndex}`;
+    const trackId = track && track.id != null && String(track.id).trim()
+        ? String(track.id).trim()
+        : `track-${trackIndex}`;
+    return `${recordId}:${trackId}`;
+}
+
+function selectedCatalogTags(value) {
+    return catalogValues(value).filter((tag) => tag !== "all" && tag !== "*");
+}
+
+function matchesAnyTag(actual, selected) {
+    return selected.length === 0 || selected.some((tag) => actual.includes(tag));
+}
+
+export function filterCatalogTracks(records, filters) {
+    const source = Array.isArray(records) ? records : [];
+    const options = filters || {};
+    const selectedGenres = selectedCatalogTags(options.genres != null ? options.genres : options.genre);
+    const selectedMoods = selectedCatalogTags(options.moods != null ? options.moods : options.mood);
+    const query = normalizeCatalogText(options.query);
+    const candidates = [];
+
+    source.forEach((record, recordIndex) => {
+        if (!record || !Array.isArray(record.tracks)) return;
+        record.tracks.forEach((track, trackIndex) => {
+            if (!track || typeof track !== "object") return;
+            const metadata = catalogTrackMetadata(record, track);
+            // 같은 분류 안에서는 하나라도 일치, 분류 사이는 장르 AND 분위기로 결합한다.
+            if (!matchesAnyTag(metadata.genres, selectedGenres)
+                || !matchesAnyTag(metadata.moods, selectedMoods)
+                || (query && !metadata.searchText.includes(query))) return;
+            candidates.push(Object.freeze({
+                record,
+                track,
+                recordIndex,
+                trackIndex,
+                key: catalogTrackKey(record, track, recordIndex, trackIndex),
+                genre: metadata.genre,
+                genres: metadata.genres,
+                mood: metadata.mood,
+                moods: metadata.moods,
+                searchText: metadata.searchText
+            }));
+        });
+    });
+
+    return candidates;
+}
+
+function defaultCandidateKey(candidate, index) {
+    if (candidate && candidate.key != null) return String(candidate.key);
+    return `candidate-${index}`;
+}
+
+export function createCatalogShuffleBag(candidates, options) {
+    const config = options || {};
+    const random = typeof config.random === "function" ? config.random : Math.random;
+    const keyOf = typeof config.keyOf === "function" ? config.keyOf : defaultCandidateKey;
+    let source = [];
+    let bag = [];
+    let lastKey = config.lastKey == null ? "" : String(config.lastKey);
+
+    function setSource(nextCandidates) {
+        const seen = new Set();
+        source = [];
+        (Array.isArray(nextCandidates) ? nextCandidates : []).forEach((candidate, index) => {
+            const key = String(keyOf(candidate, index));
+            if (seen.has(key)) return;
+            seen.add(key);
+            source.push({ candidate, key });
+        });
+    }
+
+    function randomIndex(length) {
+        const value = Number(random());
+        const unit = Number.isFinite(value) ? Math.max(0, Math.min(0.9999999999999999, value)) : 0;
+        return Math.floor(unit * length);
+    }
+
+    function refill() {
+        bag = source.slice();
+        for (let i = bag.length - 1; i > 0; i -= 1) {
+            const j = randomIndex(i + 1);
+            [bag[i], bag[j]] = [bag[j], bag[i]];
+        }
+        // 새 bag의 첫 곡이 직전 곡과 같으면, 가능한 다른 곡과 자리를 바꾼다.
+        if (bag.length > 1 && bag[0].key === lastKey) {
+            const replacement = bag.findIndex((entry, index) => index > 0 && entry.key !== lastKey);
+            if (replacement > 0) [bag[0], bag[replacement]] = [bag[replacement], bag[0]];
+        }
+    }
+
+    function next() {
+        if (!bag.length) refill();
+        if (!bag.length) return null;
+        const entry = bag.shift();
+        lastKey = entry.key;
+        return entry.candidate;
+    }
+
+    function reset(nextCandidates, nextLastKey) {
+        if (arguments.length > 0) setSource(nextCandidates);
+        if (arguments.length > 1) lastKey = nextLastKey == null ? "" : String(nextLastKey);
+        refill();
+        return api;
+    }
+
+    const api = Object.freeze({
+        next,
+        reset,
+        get size() { return source.length; },
+        get remaining() { return bag.length; },
+        get lastKey() { return lastKey; }
+    });
+
+    setSource(candidates);
+    refill();
+    return api;
+}
+
 export function ymdToDate(ymd) {
     return new Date(
         parseInt(ymd.slice(0, 4), 10),

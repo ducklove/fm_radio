@@ -53,13 +53,212 @@ test.describe("데스크톱", () => {
     test("음반 카탈로그 JSON 로드·기본 형식 검증", async ({ page }) => {
         const catalog = await page.evaluate(() => ({
             count: window.MFA_RECORDS.length,
+            tracks: window.MFA_RECORDS.reduce((sum, record) => sum + record.tracks.length, 0),
             valid: window.MFA_RECORDS.every((record) =>
-                record.title && record.composer && record.performer && record.credit &&
+                record.id && record.title && record.artist && record.composer && record.performer &&
+                record.genre && Array.isArray(record.moods) && record.moods.length && record.credit &&
                 Array.isArray(record.tracks) && record.tracks.length > 0 &&
-                record.tracks.every((track) => track.t && track.f)),
+                record.tracks.every((track) => track.id && track.t && track.f)),
         }));
-        expect(catalog.count).toBeGreaterThanOrEqual(58);
+        expect(catalog.count).toBeGreaterThanOrEqual(88);
+        expect(catalog.tracks).toBeGreaterThanOrEqual(515);
         expect(catalog.valid).toBe(true);
+    });
+
+    test("640px 음반 수납장: 툴바·패널·문서 가로 오버플로 없음", async ({ page }) => {
+        await page.setViewportSize({ width: 640, height: 900 });
+        await page.click("#headerCrateBtn");
+        await expect(page.locator("#crateOverlay")).toBeVisible();
+
+        const overflow = await page.evaluate(() => {
+            const root = document.documentElement;
+            const panel = document.querySelector("#crateOverlay .crate-panel");
+            const toolbar = document.querySelector("#crateOverlay .crate-toolbar");
+            const panelRect = panel.getBoundingClientRect();
+            return {
+                document: root.scrollWidth - root.clientWidth,
+                panel: panel.scrollWidth - panel.clientWidth,
+                toolbar: toolbar.scrollWidth - toolbar.clientWidth,
+                leftEdge: Math.max(0, -panelRect.left),
+                rightEdge: Math.max(0, panelRect.right - window.innerWidth),
+            };
+        });
+        for (const [part, pixels] of Object.entries(overflow)) {
+            expect(pixels, `${part} 가로 오버플로`).toBeLessThanOrEqual(1);
+        }
+    });
+
+    test("음반 장르·분위기 검색 → 검색 조건 유지·셔플백 경합 방지·라디오 전환", async ({ page }) => {
+        await page.route("https://upload.wikimedia.org/**", (route) =>
+            route.fulfill({
+                body: makeWav(30),
+                contentType: "audio/wav",
+                headers: { "Access-Control-Allow-Origin": "*" }
+            }));
+
+        await page.click("#headerCrateBtn");
+        await expect(page.locator("#crateOverlay")).toBeVisible();
+        await expect(page.locator("#crateGenre option", { hasText: "재즈" })).toHaveCount(1);
+        await expect(page.locator("#crateMood option", { hasText: "카페" })).toHaveCount(1);
+
+        await page.selectOption("#crateGenre", { label: "재즈" });
+        await page.selectOption("#crateMood", { label: "카페" });
+
+        const filteredPool = await page.evaluate(() => filteredCatalogTracks(currentCrateFilters()).length);
+        expect(filteredPool, "재즈·카페 전체 셔플 풀").toBe(24);
+        await expect(page.locator("#crateMixStatus")).toContainText("24곡");
+
+        // 전체 수치에 결합하지 않고, 검색어가 실제 트랙 검색 텍스트와 일치하는지 검증한다.
+        await page.fill("#crateSearch", "Airport Lounge");
+        const searchResult = await page.evaluate(() => {
+            const filters = currentCrateFilters();
+            const query = window.MFA_RUNTIME_CORE.normalizeCatalogText(filters.query);
+            const candidates = filteredCatalogTracks(filters);
+            return {
+                tracks: candidates.length,
+                records: new Set(candidates.map((candidate) => candidate.recordIndex)).size,
+                semanticMatch: candidates.every((candidate) =>
+                    window.MFA_RUNTIME_CORE.catalogSearchText(candidate.record, candidate.track).includes(query)),
+            };
+        });
+        expect(searchResult.tracks).toBeGreaterThan(0);
+        expect(searchResult.tracks).toBeLessThan(filteredPool);
+        expect(searchResult.semanticMatch).toBe(true);
+        await expect(page.locator("#crateGrid .crate-jacket")).toHaveCount(searchResult.records);
+        await expect(page.locator("#crateCount")).toHaveText(
+            new RegExp(`^${searchResult.records} / \\d+장 · ${searchResult.tracks}곡$`));
+
+        // 활성 검색어도 믹스 조건의 일부다. 'Jazz'는 현재 재즈·카페 24곡 모두와
+        // 의미상 일치하므로 셔플백 크기를 유지하면서 검색어 복원까지 검증할 수 있다.
+        const activeQuery = "Jazz";
+        await page.fill("#crateSearch", activeQuery);
+        const activePreview = await page.evaluate(() => {
+            const candidates = filteredCatalogTracks(currentCrateFilters());
+            return {
+                tracks: candidates.length,
+                records: new Set(candidates.map((candidate) => candidate.recordIndex)).size,
+            };
+        });
+        expect(activePreview.tracks).toBe(filteredPool);
+
+        await page.click("#crateMixBtn");
+        await page.waitForFunction(() => libraryMix.active && phonoActive && libraryMix.currentKey && isPlaying,
+            null, { timeout: 15000 });
+        const first = await page.evaluate(() => ({
+            key: libraryMix.currentKey,
+            genre: catalogTrackMetadata(RECORD, RECORD.tracks[phonoTrack]).genre,
+            moods: [...catalogTrackMetadata(RECORD, RECORD.tracks[phonoTrack]).moods],
+            pool: libraryMix.candidates.length,
+            unique: new Set(libraryMix.candidates.map((candidate) => candidate.key)).size,
+            query: libraryMix.query,
+        }));
+        expect(first.genre).toBe("재즈");
+        expect(first.moods).toContain("카페");
+        expect(first.pool).toBe(filteredPool);
+        expect(first.unique).toBe(first.pool);
+        expect(first.query).toBe(activeQuery);
+
+        // 재생 중 수납장을 다시 열어도 활성 검색어와 필터 결과가 초기화되지 않는다.
+        await page.click("#headerCrateBtn");
+        await expect(page.locator("#crateOverlay")).toBeVisible();
+        await expect(page.locator("#crateSearch")).toHaveValue(activeQuery);
+        await expect(page.locator("#crateGenre")).toHaveValue("재즈");
+        await expect(page.locator("#crateMood")).toHaveValue("카페");
+        await expect(page.locator("#crateCount")).toHaveText(
+            new RegExp(`^${activePreview.records} / \\d+장 · ${first.pool}곡$`));
+        const reopened = await page.evaluate(() => ({
+            query: document.getElementById("crateSearch").value,
+            filtered: filteredCatalogTracks(currentCrateFilters()).length,
+            chipHidden: document.getElementById("libraryMixChip").hidden,
+            chipText: document.getElementById("libraryMixChip").textContent,
+        }));
+        expect(reopened.query).toBe(first.query);
+        expect(reopened.filtered).toBe(first.pool);
+        expect(reopened.chipHidden).toBe(false);
+        expect(reopened.chipText).toMatch(/재즈.*카페/);
+        await page.keyboard.press("Escape");
+
+        await page.evaluate(() => audio.dispatchEvent(new Event("ended")));
+        await page.waitForFunction((previous) => libraryMix.currentKey !== previous && isPlaying, first.key,
+            { timeout: 15000 });
+        const second = await page.evaluate(() => libraryMix.currentKey);
+        expect(second).not.toBe(first.key);
+
+        // 오류 건너뛰기 타이머(650ms)가 예약된 직후 ended가 와도 즉시 한 번만
+        // 진행해야 한다. 예약 타이머가 나중에 새 곡까지 한 곡 더 건너뛰면 회귀다.
+        await page.evaluate(() => {
+            handleLibraryMixFailure();
+            audio.dispatchEvent(new Event("ended"));
+        });
+        await page.waitForFunction((previous) => libraryMix.active && libraryMix.currentKey !== previous && isPlaying,
+            second, { timeout: 5000 });
+        const afterRace = await page.evaluate(() => libraryMix.currentKey);
+        expect(await page.evaluate((key) => libraryMix.failed.has(key), second)).toBe(true);
+        await page.waitForTimeout(900);
+        expect(await page.evaluate(() => libraryMix.currentKey), "오류 예약 타이머가 새 곡을 이중 건너뛰지 않음")
+            .toBe(afterRace);
+
+        // 브라우저가 파일 형식을 거부하는 실제 play() Promise 경로도 같은 복구 규칙을
+        // 따른다. 인스턴스 오버라이드는 첫 호출 안에서 즉시 지워 이후 곡에는 영향을 주지 않는다.
+        const rejectedPlay = await page.evaluate(() => {
+            const previousKey = libraryMix.currentKey;
+            let calls = 0;
+            Object.defineProperty(audio, "play", {
+                configurable: true,
+                value() {
+                    calls++;
+                    delete audio.play;
+                    return Promise.reject(new DOMException("지원하지 않는 테스트 음원", "NotSupportedError"));
+                },
+            });
+            stepPlayback(1);
+            return {
+                previousKey,
+                rejectedKey: libraryMix.currentKey,
+                calls,
+                restored: !Object.prototype.hasOwnProperty.call(audio, "play"),
+            };
+        });
+        expect(rejectedPlay.calls, "NotSupportedError 주입은 정확히 한 번").toBe(1);
+        expect(rejectedPlay.restored, "audio.play 인스턴스 오버라이드 제거").toBe(true);
+        expect(rejectedPlay.rejectedKey).not.toBe(rejectedPlay.previousKey);
+        await page.waitForFunction((key) => libraryMix.active && libraryMix.failed.has(key),
+            rejectedPlay.rejectedKey, { timeout: 2000 });
+        await page.waitForFunction((key) => libraryMix.active && libraryMix.currentKey !== key
+            && isPlaying && !audio.paused && audio.currentTime > 0.05,
+            rejectedPlay.rejectedKey, { timeout: 5000 });
+        const rejectionRecovery = await page.evaluate((key) => ({
+            failed: libraryMix.failed.has(key),
+            nextKey: libraryMix.currentKey,
+            active: libraryMix.active,
+            playing: isPlaying && !audio.paused,
+            source: window.MFA_PlaybackController.inspect().source,
+            playRestored: !Object.prototype.hasOwnProperty.call(audio, "play"),
+        }), rejectedPlay.rejectedKey);
+        expect(rejectionRecovery.nextKey).not.toBe(rejectedPlay.rejectedKey);
+        expect({ ...rejectionRecovery, nextKey: "advanced" }).toEqual({
+            failed: true,
+            nextKey: "advanced",
+            active: true,
+            playing: true,
+            source: "phono",
+            playRestored: true,
+        });
+
+        // 사용자가 방송국을 고르면 영구 대기하지 않고 무한 모드를 해제해 라디오로 전환한다.
+        const stationId = await page.evaluate(() => window.FMRadio.stations[0].id);
+        await page.evaluate((id) => selectStation(id), stationId);
+        await page.waitForFunction((id) => {
+            const playback = window.MFA_PlaybackController.inspect();
+            return !libraryMix.active && !phonoActive && currentStation && currentStation.id === id
+                && playback.source === "radio";
+        }, stationId);
+        expect(await page.evaluate(() => ({
+            libraryMix: libraryMix.active,
+            phono: phonoActive,
+            source: window.MFA_PlaybackController.inspect().source,
+        }))).toEqual({ libraryMix: false, phono: false, source: "radio" });
+        await expect(page.locator("#libraryMixChip")).toBeHidden();
     });
 
     test("RF 스위치로 채널 목록 열기 → 전 채널 렌더링", async ({ page }) => {
@@ -68,6 +267,44 @@ test.describe("데스크톱", () => {
         const count = await page.locator(".station").count();
         const expected = await page.evaluate(() => window.FMRadio.stations.length);
         expect(count).toBe(expected);
+    });
+
+    test("유닛 전원 문법: 첫 설치는 꺼진 랙 → 튜너 POWER 한 번에 93.1, 앰프는 독립 게이트", async ({ page }) => {
+        // 진짜 첫 설치 상태 — 픽스처 init 스크립트는 키가 있으면 건드리지 않으므로
+        // 삭제가 아니라 '전부 꺼짐'을 명시해 재시드를 막는다
+        await page.evaluate(() => {
+            localStorage.setItem("fmRadio.unitPower", JSON.stringify({ tuner: false, amp: false, deck: false }));
+            ["fmRadio.lastStation", "fmRadio.coachDone"].forEach((k) => localStorage.removeItem(k));
+        });
+        await page.reload();
+        await waitForMainApp(page);
+
+        // 첫 설치: 전 유닛 소등 (스테이지 dim 필터)
+        expect(await page.evaluate(() => JSON.parse(JSON.stringify(unitPower))))
+            .toEqual({ tuner: false, amp: false, deck: false });
+        expect(await page.evaluate(() => document.querySelector("#tunerStage svg").style.filter)).toContain("brightness");
+
+        // 튜너 POWER 한 번 → 기본 93.1 KBS 1FM 선국, 앰프는 여전히 OFF (독립)
+        await page.click("#tsPowerHit");
+        await expect.poll(() => page.evaluate(() => currentStation && currentStation.id)).toBe("kbs1fm");
+        expect(await page.evaluate(() => ({ t: unitPower.tuner, a: unitPower.amp })))
+            .toEqual({ t: true, a: false });
+
+        // 데크 가드: 전원 꺼진 데크는 PLAY를 거부한다
+        await page.evaluate(() => deckPlay());
+        expect(await page.evaluate(() => playerSubtext.textContent)).toContain("데크 전원이 꺼져");
+
+        // 리모컨 문법: 정지 상태에서 togglePlay → 앰프·튜너 자동 점화
+        await page.evaluate(() => { if (isPlaying) togglePlay(); });
+        await page.evaluate(() => { unitPower.tuner = false; unitPower.amp = false; saveUnitPower(); paintUnitPower(); });
+        await page.evaluate(() => togglePlay());
+        await expect.poll(() => page.evaluate(() => unitPower.amp && unitPower.tuner)).toBe(true);
+
+        // 전원 상태 영속: 리로드 후 복원
+        await page.reload();
+        await waitForMainApp(page);
+        expect(await page.evaluate(() => ({ t: unitPower.tuner, a: unitPower.amp })))
+            .toEqual({ t: true, a: true });
     });
 
     test("최초 방문: 재생 버튼 한 번으로 기본 채널 연결", async ({ page }) => {
@@ -112,7 +349,7 @@ test.describe("데스크톱", () => {
         }, null, { timeout: 15000 });
     });
 
-    test("튜너 전원 스위치 = 정지/재생 토글", async ({ page }) => {
+    test("튜너 POWER: 끄면 수신 정지, 켜면 재연결 (유닛 전원)", async ({ page }) => {
         await page.click("#tsRfHit");
         await page.locator("#kbsList .station").first().click();
         await page.waitForFunction(() => !document.getElementById("audioPlayer").paused, null, { timeout: 15000 });
@@ -158,10 +395,10 @@ test.describe("데스크톱", () => {
             await expect(page.locator(`#${id} svg`)).toHaveCount(1);
         }
         await page.click('button:has-text("오디오 구성")');
-        await expect(page.locator("#rackPresetPicker .skin-btn")).toHaveCount(3);
+        await expect(page.locator("#rackPresetPicker .skin-btn")).toHaveCount(4);   // 실버 풀세트 추가 (v131)
         await expect(page.locator("#skinPicker .skin-btn")).toHaveCount(4);
         await expect(page.locator("#timerPicker .skin-btn")).toHaveCount(3);
-        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(3);
+        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(4);   // EQ 3종 + 숨김 필 (v131 SH-8065)
         await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(5);
@@ -176,23 +413,23 @@ test.describe("데스크톱", () => {
         await waitForMainApp(page);
 
         await page.click('button:has-text("오디오 구성")');
-        await expect(page.locator("#rackPresetPicker .skin-btn")).toHaveCount(3);
+        await expect(page.locator("#rackPresetPicker .skin-btn")).toHaveCount(4);   // 실버 풀세트 추가 (v131)
         await expect(page.locator("#skinPicker .skin-btn")).toHaveCount(4);
         await expect(page.locator("#timerPicker .skin-btn")).toHaveCount(3);
-        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(3);
+        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(4);   // EQ 3종 + 숨김 필 (v131 SH-8065)
         await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(5);
         expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fmRadio.reservations")))).toEqual([]);
     });
 
-    test("실물 정체성 선별 19종: 피커 등록·기기군별 스킨 전환", async ({ page }) => {
+    test("실물 정체성 선별 20종: 피커 등록·기기군별 스킨 전환", async ({ page }) => {
         await page.click('button:has-text("오디오 구성")');
         await expect(page.locator("#skinPicker .skin-btn")).toHaveCount(4);
         await expect(page.locator("#ampPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#deckPicker .skin-btn")).toHaveCount(6);
         await expect(page.locator("#ttPicker .skin-btn")).toHaveCount(5);
-        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(3);
+        await expect(page.locator("#eqPicker .skin-btn")).toHaveCount(4);   // EQ 3종 + 숨김 필 (v131 SH-8065)
 
         await page.locator('#skinPicker .skin-btn', { hasText: "Marantz 10B" }).click();
         await expect(page.locator('#tunerStage svg[aria-label*="Marantz Model 10B"]')).toHaveCount(1);
@@ -1823,7 +2060,7 @@ test.describe("모바일 컨트롤 바", () => {
         await page.waitForFunction(() => typeof window.Hls !== "undefined");
 
         await expect(page.locator(".player-bar")).toBeVisible();
-        await page.locator('button[aria-label="다음 채널"]').click();
+        await page.locator('button[aria-label="다음 채널 또는 곡"]').click();
         await expect(page.locator("#nowStation")).toHaveText("KBS 1FM");
         await page.waitForFunction(() => {
             const a = document.getElementById("audioPlayer");

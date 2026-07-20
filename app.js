@@ -11,7 +11,10 @@ const {
     recFileExtension,
     recordingFileInfo,
     ymdToDate,
-    ReservationSchedule
+    ReservationSchedule,
+    catalogTrackMetadata,
+    filterCatalogTracks,
+    createCatalogShuffleBag
 } = runtimeCore;
 // 타이머의 첫 paint는 파일 하단의 예약 UI 초기화보다 먼저 실행된다. 실행 엔진 바인딩을
 // 여기서 확정해, 저장된 활성 예약이 있어도 TDZ에 걸리지 않게 한다.
@@ -463,8 +466,18 @@ function tuneRelease(freq) {
         playEasterEgg();
         return;
     }
-    selectStation(nearestStation(freq).id);
+    const station = nearestStation(freq);
+    // 전원 꺼진 튜너 — 다이얼은 기계식이라 움직이지만 수신은 없다. 안착 위치만 기억해 두고,
+    // POWER를 켜는 순간 그 채널로 연결한다.
+    if (!unitOn("tuner")) {
+        tunerOffTuned = station;
+        tunerSetStation(station);
+        fpNote("튜너 전원이 꺼져 있습니다 — POWER를 켜면 " + station.name + "에 연결합니다.");
+        return;
+    }
+    selectStation(station.id, true);
 }
+let tunerOffTuned = null;   // 전원 꺼진 상태에서 다이얼로 맞춰 둔 채널
 
 function nearestStation(freq) {
     return stations.reduce((a, b) => Math.abs(b.freq - freq) < Math.abs(a.freq - freq) ? b : a);
@@ -605,22 +618,34 @@ function tsSyncPanel() {
     const recOn = !!recorder;
     const timerOn = sleepIndex > 0;
     const listOpen = !document.getElementById("stationMain").classList.contains("collapsed");
-    const state = [isPlaying, !!currentStation, recOn, blendOn, monoOn, audio.muted, timerOn, listOpen].join(",");
+    const tunerPowered = unitOn("tuner");
+    const state = [isPlaying, !!currentStation, recOn, blendOn, monoOn, audio.muted, timerOn, listOpen, tunerPowered, tunerDim].join(",");
     if (state === tsPanelState) return;
     tsPanelState = state;
 
-    // POWER: T-2 로커는 상/하 색 반전, 그 외 스킨은 액추에이터 이동
+    // POWER: T-2 로커는 상/하 색 반전, 그 외 스킨은 액추에이터 이동 — 유닛 전원 상태를 따른다
     const pwrTop = document.getElementById("tsPwrTop");
     const pwrBot = document.getElementById("tsPwrBot");
     if (pwrTop && pwrBot) {
-        pwrTop.setAttribute("fill", isPlaying ? "#54525a" : "#1c1a20");
-        pwrBot.setAttribute("fill", isPlaying ? "#1c1a20" : "#54525a");
+        pwrTop.setAttribute("fill", tunerPowered ? "#54525a" : "#1c1a20");
+        pwrBot.setAttribute("fill", tunerPowered ? "#1c1a20" : "#54525a");
     }
     const setSw = (id, down) => {
         const el = document.getElementById(id);
         if (el) el.setAttribute("transform", down ? "translate(0," + tunerCfg.swTravel + ")" : "translate(0,0)");
     };
-    setSw("tsSwPwr", isPlaying);
+    // 전원 액추에이터: MR78=VOLUME 노브 통합(반시계 끝=OFF), 10B=OFF·ON·DIM 3위치 노브, 그 외=레버
+    const pwrKnob = document.getElementById("tsSwPwr");
+    if (pwrKnob) {
+        if (tunerSkinId === "mr78") {
+            pwrKnob.setAttribute("transform", tunerPowered ? "rotate(0 1580 532)" : "rotate(-58 1580 532)");
+        } else if (tunerSkinId === "m10b") {
+            const deg = !tunerPowered ? -58 : tunerDim ? 58 : 0;
+            pwrKnob.setAttribute("transform", "rotate(" + deg + " 1520 517)");
+        } else {
+            setSw("tsSwPwr", tunerPowered);
+        }
+    }
     setSw("tsSwRec", recOn);
     setSw("tsSwBlend", blendOn);
     setSw("tsSwMode", monoOn);
@@ -746,7 +771,7 @@ function bindTunerControls() {
     dial.addEventListener("keydown", stepByKey);
     knob.addEventListener("keydown", stepByKey);
 
-    on("tsPowerHit", () => { if (currentStation) togglePlay(); });
+    on("tsPowerHit", () => tunerPowerToggle());
     // 녹음 실행은 카세트 데크 전담 — 튜너의 REC 스위치는 편성표·예약 녹음 입구다
     // (스위치 시각 상태는 tsSyncPanel이 녹음 중 표시로 계속 쓴다)
     on("tsRecHit", () => openSchedule());
@@ -2303,7 +2328,11 @@ const FP_PCT = (v) => Math.round(v * 100) + "%";
 function bindAmpFrontPanel() {
     const svg = document.querySelector("#ampStage svg");
     if (!svg) return;
-    const power = (x, y, w, h) => fpButton(svg, x, y, w, h, "전원", "POWER — 시스템 재생/정지", () => togglePlay());
+    const power = (x, y, w, h) => {
+        ampPowerBox = [x, y, w, h];   // 코치마크용 — 모델별 전원 위치
+        return fpButton(svg, x, y, w, h, "앰프 전원", "POWER — 앰프 전원 (스피커 관문)", ampPowerToggle);
+    };
+    ampPowerBox = ampModelId === "e303" ? [210, 590, 70, 34] : null;
     const phones = (cx, cy) => fpButton(svg, cx - 22, cy - 22, 44, 44, "헤드폰 단자", "PHONES — 단자는 장식이지만, 실물이라면 여기 꽂았을 겁니다", () =>
         fpNote("PHONES — 헤드폰을 꽂으면 스피커가 죽는 단자입니다. 브라우저에서는 시스템 볼륨이 그 역할을 합니다."));
     if (ampModelId === "mc2105") {
@@ -2350,7 +2379,7 @@ function bindAmpFrontPanel() {
         [["phono", "DISC 1", "e303InputDisc1"], ["phono", "DISC 2", "e303InputDisc2"], ["radio", "TUNER", "e303InputTuner"], ["aux", "AUX", "e303InputAux"], ["tape", "TAPE", "e303InputTape"]].forEach(([source, label, id]) => {
             fpButtonFromPart(svg, id, "입력 " + label, label + " 입력 선택", () => fpSourceSelect(source), 6);
         });
-        fpButtonFromPart(svg, "e303PowerButton", "전원", "POWER — 시스템 재생/정지", () => togglePlay(), 7);
+        fpButtonFromPart(svg, "e303PowerButton", "앰프 전원", "POWER — 앰프 전원 (스피커 관문)", ampPowerToggle, 7);
         phones(350, 608);
     } else if (ampModelId === "ma2375") {
         [720, 860, 1000, 1140, 1280].forEach((cx, i) => {
@@ -2364,6 +2393,7 @@ function bindAmpFrontPanel() {
         power(1458, 680, 64, 62);
         phones(540, 707);
     }
+    paintUnitPower();   // 모델 교체 후에도 전원 상태 표시 유지
 }
 
 // MR78 우측 PANLOC — 실물의 랙 패널록을 몰입 모드(전체 화면) 잠금으로 해석한다
@@ -2373,6 +2403,7 @@ function bindTunerFrontPanel() {
     if (loadJson("fmRadio.skin", "mr78") === "mr78" && typeof tunerCfg !== "undefined") {
         fpButton(svg, 1862, 522, 68, 68, "패널록", "PANLOC — 패널을 잠그고 랙만 남깁니다 (몰입 모드, ESC 복귀)", () => toggleFocusMode());
     }
+    paintUnitPower();   // 스킨 교체 후에도 전원 상태 표시 유지
 }
 
 // GE-5·SE-9 POWER 로커 — DEFEAT와 별개로 회로 전체를 끊고 패널을 재운다
@@ -2427,6 +2458,108 @@ function bindEqFrontPanel() {
     ["pointerup", "pointercancel"].forEach((n) => hit.addEventListener(n, () => { drag = false; }));
     svgButtonize(hit, "SPATIAL 스테레오 폭");
     paintCap();
+}
+
+// ===== 유닛 전원 문법 — 실물처럼 기기를 각각 켠다 =====
+// 앰프 = 스피커 관문(마스터), 튜너 = 수신, 데크 = 트랜스포트. 랙(본체)에서만 적용되고,
+// 목록·헤더·미디어세션·트레이 같은 '리모컨' 경로는 필요한 유닛을 자동 점화한다.
+let ampGatePaused = false;   // WebKit(그래프 없음)에서 앰프 게이트로 잠시 멈춘 상태
+let ampPowerBox = null;      // 현재 앰프 모델의 전원 버튼 좌표 — 코치마크가 쓴다
+
+function paintUnitPower() {
+    const dim = (stageId, on) => {
+        const svg = document.querySelector("#" + stageId + " svg");
+        if (svg) svg.style.filter = on ? "" : "brightness(0.55) saturate(0.6)";
+    };
+    dim("tunerStage", unitOn("tuner"));
+    dim("ampStage", unitOn("amp"));
+    dim("deckStage", unitOn("deck"));
+    tsPanelState = "";           // 전원 액추에이터·LED 즉시 갱신
+    if (typeof tsSyncPanel === "function" && tunerCfg) tsSyncPanel();
+}
+
+// WebKit 폴백: Web Audio 게이트가 없어 요소 자체를 세운다 (iOS는 volume 대입이 무시되므로)
+function applyAmpPowerGate() {
+    if (gainNode) { applyGainStaging(); return; }
+    if (!unitOn("amp")) {
+        if (!audio.paused) { ampGatePaused = true; audio.pause(); }
+    } else if (ampGatePaused) {
+        ampGatePaused = false;
+        if (streamLoaded || phonoActive || deckMode === "play") audio.play().catch(() => {});
+    }
+}
+
+function ampPowerToggle() {
+    unitPower.amp = !unitPower.amp;
+    saveUnitPower();
+    applyAmpPowerGate();
+    fpNote(unitPower.amp
+        ? "AMPLIFIER ON — 스피커가 연결됐습니다."
+        : "AMPLIFIER OFF — 스피커가 끊겼습니다 (소스·녹음은 그대로 흐릅니다).");
+    paintUnitPower();
+}
+
+function setTunerPower(on) {
+    unitPower.tuner = on;
+    saveUnitPower();
+    if (on) {
+        tunerDim = false;
+        // 다이얼로 맞춰 둔 채널 > 직전 채널 > 첫 설치 기본 93.1 KBS 1FM(stations[0])
+        const preferred = tunerOffTuned;
+        tunerOffTuned = null;
+        if (preferred || !currentStation) {
+            const lastId = loadJson("fmRadio.lastStation", null);
+            const station = preferred || stations.find((s) => s.id === lastId) || stations[0];
+            if (station) selectStation(station.id, true);
+        } else if (!isPlaying && !phonoActive && deckMode !== "play") {
+            selectStation(currentStation.id, true);   // 물리 경로 — 앰프는 건드리지 않는다
+        }
+        if (!unitOn("amp")) fpNote("TUNER ON — 수신을 시작합니다. 앰프 전원을 켜면 소리가 납니다.");
+    } else {
+        // isPlaying 플래그는 'playing' 이벤트 뒤에 서므로, 재생 직후엔 audio.paused로도 판정한다
+        // (media의 실제 재생이 playing 이벤트보다 먼저 관측되는 레이스 — togglePlay와 같은 처리)
+        if (currentStation && !phonoActive && deckMode !== "play" && (isPlaying || !audio.paused)) stopPlay();
+        fpNote("TUNER OFF");
+    }
+    paintUnitPower();
+}
+
+function tunerPowerToggle() {
+    if (tunerSkinId === "m10b") return m10bPowerCycle();
+    setTunerPower(!unitPower.tuner);
+}
+
+// 10B 실물 전원은 OFF·ON·DIM 3위치 — DIM은 패널 조명 감광 (세션 한정)
+let tunerDim = false;
+function m10bPowerCycle() {
+    if (!unitPower.tuner) { setTunerPower(true); }
+    else if (!tunerDim) { tunerDim = true; fpNote("POWER DIM — 패널 조명을 낮춥니다 (심야 청취)."); paintUnitPower(); }
+    else { tunerDim = false; setTunerPower(false); }
+}
+
+function deckPowerToggle() {
+    unitPower.deck = !unitPower.deck;
+    saveUnitPower();
+    if (!unitPower.deck) {
+        if (deckMode !== "stop") deckStopTransport();
+        if (recorder && !recOnB) stopRecording();   // 예약(B웰)은 타이머 아웃렛 관할 — 건드리지 않는다
+        fpNote("DECK OFF");
+    } else {
+        fpNote("DECK ON — 트랜스포트가 준비됐습니다.");
+    }
+    paintUnitPower();
+}
+
+// 리모컨 문법 — 재생 명령이 오면 실물 리모컨의 파워온-플레이처럼 필요한 유닛을 켠다
+function powerOnForListening() {
+    let changed = false;
+    if (!unitPower.amp) { unitPower.amp = true; changed = true; }
+    if (!phonoActive && deckMode !== "play" && !unitPower.tuner) { unitPower.tuner = true; changed = true; }
+    if (changed) {
+        saveUnitPower();
+        applyAmpPowerGate();
+        paintUnitPower();
+    }
 }
 
 // 턴테이블 잔여 조작 — SL-1200 플린스 START·STOP, TD124 미세 속도, LP12 33/45 노브
@@ -2560,8 +2693,13 @@ function renderAmpPicker() {
 
 // ----- 턴테이블 — 실물 고유 구동계와 조작계 재현 -----
 const PHONO_BASE = "https://upload.wikimedia.org/wikipedia/commons/";
-// 클래식 녹음은 방송 스트림보다 레벨이 낮아 포노 재생 시 체인 게인을 보정한다 (Web Audio 경로에서만)
+// 기존 클래식 녹음은 방송 스트림보다 레벨이 낮아 포노 재생 시 체인 게인을 보정한다.
+// 현대 장르 음원은 records.json의 playbackGain으로 별도 정규화해 2배 증폭 클리핑을 피한다.
 const PHONO_GAIN = 2.0;
+function phonoPlaybackGain() {
+    const value = Number(RECORD && RECORD.playbackGain);
+    return Number.isFinite(value) && value > 0 ? value : PHONO_GAIN;
+}
 // ----- 레코드 라이브러리 -----
 // bootstrap.js가 records.json을 검증·로딩한 다음 이 스크립트를 실행한다.
 // 트랙은 CORS가 열린 upload.wikimedia.org에서 스트리밍해야 Web Audio
@@ -2576,7 +2714,10 @@ const EMPTY_RECORD = Object.freeze({
     jTitle: "PHONO OFFLINE", jSub1: "CATALOG", jSub2: "UNAVAILABLE",
     labelBg: "#d8d0bc", labelBig: "NO DISC", labelTitle: "", labelArtist: "", tracks: []
 });
-let recordIdx = loadJson("fmRadio.record", 0);
+const savedRecordId = loadJson("fmRadio.recordId", "");
+let recordIdx = typeof savedRecordId === "string" && savedRecordId
+    ? RECORDS.findIndex((record) => record.id === savedRecordId)
+    : loadJson("fmRadio.record", 0);
 if (typeof recordIdx !== "number" || !RECORDS[recordIdx]) recordIdx = 0;
 let RECORD = RECORDS[recordIdx] || EMPTY_RECORD;
 
@@ -2599,6 +2740,7 @@ function setRecord(i) {
     recordIdx = ((i % RECORDS.length) + RECORDS.length) % RECORDS.length;
     RECORD = RECORDS[recordIdx];
     saveJson("fmRadio.record", recordIdx);
+    if (RECORD.id) saveJson("fmRadio.recordId", RECORD.id);
     if (phonoActive) stopPlay();
     mountTurntable();
     playerSubtext.textContent = "음반 교체: " + RECORD.title + " (" + RECORD.performer + ")";
@@ -2843,6 +2985,21 @@ function openJacketView() {
             '</div><div class="jbig-sub" style="color:' + jc.sub + '">' + RECORD.jSub1 + " · " + RECORD.jSub2 + "</div></div>";
     }
     cap.textContent = RECORD.title + " — " + RECORD.performer + " · SIDE " + (RECORD.side || "A");
+    const sourceTrack = RECORD.tracks[Math.max(0, phonoTrack)] || RECORD.tracks[0];
+    if (sourceTrack && sourceTrack.sourcePage) {
+        const credit = document.createElement("span");
+        credit.className = "jacket-source-credit";
+        credit.textContent = `${sourceTrack.sourceArtist || RECORD.artist || RECORD.performer} · ${sourceTrack.license || RECORD.source?.license || "출처 정보"}`;
+        const link = document.createElement("a");
+        link.className = "jacket-source-link";
+        link.href = sourceTrack.sourcePage;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "Wikimedia Commons 원문·라이선스";
+        link.addEventListener("click", (event) => event.stopPropagation());
+        credit.append(" · ", link);
+        cap.appendChild(credit);
+    }
     document.getElementById("jacketOverlay").hidden = false;
 }
 
@@ -3191,10 +3348,13 @@ function mountTurntable() {
 }
 
 // auto=true는 한 면을 이어 재생하는 자동 곡 넘김 — 바늘을 새로 놓는 게 아니므로 낙침음을 내지 않는다
-function playPhonoTrack(i, auto) {
+function playPhonoTrack(i, auto, fromLibraryMix) {
     if (!PHONO_AVAILABLE || !RECORD.tracks[i]) {
         playerSubtext.textContent = "재생할 음반 데이터가 없습니다. 라디오와 테이프는 계속 사용할 수 있습니다.";
         return;
+    }
+    if (libraryMix.active && !fromLibraryMix) {
+        stopLibraryMix({ stopAudio: false, silent: true });
     }
     if (!recIsMic) stopRecording();   // MIC 녹음은 본체 소스와 무관 — 계속 담는다
     stopDeck();
@@ -3214,11 +3374,18 @@ function playPhonoTrack(i, auto) {
     setAudioState("resolving", "PHONO");
     audio.src = src;
     PlaybackController.bind(playbackToken, src, null);
-    audio.play().catch(() => {
+    audio.play().catch((error) => {
         if (!PlaybackController.isCurrent(playbackToken)) return;
+        // 자동재생 정책 거부는 사용자의 재생 제스처를 기다리지만, 코덱/CORS/파일 오류는
+        // 카페 믹스가 영구 정지하지 않도록 해당 후보만 제외하고 다음 곡으로 넘긴다.
+        if (libraryMix.active && fromLibraryMix && error && error.name !== "NotAllowedError") {
+            handleLibraryMixFailure(libraryMix.currentKey, playbackToken);
+            return;
+        }
         PlaybackController.transition(playbackToken, "blocked");
         isPlaying = false;
         setAudioState("blocked");
+        clearLibraryMixWatchdog();
         updatePlayButton();
     });
     if (SAFARI_LIKE && ttRpm45) applyRpmRate();
@@ -3229,6 +3396,7 @@ function playPhonoTrack(i, auto) {
     updateMediaSession();
     updatePhonoVisuals();
     gtag('event', 'play_phono', { track: RECORD.tracks[i].t });
+    return playbackToken;
 }
 
 // 브러시 클리닝 — 1.4초 동안 브러시 패드가 판에 얹히고, 그 사이 먼지가 닦여 나간다 (ttFrame이 감쇠 처리)
@@ -3238,7 +3406,10 @@ function cleanRecord() {
     gtag('event', 'clean_record', { dust: Math.round(ttDust * 100) });
 }
 
-function stopPhono() {
+function stopPhono(preserveLibraryMix) {
+    if (libraryMix.active && !preserveLibraryMix) {
+        stopLibraryMix({ stopAudio: false, silent: true });
+    }
     if (!phonoActive) return;
     phonoActive = false;
     phonoTrack = -1;
@@ -3281,11 +3452,13 @@ function ttFrame(now) {
         lockLed.style.opacity = busy ? ((now / 300 | 0) % 2 ? "1" : "0.25") : "";
     }
 
-    // 고착 워치독 — 12초 넘게 연결/버퍼링에 머물면 정리한다:
-    // 소리가 흐르고 있으면 재생 중으로 승격, 멈춰 있으면 오류로 내려 재시도를 유도
+    // 고착 워치독 — 12초 넘게 연결/버퍼링에 머물면 정리한다.
+    // 카페 믹스는 다음 후보로 복구하고, 다른 소스만 기존 상태 승격/오류 처리를 따른다.
     if (busySince && performance.now() - busySince > 12000) {
         busySince = 0;
-        if (!audio.paused && streamLoaded) {
+        if (libraryMix.active && phonoActive) {
+            handleLibraryMixFailure(libraryMix.currentKey, libraryMix.generation);
+        } else if (!audio.paused && streamLoaded) {
             setAudioState("playing", currentStation ? currentStation.name : "");
         } else if (streamLoaded) {
             setAudioState("error", "응답 없음");
@@ -3369,7 +3542,8 @@ function ttFrame(now) {
 
     // 진공관 웜업: 켜면 ~2초에 걸쳐 달아오르고, 꺼지면 열이 식듯 더 천천히 어두워진다
     // (테이프 트랜스포트가 도는 동안은 빈 구간이라도 시스템이 켜져 있는 것으로 본다)
-    const warmTarget = (isPlaying || deckMode === "play" || !!recorder) ? 1 : 0;
+    // 유닛 전원 문법: 앰프가 꺼져 있으면 관은 달아오르지 않는다
+    const warmTarget = (unitOn("amp") && (isPlaying || deckMode === "play" || !!recorder)) ? 1 : 0;
     // 91E 정류관 지연 — 차가운 상태에서 소리를 걸면 2.6초간 정류관이 먼저 서고, 그 뒤 페이드인
     if (ampModelId === "300b" && gainNode && warmTarget === 1 && ttFrame.prevWarmTarget === 0 && tubeWarm < 0.05) {
         ampRectUntil = now + 2600;
@@ -3391,17 +3565,19 @@ function ttFrame(now) {
     const warmRate = warmTarget > tubeWarm ? dt / 2.0 : dt / 3.5;
     tubeWarm = Math.max(0, Math.min(1, tubeWarm + (warmTarget > tubeWarm ? 1 : -1) * warmRate));
     // 앰프·EQ·턴테이블은 실제로 듣고 있을 때만 점등 — 백그라운드 예약 녹음은 앰프를 쓰지 않는다
-    const ampTarget = (isPlaying || deckMode === "play") ? 1 : 0;
+    const ampTarget = (unitOn("amp") && (isPlaying || deckMode === "play")) ? 1 : 0;
     const ampRate = ampTarget > ampWarm ? dt / 2.0 : dt / 3.5;
     ampWarm = Math.max(0, Math.min(1, ampWarm + (ampTarget > ampWarm ? 1 : -1) * ampRate));
-    // 데크 조명: REW/FF 와인딩도 트랜스포트 구동 — 데크는 통전 상태다
-    const deckTarget = (isPlaying || deckMode !== "stop" || !!recorder) ? 1 : 0;
+    // 데크 조명: REW/FF 와인딩도 트랜스포트 구동 — 데크는 통전 상태다 (예약은 타이머 아웃렛 통전)
+    const deckTarget = (unitOn("deck") && (isPlaying || deckMode !== "stop" || !!recorder)) ? 1 : 0;
     const deckRate = deckTarget > deckWarm ? dt / 2.0 : dt / 3.5;
     deckWarm = Math.max(0, Math.min(1, deckWarm + (deckTarget > deckWarm ? 1 : -1) * deckRate));
     updateMa2375Display();
 
     // 튜너 램프: 라디오 수신 중에만 (백열등이라 진공관보다 빠르게 켜지고 꺼진다)
-    const tnTarget = ((isPlaying && currentStation) || (recorder && activeResRec)) ? 1 : 0;
+    // 10B DIM 위치는 조명만 낮춘다 — 수신은 그대로 (실물 3위치 전원의 감광 기능)
+    const tnCap = tunerDim ? 0.38 : 1;
+    const tnTarget = (unitOn("tuner") && ((isPlaying && currentStation) || (recorder && activeResRec))) ? tnCap : 0;
     const tnRate = tnTarget > tunerWarm ? dt / 0.9 : dt / 1.4;
     tunerWarm = Math.max(0, Math.min(1, tunerWarm + (tnTarget > tunerWarm ? 1 : -1) * tnRate));
 
@@ -3669,7 +3845,7 @@ function ttFrame(now) {
         }
     }
     const pled = document.getElementById("ampPwrLed");
-    if (pled) pled.style.fill = (isPlaying || deckMode === "play") ? "#ff7a3a" : "#3a2012";
+    if (pled) pled.style.fill = unitOn("amp") ? "#ff7a3a" : "#3a2012";
 
     // 소스 보이싱 — 라디오/포노/테이프 소스와 모델 시그니처를 따라 셸프를 튼다
     applySourceVoice();
@@ -3832,7 +4008,8 @@ document.addEventListener("pointerdown", () => {
 });
 
 // ===== 음반 수납장 (레코드 크레이트) =====
-// 34장을 재킷 그리드로 펼쳐 검색·선택한다. 재킷 인쇄색은 배경 밝기로 자동 결정.
+// 전체 카탈로그를 재킷 그리드로 펼쳐 제목·아티스트·트랙·장르·분위기로 검색한다.
+// 같은 필터 계약을 카페용 무한 랜덤 재생도 공유한다.
 function jacketCard(rec, idx) {
     const jc = jacketInk(rec.jacketBg);
     const btn = document.createElement("button");
@@ -3840,7 +4017,8 @@ function jacketCard(rec, idx) {
     btn.className = "crate-jacket" + (idx === recordIdx ? " is-current" : "");
     btn.style.background = rec.jacketBg;
     btn.setAttribute("role", "listitem");
-    btn.setAttribute("aria-label", rec.title + " · " + rec.performer);
+    btn.setAttribute("aria-label", [rec.title, rec.artist || rec.performer, rec.genre,
+        ...(Array.isArray(rec.moods) ? rec.moods : [])].filter(Boolean).join(" · "));
     if (rec.cover) {
         // 턴테이블 큰 재킷과 같은 구성 — 위쪽은 커버 이미지, 글자는 아래 단색 밴드에만 얹는다
         btn.classList.add("has-cover");
@@ -3864,6 +4042,15 @@ function jacketCard(rec, idx) {
         el.textContent = text;
         btn.appendChild(el);
     }
+    const tagWrap = document.createElement("span");
+    tagWrap.className = "cj-tags";
+    [rec.genre, Array.isArray(rec.moods) ? rec.moods[0] : rec.mood].filter(Boolean).forEach((text) => {
+        const tag = document.createElement("span");
+        tag.className = "cj-tag";
+        tag.textContent = text;
+        tagWrap.appendChild(tag);
+    });
+    btn.appendChild(tagWrap);
     const bar = document.createElement("span");
     bar.className = "cj-bar";
     bar.style.background = rec.accent;
@@ -3880,31 +4067,112 @@ function jacketCard(rec, idx) {
     return btn;
 }
 
+const savedLibraryMix = loadJson("fmRadio.libraryMix", {});
+const LIBRARY_MIX_STALL_MS = 15000;
+const libraryMix = {
+    active: false,
+    genre: savedLibraryMix && typeof savedLibraryMix.genre === "string" ? savedLibraryMix.genre : "",
+    mood: savedLibraryMix && typeof savedLibraryMix.mood === "string" ? savedLibraryMix.mood : "",
+    query: "",
+    candidates: [],
+    bag: null,
+    currentKey: "",
+    generation: 0,
+    failed: new Set(),
+    skipTimer: null,
+    skipKey: "",
+    skipGeneration: 0,
+    watchdogTimer: null,
+    lastCurrentTime: 0
+};
+
+function rawCatalogTags(item, singular, plural) {
+    if (!item || typeof item !== "object") return [];
+    const source = Array.isArray(item[plural]) && item[plural].length ? item[plural] : [item[singular]];
+    return source.map((value) => String(value || "").trim()).filter(Boolean);
+}
+
+function catalogFilterValues() {
+    const genres = new Set();
+    const moods = new Set();
+    // 트랙의 명시 태그가 음반 태그를 덮어쓰는 상속 규칙까지 적용한 실제 후보에서만
+    // 옵션을 만든다. 선택해도 결과가 0곡인 유령 장르/분위기를 노출하지 않는다.
+    filterCatalogTracks(RECORDS, {}).forEach((candidate) => {
+        candidate.genres.forEach((value) => genres.add(value));
+        candidate.moods.forEach((value) => moods.add(value));
+    });
+    return {
+        genres: [...genres].sort((a, b) => a.localeCompare(b, "ko")),
+        moods: [...moods].sort((a, b) => a.localeCompare(b, "ko"))
+    };
+}
+
+function fillCatalogSelect(select, allLabel, values, savedValue) {
+    select.innerHTML = "";
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = allLabel;
+    select.appendChild(all);
+    values.forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+    });
+    select.value = values.includes(savedValue) ? savedValue : "";
+}
+
+function currentCrateFilters() {
+    return {
+        genre: document.getElementById("crateGenre").value,
+        mood: document.getElementById("crateMood").value,
+        query: document.getElementById("crateSearch").value.trim()
+    };
+}
+
+function catalogFilterLabel(filters) {
+    const parts = [filters.genre || "모든 장르", filters.mood || "모든 분위기"];
+    if (filters.query) parts.push(`“${filters.query}”`);
+    return parts.join(" · ");
+}
+
+function filteredCatalogTracks(filters) {
+    return filterCatalogTracks(RECORDS, filters || currentCrateFilters());
+}
+
 function renderCrate(q) {
     const grid = document.getElementById("crateGrid");
     const empty = document.getElementById("crateEmpty");
     grid.innerHTML = "";
-    const needle = (q || "").trim().toLowerCase();
+    const filters = currentCrateFilters();
+    if (typeof q === "string") filters.query = q.trim();
+    const candidates = filteredCatalogTracks(filters);
+    const recordMatches = new Set(candidates.map((candidate) => candidate.recordIndex));
     let shown = 0;
     RECORDS.forEach((rec, idx) => {
-        if (needle) {
-            const hay = [rec.title, rec.composer, rec.performer, rec.jTitle,
-                rec.jSub1, rec.jSub2, rec.bwv, rec.labelTitle].join(" ").toLowerCase();
-            if (!hay.includes(needle)) return;
-        }
+        if (!recordMatches.has(idx)) return;
         grid.appendChild(jacketCard(rec, idx));
         shown++;
     });
     empty.hidden = shown > 0;
     document.getElementById("crateCount").textContent =
-        needle ? (shown + " / " + RECORDS.length + "장") : (RECORDS.length + "장");
+        (filters.query || filters.genre || filters.mood)
+            ? `${shown} / ${RECORDS.length}장 · ${candidates.length}곡`
+            : `${RECORDS.length}장 · ${candidates.length}곡`;
+    const mixButton = document.getElementById("crateMixBtn");
+    mixButton.disabled = candidates.length === 0;
+    if (!libraryMix.active) {
+        document.getElementById("crateMixStatus").textContent = candidates.length
+            ? `${catalogFilterLabel(filters)} · ${candidates.length}곡을 중복 없이 섞을 수 있습니다.`
+            : "이 조건에 맞는 곡이 없습니다. 장르·분위기·검색어를 바꿔 주세요.";
+    }
 }
 
 function openCrate() {
     document.getElementById("crateOverlay").hidden = false;
     const search = document.getElementById("crateSearch");
-    search.value = "";
-    renderCrate("");
+    if (libraryMix.active) search.value = libraryMix.query;
+    renderCrate(search.value);
     const cur = document.querySelector(".crate-jacket.is-current");
     if (cur) cur.scrollIntoView({ block: "nearest" });
     search.focus();
@@ -3916,11 +4184,237 @@ function closeCrate() {
 }
 
 function pickRecord(i) {
+    if (libraryMix.active) stopLibraryMix({ stopAudio: false, silent: true });
     setRecord(i);
     closeCrate();
 }
 
-document.getElementById("crateSearch").addEventListener("input", (e) => renderCrate(e.target.value));
+function updateLibraryMixUi(message) {
+    const button = document.getElementById("crateMixBtn");
+    const chip = document.getElementById("libraryMixChip");
+    const status = document.getElementById("crateMixStatus");
+    button.setAttribute("aria-pressed", String(libraryMix.active));
+    button.textContent = libraryMix.active ? "■ 무한 재생 끄기" : "♾ 무한 랜덤 재생";
+    chip.hidden = !libraryMix.active;
+    if (libraryMix.active) {
+        const label = catalogFilterLabel(libraryMix);
+        chip.textContent = "♾ " + label;
+        chip.setAttribute("aria-label", `${label} 무한 랜덤 재생 중지`);
+        status.classList.add("is-active");
+        status.textContent = message || `${label} · ${libraryMix.candidates.length}곡을 무한 랜덤 재생 중입니다.`;
+    } else {
+        status.classList.remove("is-active");
+        if (message) {
+            status.textContent = message;
+        } else {
+            const filters = currentCrateFilters();
+            const count = filteredCatalogTracks(filters).length;
+            status.textContent = count
+                ? `${catalogFilterLabel(filters)} · ${count}곡을 중복 없이 섞을 수 있습니다.`
+                : "이 조건에 맞는 곡이 없습니다. 장르·분위기·검색어를 바꿔 주세요.";
+        }
+    }
+}
+
+function clearLibraryMixWatchdog() {
+    if (libraryMix.watchdogTimer) clearTimeout(libraryMix.watchdogTimer);
+    libraryMix.watchdogTimer = null;
+}
+
+function clearLibraryMixSkipTimer() {
+    if (libraryMix.skipTimer) clearTimeout(libraryMix.skipTimer);
+    libraryMix.skipTimer = null;
+    libraryMix.skipKey = "";
+    libraryMix.skipGeneration = 0;
+}
+
+function armLibraryMixWatchdog() {
+    clearLibraryMixWatchdog();
+    if (!libraryMix.active || !libraryMix.currentKey || !libraryMix.generation) return;
+    const watchedKey = libraryMix.currentKey;
+    const watchedGeneration = libraryMix.generation;
+    libraryMix.lastCurrentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+    libraryMix.watchdogTimer = setTimeout(() => {
+        libraryMix.watchdogTimer = null;
+        if (!libraryMix.active || libraryMix.currentKey !== watchedKey
+            || libraryMix.generation !== watchedGeneration) return;
+        // 사용자가 직접 일시정지했거나 브라우저가 제스처를 기다리는 동안은 건너뛰지 않는다.
+        if (audio.paused && (audioState === "idle" || audioState === "blocked")) return;
+        handleLibraryMixFailure(watchedKey, watchedGeneration);
+    }, LIBRARY_MIX_STALL_MS);
+}
+
+function noteLibraryMixProgress() {
+    if (!libraryMix.active || !phonoActive || !libraryMix.currentKey) return;
+    const currentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+    if (currentTime > libraryMix.lastCurrentTime + 0.05) {
+        libraryMix.lastCurrentTime = currentTime;
+        armLibraryMixWatchdog();
+    }
+}
+
+function powerOnForPhono() {
+    if (unitPower.amp) return;
+    unitPower.amp = true;
+    saveUnitPower();
+    applyAmpPowerGate();
+    paintUnitPower();
+}
+
+function stopLibraryMix(options) {
+    const config = options || {};
+    const wasActive = libraryMix.active;
+    libraryMix.active = false;
+    libraryMix.bag = null;
+    libraryMix.candidates = [];
+    libraryMix.currentKey = "";
+    libraryMix.generation = 0;
+    libraryMix.failed.clear();
+    clearLibraryMixSkipTimer();
+    clearLibraryMixWatchdog();
+
+    if (config.stopAudio !== false && phonoActive) {
+        PlaybackController.invalidate();
+        audio.pause();
+        stopPhono(true);
+        streamLoaded = false;
+        isPlaying = false;
+        setAudioState("idle");
+        updatePlayButton();
+    }
+    updateLibraryMixUi(config.silent ? "" : (wasActive ? "무한 랜덤 재생을 중지했습니다." : ""));
+}
+
+function nextLibraryMixCandidate() {
+    if (!libraryMix.bag) return null;
+    let attempts = libraryMix.candidates.length;
+    while (attempts-- > 0) {
+        const candidate = libraryMix.bag.next();
+        if (candidate && !libraryMix.failed.has(candidate.key)) return candidate;
+    }
+    return null;
+}
+
+function playLibraryMixNext() {
+    if (!libraryMix.active) return false;
+    // 이전 곡의 지연된 오류 타이머가 새 곡까지 건너뛰지 않도록 전환 진입에서 폐기한다.
+    clearLibraryMixSkipTimer();
+    clearLibraryMixWatchdog();
+    const candidate = nextLibraryMixCandidate();
+    if (!candidate) {
+        const count = libraryMix.failed.size;
+        stopLibraryMix({ stopAudio: true, silent: true });
+        updateLibraryMixUi(count
+            ? `재생 가능한 곡이 없어 무한 재생을 멈췄습니다. (${count}곡 오류)`
+            : "재생할 곡이 없어 무한 재생을 멈췄습니다.");
+        return false;
+    }
+
+    PlaybackController.invalidate();
+    audio.pause();
+    if (phonoActive) stopPhono(true);
+    streamLoaded = false;
+    isPlaying = false;
+
+    recordIdx = candidate.recordIndex;
+    RECORD = RECORDS[recordIdx];
+    saveJson("fmRadio.record", recordIdx);
+    if (RECORD.id) saveJson("fmRadio.recordId", RECORD.id);
+    mountTurntable();
+    libraryMix.currentKey = candidate.key;
+    libraryMix.generation = playPhonoTrack(candidate.trackIndex, true, true) || 0;
+    armLibraryMixWatchdog();
+    const meta = catalogTrackMetadata(RECORD, candidate.track);
+    const mood = meta.moods[0] || libraryMix.mood || "랜덤";
+    playerSubtext.textContent = `♾ ${meta.genre || libraryMix.genre || "모든 장르"} · ${mood} · ${RECORD.title}`;
+    updateLibraryMixUi();
+    gtag("event", "library_mix_next", { genre: meta.genre, mood, track: candidate.track.t });
+    return true;
+}
+
+function startLibraryMix() {
+    if (libraryMix.active) {
+        stopLibraryMix();
+        return;
+    }
+    const filters = currentCrateFilters();
+    const candidates = filteredCatalogTracks(filters);
+    if (!candidates.length) {
+        updateLibraryMixUi("이 조건에 맞는 곡이 없어 시작할 수 없습니다.");
+        return;
+    }
+
+    stopPlay();
+    powerOnForPhono();
+    libraryMix.active = true;
+    libraryMix.genre = filters.genre;
+    libraryMix.mood = filters.mood;
+    libraryMix.query = filters.query;
+    libraryMix.candidates = candidates;
+    libraryMix.failed.clear();
+    libraryMix.bag = createCatalogShuffleBag(candidates);
+    saveJson("fmRadio.libraryMix", { genre: libraryMix.genre, mood: libraryMix.mood });
+    updateLibraryMixUi();
+    closeCrate();
+    playLibraryMixNext();
+    gtag("event", "library_mix_start", {
+        genre: libraryMix.genre || "all", mood: libraryMix.mood || "all", tracks: candidates.length
+    });
+}
+
+function handleLibraryMixFailure(failedKey, failedGeneration) {
+    const key = failedKey || libraryMix.currentKey;
+    const generation = failedGeneration || libraryMix.generation;
+    if (!libraryMix.active || !key || libraryMix.currentKey !== key
+        || (generation && libraryMix.generation !== generation)) return false;
+    if (libraryMix.skipTimer && libraryMix.skipKey === key
+        && libraryMix.skipGeneration === generation) return true;
+
+    clearLibraryMixSkipTimer();
+    clearLibraryMixWatchdog();
+    libraryMix.failed.add(key);
+    libraryMix.skipKey = key;
+    libraryMix.skipGeneration = generation;
+    PlaybackController.invalidate();
+    audio.pause();
+    streamLoaded = false;
+    isPlaying = false;
+    updatePlayButton();
+    setAudioState("buffering", "다음 곡");
+    playerSubtext.textContent = `곡을 불러오지 못해 다음 곡으로 넘어갑니다… (${libraryMix.failed.size}/${libraryMix.candidates.length})`;
+    libraryMix.skipTimer = setTimeout(() => {
+        const stillFailedTrack = libraryMix.active && libraryMix.currentKey === key
+            && libraryMix.generation === generation;
+        libraryMix.skipTimer = null;
+        libraryMix.skipKey = "";
+        libraryMix.skipGeneration = 0;
+        if (stillFailedTrack) playLibraryMixNext();
+    }, 650);
+    return true;
+}
+
+function onCrateFilterChange(message) {
+    if (libraryMix.active) stopLibraryMix({ stopAudio: false, silent: true });
+    const filters = currentCrateFilters();
+    saveJson("fmRadio.libraryMix", { genre: filters.genre, mood: filters.mood });
+    renderCrate(filters.query);
+    if (message) {
+        const count = filteredCatalogTracks(filters).length;
+        updateLibraryMixUi(`${message} ${catalogFilterLabel(filters)} · ${count}곡`);
+    }
+}
+
+const catalogValues = catalogFilterValues();
+fillCatalogSelect(document.getElementById("crateGenre"), "모든 장르", catalogValues.genres, libraryMix.genre);
+fillCatalogSelect(document.getElementById("crateMood"), "모든 분위기", catalogValues.moods, libraryMix.mood);
+document.getElementById("crateSearch").addEventListener("input", (e) => {
+    onCrateFilterChange(libraryMix.active ? "검색 조건이 바뀌어 무한 재생을 멈췄습니다." : "");
+});
+document.getElementById("crateGenre").addEventListener("change", () =>
+    onCrateFilterChange("장르 조건을 적용했습니다."));
+document.getElementById("crateMood").addEventListener("change", () =>
+    onCrateFilterChange("분위기 조건을 적용했습니다."));
+document.getElementById("crateMixBtn").addEventListener("click", startLibraryMix);
 document.getElementById("crateOverlay").addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeCrate();
 });
@@ -4244,9 +4738,16 @@ function playStream(url, token) {
 
 let selectSeq = 0;
 
-async function selectStation(id) {
+async function selectStation(id, viaDial) {
     const station = stations.find((item) => item.id === id);
     if (!station) return;
+
+    // 카페 무한 재생 중 명시적으로 방송국을 고르면 대기 선국이 아니라 즉시 라디오로 전환한다.
+    if (libraryMix.active) stopLibraryMix({ stopAudio: true, silent: true });
+
+    // 리모컨 문법: 목록·검색·트레이 경로는 유닛을 자동 점화한다. 다이얼(물리)은 예외 —
+    // 꺼진 튜너의 다이얼은 tuneRelease가 먼저 걸러 여기 오지 않는다.
+    if (!viaDial) powerOnForListening();
 
     // 미디어 우선: 음반/테이프가 도는 동안 튜너는 소스를 빼앗지 않고 대기 선국만 한다
     if ((phonoActive && isPlaying) || deckMode === "play") {
@@ -4319,6 +4820,9 @@ async function selectStation(id) {
 }
 
 function togglePlay() {
+    // 리모컨 문법 — 정지 상태에서 재생 명령(헤더·미디어세션·트레이·키보드)이 오면
+    // 실물 리모컨의 파워온-플레이처럼 필요한 유닛을 자동 점화한다
+    if (!isPlaying) powerOnForListening();
     // 최초 방문 — 아직 선국된 채널이 없다. 죽은 버튼 대신 기본 채널(첫 방송국)부터 건다
     if (!currentStation && !phonoActive && deckMode !== "play") {
         if (stations.length) selectStation(stations[0].id);
@@ -4372,11 +4876,16 @@ function togglePlay() {
         }
         // 포노는 멈춘 자리에서 그대로 이어 재생
         const token = PlaybackController.inspect().generation;
-        audio.play().catch(() => {
+        audio.play().catch((error) => {
             if (!PlaybackController.isCurrent(token)) return;
+            if (libraryMix.active && phonoActive && error && error.name !== "NotAllowedError") {
+                handleLibraryMixFailure(libraryMix.currentKey, token);
+                return;
+            }
             PlaybackController.transition(token, "blocked");
             isPlaying = false;
             setAudioState("blocked");
+            clearLibraryMixWatchdog();
             updatePlayButton();
         });
         return;
@@ -4485,6 +4994,11 @@ function toggleRecording(opts) {
 
     // 예약 녹음은 백그라운드 수신기에서 녹음한다 — 본체가 꺼져 있어도 무방
     const bgRec = !!(opts && opts.source === "bg");
+    // 수동 녹음은 테이프로 간다 — 데크 전원이 꺼져 있으면 실물처럼 담을 곳이 없다
+    if (!bgRec && !unitOn("deck")) {
+        playerSubtext.textContent = "데크 전원이 꺼져 있습니다 — POWER를 켜야 테이프에 녹음됩니다.";
+        return;
+    }
     // REC INPUT이 MIC이면 마이크가 소스 — 본체 재생 여부와 무관하게 녹음할 수 있다
     const micRec = !bgRec && micArmed && !!micStream;
     if (!bgRec && !micRec && !isPlaying) {
@@ -5151,8 +5665,8 @@ function updateMediaSession() {
         if (phonoActive && phonoTrack >= 0) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: RECORD.tracks[phonoTrack].t,
-                artist: RECORD.composer + " · " + RECORD.performer,
-                album: RECORD.title + " (" + RECORD.bwv + ")",
+                artist: RECORD.artist || RECORD.performer || RECORD.composer,
+                album: RECORD.title + " (" + (RECORD.catalogNo || RECORD.bwv) + ")",
                 artwork
             });
             return;
@@ -5173,8 +5687,8 @@ if ("mediaSession" in navigator) {
     try {
         navigator.mediaSession.setActionHandler("play", togglePlay);
         navigator.mediaSession.setActionHandler("pause", togglePlay);
-        navigator.mediaSession.setActionHandler("previoustrack", () => stepStation(-1));
-        navigator.mediaSession.setActionHandler("nexttrack", () => stepStation(1));
+        navigator.mediaSession.setActionHandler("previoustrack", () => stepPlayback(-1));
+        navigator.mediaSession.setActionHandler("nexttrack", () => stepPlayback(1));
     } catch (error) {
         console.error(error);
     }
@@ -5196,6 +5710,19 @@ function stepStation(delta) {
     let index = currentStation ? stations.findIndex((item) => item.id === currentStation.id) : -1;
     index = (index + delta + stations.length) % stations.length;
     selectStation(stations[index].id);
+}
+
+function stepPlayback(delta) {
+    if (libraryMix.active) {
+        playLibraryMixNext();
+        return;
+    }
+    if (phonoActive && RECORD.tracks.length) {
+        const next = (phonoTrack + delta + RECORD.tracks.length) % RECORD.tracks.length;
+        playPhonoTrack(next);
+        return;
+    }
+    stepStation(delta);
 }
 
 document.addEventListener("keydown", (event) => {
@@ -5235,6 +5762,7 @@ audio.addEventListener("pause", () => {
     const token = PlaybackController.inspect().generation;
     PlaybackController.transition(token, "buffering");
     if (streamLoaded && (isPlaying || audioState === "playing")) setAudioState("buffering");
+    if (libraryMix.active && phonoActive && !libraryMix.watchdogTimer) armLibraryMixWatchdog();
 }));
 
 audio.addEventListener("ended", () => {
@@ -5247,6 +5775,11 @@ audio.addEventListener("ended", () => {
         deckSegPlaying = null;
         isPlaying = false;
         updatePlayButton();
+        return;
+    }
+    // 카페 모드: 같은 음반의 다음 곡보다 필터된 셔플백의 다음 곡을 우선한다.
+    if (libraryMix.active && phonoActive) {
+        playLibraryMixNext();
         return;
     }
     // 포노: 트랙이 끝나면 다음 트랙으로 (음반 한 면을 이어 재생 — 바늘은 그대로, 낙침음 없음)
@@ -5274,6 +5807,7 @@ audio.addEventListener("ended", () => {
 // 반드시 playing 이벤트에서만 하며, 시간 이벤트가 새 요청을 재생 중으로 승격하지 않는다.
 audio.addEventListener("timeupdate", () => {
     if (!PlaybackController.acceptsMediaEvent()) return;
+    noteLibraryMixProgress();
     if (isPlaying && !audio.paused && streamLoaded && audioState === "buffering") {
         PlaybackController.transition(PlaybackController.inspect().generation, "playing");
         setAudioState("playing", currentStation ? currentStation.name
@@ -5291,6 +5825,7 @@ audio.addEventListener("playing", () => {
     updateActiveStation();
     if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
     tunerSetLeds(true);
+    if (libraryMix.active && phonoActive) armLibraryMixWatchdog();
     if (audioCtx && audioCtx.state === "suspended") {
         audioCtx.resume();
     }
@@ -5308,6 +5843,7 @@ audio.addEventListener("playing", () => {
 audio.addEventListener("error", () => {
     if (!PlaybackController.acceptsMediaEvent()) return;
     if (player) return; // PlayerCore가 HLS·native·direct 오류를 generation guard와 함께 처리한다
+    if (libraryMix.active && phonoActive && handleLibraryMixFailure()) return;
     const token = PlaybackController.inspect().generation;
     handlePlaybackFailure(token, {
         label: "미디어 오류",
@@ -5340,7 +5876,7 @@ function mountCoach() {
     const layer = document.createElement("div");
     layer.className = "coach-layer";
     [
-        { key: "power", label: "전원 — 재생/정지" },
+        { key: "power", label: "① 튜너 POWER — 켜면 93.1에 연결" },
         { key: "dial", label: "다이얼을 드래그해 선국" },
         { key: "rec", label: "편성표·예약 녹음" },
         { key: "rf", label: "채널 목록 열기" }
@@ -5361,12 +5897,27 @@ function mountCoach() {
     done.addEventListener("click", dismissCoach);
     layer.appendChild(done);
     stage.appendChild(layer);
+
+    // 앰프 전원 힌트 — 실물 동선(튜너 → 앰프)의 두 번째 단계
+    const ampStage = document.getElementById("ampStage");
+    const ampSvg = ampStage && ampStage.querySelector("svg");
+    if (ampSvg && ampPowerBox) {
+        const avb = (ampSvg.getAttribute("viewBox") || "0 0 2000 460").split(/\s+/).map(Number);
+        const alayer = document.createElement("div");
+        alayer.className = "coach-layer";
+        const chip = document.createElement("div");
+        chip.className = "coach-chip";
+        chip.textContent = "② 앰프 POWER — 켜야 소리가 납니다";
+        chip.style.left = ((ampPowerBox[0] + ampPowerBox[2] / 2) / avb[2] * 100).toFixed(1) + "%";
+        chip.style.top = (((ampPowerBox[1] + ampPowerBox[3]) / avb[3] * 100) + 4).toFixed(1) + "%";
+        alayer.appendChild(chip);
+        ampStage.appendChild(alayer);
+    }
     svg.addEventListener("pointerdown", dismissCoach, { once: true });
 }
 
 function dismissCoach() {
-    const layer = document.querySelector(".coach-layer");
-    if (layer) layer.remove();
+    document.querySelectorAll(".coach-layer").forEach((layer) => layer.remove());
     saveJson("fmRadio.coachDone", true);
 }
 
@@ -5377,13 +5928,16 @@ function restoreLastStation() {
 
     currentStation = station;
     nowStation.textContent = station.name;
-    playerSubtext.textContent = "마지막으로 듣던 채널입니다. 재생 버튼을 누르면 연결합니다.";
+    playerSubtext.textContent = unitOn("tuner")
+        ? "마지막으로 듣던 채널입니다. 다이얼이나 재생 버튼을 누르면 이어집니다."
+        : "마지막으로 듣던 채널입니다. 튜너 POWER를 켜면 연결합니다.";
     applyStationTheme(station);
     reapplyStationState();
 }
 
 renderStations();
 restoreLastStation();
+paintUnitPower();        // 저장된 유닛 전원 상태로 랙을 칠한다 (첫 설치 = 전부 꺼진 랙)
 updateRecButton();
 openRecordingDb();
 initTunerSkin(loadJson("fmRadio.skin", "mr78"));
@@ -5950,6 +6504,9 @@ function fireReservation(res, occ, key) {
     pruneFired();
     saveJson("fmRadio.resFired", resFiredOcc);
     activeResRec = { res, occ, key, endTs: occ.endTs, tapeId: null, started: false };
+    // DT-540 스위치드 아웃렛 — 예약이 도는 동안 튜너·데크를 임시 통전한다 (패널 각인 그대로)
+    timerOutlet = true;
+    paintUnitPower();
     playerSubtext.textContent = "예약 녹음을 시작합니다 — 지금 재생과는 별개로 백그라운드에서 녹음됩니다: " + res.title;
     notifyRes("예약 녹음 시작", res.title);
     gtag('event', 'reserve_fire', { station_id: res.stationId });
@@ -6359,6 +6916,8 @@ function serviceReservationRecording(nowTs) {
 function finishReservedRecording() {
     const done = activeResRec;
     activeResRec = null;
+    timerOutlet = false;   // 아웃렛 전원 회수 — 유닛 스위치 상태로 복귀
+    paintUnitPower();
     if (recorder) stopRecording();
     bgRecStop();
     if (!done) return;
@@ -6403,6 +6962,8 @@ function cancelReservedRecording(msg) {
     resFiredOcc[activeResRec.key] = 2;
     saveJson("fmRadio.resFired", resFiredOcc);
     activeResRec = null;
+    timerOutlet = false;
+    paintUnitPower();
     bgRecStop();
     if (res.repeat === "once") {
         res.enabled = false;

@@ -20,6 +20,14 @@
     flex-wrap: wrap;
 }
 
+.crate-toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto auto auto;
+    align-items: end;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
 .crate-title {
     font-size: 1.05rem;
     font-weight: 800;
@@ -34,7 +42,7 @@
 }
 
 .crate-search {
-    flex: 1;
+    width: 100%;
     min-width: 140px;
     padding: 9px 14px;
     border-radius: 12px;
@@ -42,6 +50,67 @@
     border: 1px solid var(--line);
     color: var(--text);
     font-size: 0.92rem;
+}
+
+.crate-filter-label {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.crate-filter {
+    min-width: 118px;
+    min-height: 39px;
+    padding: 8px 30px 8px 11px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--panel-soft);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.82rem;
+}
+
+.crate-filter:focus-visible,
+.crate-mix-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.crate-mix-btn {
+    min-height: 39px;
+    padding: 8px 14px;
+    border: 1px solid rgba(211, 106, 66, 0.55);
+    border-radius: 11px;
+    background: rgba(211, 106, 66, 0.13);
+    color: #f0c4aa;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.crate-mix-btn:hover,
+.crate-mix-btn[aria-pressed="true"] {
+    background: var(--accent);
+    color: #fff8f2;
+}
+
+.crate-mix-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.crate-mix-status {
+    min-height: 22px;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.crate-mix-status.is-active {
+    color: #8fdaa6;
 }
 
 .crate-search:focus {
@@ -152,6 +221,51 @@
     color: #f0e8d0;
 }
 
+.cj-tags {
+    position: absolute;
+    left: 8px;
+    bottom: 25px;
+    display: flex;
+    max-width: calc(100% - 16px);
+    gap: 4px;
+    pointer-events: none;
+}
+
+.cj-tag {
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(12, 10, 9, 0.68);
+    color: #f3e9dc;
+    font-size: 0.52rem;
+    font-style: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.library-mix-chip {
+    display: inline-flex;
+    align-items: center;
+    width: max-content;
+    max-width: 100%;
+    margin: 2px 0;
+    padding: 2px 10px;
+    border: 1px solid rgba(74, 222, 128, 0.34);
+    border-radius: 999px;
+    background: rgba(74, 222, 128, 0.1);
+    color: #8fdaa6;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.library-mix-chip[hidden] {
+    display: none;
+}
+
 /* 커버 이미지가 있는 재킷 — 위쪽은 이미지 블록, 글자는 아래 단색 밴드에만 (이미지와 절대 겹치지 않게) */
 .crate-jacket.has-cover .cj-art {
     display: block;
@@ -197,7 +311,21 @@
     padding: 30px 0;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 720px) {
+    .crate-toolbar {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .crate-search,
+    .crate-mix-btn {
+        grid-column: 1 / -1;
+    }
+
+    .crate-filter {
+        width: 100%;
+        min-width: 0;
+    }
+
     .crate-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
@@ -326,6 +454,20 @@ body.mode-bar .btn-play-main {
     margin-top: 14px;
     color: #d9cfc0;
     font-size: 0.92rem;
+}
+
+.jacket-source-credit {
+    display: block;
+    margin-top: 7px;
+    color: #a9a095;
+    font-size: 0.76rem;
+}
+
+.jacket-source-link {
+    color: #efb18f;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    cursor: pointer;
 }
 
 /* ----- 수납장 호버 — 그 앨범을 꺼내 보듯 전체가 위로 떠오른다 ----- */

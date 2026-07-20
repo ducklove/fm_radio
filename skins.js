@@ -184,7 +184,7 @@ function applyPanelLighting(svg) {
 }
 
 const TS_HIT_META = {
-    power: { title: "전원 — 재생/정지", cursor: "pointer" },
+    power: { title: "전원 — 튜너 POWER (기기를 켭니다)", cursor: "pointer" },
     dial: { title: "드래그하여 주파수를 맞추세요", cursor: "ew-resize" },
     rec: { title: "편성표 — 프로그램 확인과 예약 녹음", cursor: "pointer" },
     blend: { title: "하이블렌드 — 고음 잡음 감쇠", cursor: "pointer" },
@@ -345,7 +345,9 @@ const TUNER_SKINS = {
             swTravel: 7,
             led: { on: "#ff4a3a", off: "#3a1512" },
             digit: { lit: "#57b0ff", glow: "#2a6fd0", dim: "#16324d", dimGlow: "#0d1f30" },
-            hits: { power: [65, 520, 80, 80], dial: [430, 95, 1080, 170], rec: [310, 470, 140, 130], if: [550, 470, 140, 130], blend: [790, 470, 140, 130], mute: [1030, 470, 140, 130], mode: [1270, 470, 140, 130], rf: [1510, 470, 140, 130], knob: [1755, 215, 132] }
+            // 실물 MR78의 전원은 VOLUME 노브 통합(반시계 끝 = OFF) — 전원 히트를 VOLUME 노브에,
+            // 채널 목록은 좌측 PANLOC으로 옮긴다 (우측 PANLOC = 몰입 모드와 대칭인 앱 문법)
+            hits: { power: [1510, 470, 140, 130], dial: [430, 95, 1080, 170], rec: [310, 470, 140, 130], if: [550, 470, 140, 130], blend: [790, 470, 140, 130], mute: [1030, 470, 140, 130], mode: [1270, 470, 140, 130], rf: [65, 520, 80, 80], knob: [1755, 215, 132] }
         },
         svg: `<svg class="tuner-svg" viewBox="0 0 2000 700" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="McIntosh MR-78 FM Tuner">
             <defs>
@@ -487,7 +489,7 @@ const TUNER_SKINS = {
                 <text x="380" y="442">SELECTIVITY</text><text x="620" y="442">METER</text><text x="860" y="442">FILTER</text><text x="1100" y="442">MUTING</text><text x="1340" y="442">MODE</text><text x="1580" y="442">VOLUME</text>
             </g>
             <g font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="600" letter-spacing="1.1" fill="#65a872" text-anchor="middle">
-                <text x="380" y="468">REC</text><text x="620" y="468">TIMER</text><text x="860" y="468">HI BLEND</text><text x="1100" y="468">MUTE</text><text x="1340" y="468">STEREO/MONO</text><text x="1580" y="468">LIST</text>
+                <text x="380" y="468">REC</text><text x="620" y="468">TIMER</text><text x="860" y="468">HI BLEND</text><text x="1100" y="468">MUTE</text><text x="1340" y="468">STEREO/MONO</text><text x="1580" y="468">PWR · OFF</text>
             </g>
             <g pointer-events="none"><use href="#mrSmallScale" transform="translate(380 533)"/><use href="#mrSmallScale" transform="translate(620 533)"/><use href="#mrSmallScale" transform="translate(860 533)"/><use href="#mrSmallScale" transform="translate(1100 533)"/><use href="#mrSmallScale" transform="translate(1340 533)"/><use href="#mrSmallScale" transform="translate(1580 533)"/></g>
             <g>
@@ -496,7 +498,7 @@ const TUNER_SKINS = {
                 <circle cx="864" cy="541" r="43" fill="#000" opacity=".48" filter="url(#lzSoft)"/><circle cx="860" cy="533" r="43" fill="url(#mrChrome)" stroke="#dfe2e4" stroke-width="1.2"/><circle cx="860" cy="533" r="34" fill="url(#mrKnob)" stroke="#111318" stroke-width="2"/><path d="M834 516 A31 31 0 0 1 865 502" stroke="#fff" stroke-width="1.8" opacity=".18" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwBlend" x="858" y="497" width="4" height="18" rx="2" fill="#e3e5e6"/>
                 <circle cx="1104" cy="541" r="43" fill="#000" opacity=".48" filter="url(#lzSoft)"/><circle cx="1100" cy="533" r="43" fill="url(#mrChrome)" stroke="#dfe2e4" stroke-width="1.2"/><circle cx="1100" cy="533" r="34" fill="url(#mrKnob)" stroke="#111318" stroke-width="2"/><path d="M1074 516 A31 31 0 0 1 1105 502" stroke="#fff" stroke-width="1.8" opacity=".18" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwMute" x="1098" y="497" width="4" height="18" rx="2" fill="#e3e5e6"/>
                 <circle cx="1344" cy="541" r="43" fill="#000" opacity=".48" filter="url(#lzSoft)"/><circle cx="1340" cy="533" r="43" fill="url(#mrChrome)" stroke="#dfe2e4" stroke-width="1.2"/><circle cx="1340" cy="533" r="34" fill="url(#mrKnob)" stroke="#111318" stroke-width="2"/><path d="M1314 516 A31 31 0 0 1 1345 502" stroke="#fff" stroke-width="1.8" opacity=".18" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwMode" x="1338" y="497" width="4" height="18" rx="2" fill="#e3e5e6"/>
-                <circle cx="1584" cy="541" r="43" fill="#000" opacity=".48" filter="url(#lzSoft)"/><circle cx="1580" cy="533" r="43" fill="url(#mrChrome)" stroke="#dfe2e4" stroke-width="1.2"/><circle cx="1580" cy="533" r="34" fill="url(#mrKnob)" stroke="#111318" stroke-width="2"/><path d="M1554 516 A31 31 0 0 1 1585 502" stroke="#fff" stroke-width="1.8" opacity=".18" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwRf" x="1578" y="497" width="4" height="18" rx="2" fill="#e3e5e6"/>
+                <circle cx="1584" cy="541" r="43" fill="#000" opacity=".48" filter="url(#lzSoft)"/><circle cx="1580" cy="533" r="43" fill="url(#mrChrome)" stroke="#dfe2e4" stroke-width="1.2"/><circle cx="1580" cy="533" r="34" fill="url(#mrKnob)" stroke="#111318" stroke-width="2"/><path d="M1554 516 A31 31 0 0 1 1585 502" stroke="#fff" stroke-width="1.8" opacity=".18" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwPwr" x="1578" y="497" width="4" height="18" rx="2" fill="#e3e5e6"/>
             </g>
             <!-- PANLOC (좌 = 전원) -->
             <circle cx="105" cy="560" r="20" fill="#1c1c22" stroke="#8a8a92" stroke-width="1.6"/>
@@ -615,7 +617,7 @@ const TUNER_SKINS = {
                 <circle cx="480" cy="520" r="38" fill="#8f8a76"/><circle cx="483.6" cy="523.5" r="36.7" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/><circle cx="480" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><path d="M 454.1 499.0 A 31.7 31.7 0 0 1 484.3 486.0" stroke="#ffffff" stroke-width="2.2" opacity="0.3" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwBlend" x="478" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
                 <circle cx="680" cy="520" r="38" fill="#8f8a76"/><circle cx="683.6" cy="523.5" r="36.7" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/><circle cx="680" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><path d="M 654.1 499.0 A 31.7 31.7 0 0 1 684.3 486.0" stroke="#ffffff" stroke-width="2.2" opacity="0.3" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwMode" x="678" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
                 <circle cx="1320" cy="520" r="38" fill="#8f8a76"/><circle cx="1323.6" cy="523.5" r="36.7" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/><circle cx="1320" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><path d="M 1294.1 499.0 A 31.7 31.7 0 0 1 1324.3 486.0" stroke="#ffffff" stroke-width="2.2" opacity="0.3" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwIf" x="1318" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
-                <circle cx="1520" cy="520" r="38" fill="#8f8a76"/><circle cx="1523.6" cy="523.5" r="36.7" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/><circle cx="1520" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><path d="M 1494.1 499.0 A 31.7 31.7 0 0 1 1524.3 486.0" stroke="#ffffff" stroke-width="2.2" opacity="0.3" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwPwr" x="1518" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
+                <circle cx="1520" cy="520" r="38" fill="#8f8a76"/><circle cx="1523.6" cy="523.5" r="36.7" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/><circle cx="1520" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><path d="M 1494.1 499.0 A 31.7 31.7 0 0 1 1524.3 486.0" stroke="#ffffff" stroke-width="2.2" opacity="0.3" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwPwr" x="1518" y="488" width="4" height="16" rx="2" fill="#4a4436"/><g font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" fill="#4a4436" text-anchor="middle"><text x="1474" y="554">OFF</text><text x="1520" y="472">ON</text><text x="1568" y="554">DIM</text></g>
                 <circle cx="1720" cy="520" r="38" fill="#8f8a76"/><circle cx="1723.6" cy="523.5" r="36.7" fill="#000000" opacity="0.4" filter="url(#lzSoft)"/><circle cx="1720" cy="517" r="36" fill="url(#mzKnob)" stroke="#8f8a76" stroke-width="1.4"/><path d="M 1694.1 499.0 A 31.7 31.7 0 0 1 1724.3 486.0" stroke="#ffffff" stroke-width="2.2" opacity="0.3" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwMute" x="1718" y="488" width="4" height="16" rx="2" fill="#4a4436"/>
             </g>
             <circle cx="1000" cy="519" r="99" fill="#8f8a76"/>

@@ -194,6 +194,104 @@ test.describe("안전성 코어 경계", () => {
         });
     });
 
+    test("카탈로그 코어가 메타데이터 상속·AND 필터·검색 정규화·셔플백을 결정적으로 제공한다", async ({ context, page }) => {
+        await loadApp(context, page);
+        const result = await page.evaluate(async () => {
+            const core = await import("/app-runtime-core.js?catalog-contract=1");
+            const records = [
+                {
+                    id: "classic-set",
+                    title: "Café Étude",
+                    artist: "Soloist",
+                    genre: "CLASSICAL",
+                    moods: ["Calm", "Focus"],
+                    tracks: [
+                        { id: "prelude", t: "Prélude" },
+                        { id: "swing", t: "Swing Study", genre: "Jazz", moods: ["Energetic"] }
+                    ]
+                },
+                {
+                    id: "jazz-set",
+                    title: "Blue Night",
+                    artist: "The Trio",
+                    genres: ["Jazz"],
+                    mood: "Calm",
+                    tracks: [
+                        { id: "blue-train", t: "Blue Train" },
+                        { id: "rush", t: "Rush Hour", moods: ["Energetic"] }
+                    ]
+                }
+            ];
+
+            const inherited = core.catalogTrackMetadata(records[0], records[0].tracks[0]);
+            const overridden = core.catalogTrackMetadata(records[0], records[0].tracks[1]);
+            const all = core.filterCatalogTracks(records);
+            const calmJazz = core.filterCatalogTracks(records, { genre: "JAZZ", mood: " calm " });
+            const energeticJazz = core.filterCatalogTracks(records, { genre: "jazz", mood: "energetic" });
+            const search = core.filterCatalogTracks(records, { query: "PRELUDE" });
+
+            // 0으로 고정한 RNG는 Fisher-Yates 결과를 완전히 결정한다. 중복 후보도 key로 제거한다.
+            const bag = core.createCatalogShuffleBag([...all, all[0]], {
+                random: () => 0,
+                lastKey: all[1].key
+            });
+            const bagSize = bag.size;
+            const firstCycle = Array.from({ length: bagSize }, () => bag.next().key);
+            const remainingAfterCycle = bag.remaining;
+            const boundaryNext = bag.next().key;
+            const played = [...firstCycle, boundaryNext];
+
+            const empty = core.createCatalogShuffleBag([], { random: () => 0 }).next();
+            const single = core.createCatalogShuffleBag([all[0]], {
+                random: () => 0,
+                lastKey: all[0].key
+            }).next();
+
+            return {
+                normalized: core.normalizeCatalogText("  Café\tPRÉLUDE  "),
+                inherited: { genre: inherited.genre, genres: [...inherited.genres], mood: inherited.mood, moods: [...inherited.moods] },
+                overridden: { genre: overridden.genre, genres: [...overridden.genres], mood: overridden.mood, moods: [...overridden.moods] },
+                calmJazz: calmJazz.map((candidate) => candidate.key),
+                energeticJazz: energeticJazz.map((candidate) => candidate.key),
+                search: search.map((candidate) => candidate.key),
+                shuffle: {
+                    size: bagSize,
+                    firstCycle,
+                    remainingAfterCycle,
+                    boundaryNext,
+                    uniqueFirstCycle: new Set(firstCycle).size,
+                    noAdjacentRepeat: played.every((key, index) => index === 0 || key !== played[index - 1])
+                },
+                empty,
+                single: single && single.key
+            };
+        });
+
+        expect(result).toEqual({
+            normalized: "cafe prelude",
+            inherited: { genre: "classical", genres: ["classical"], mood: "calm", moods: ["calm", "focus"] },
+            overridden: { genre: "jazz", genres: ["jazz"], mood: "energetic", moods: ["energetic"] },
+            calmJazz: ["jazz-set:blue-train"],
+            energeticJazz: ["classic-set:swing", "jazz-set:rush"],
+            search: ["classic-set:prelude"],
+            shuffle: {
+                size: 4,
+                firstCycle: [
+                    "jazz-set:blue-train",
+                    "classic-set:swing",
+                    "jazz-set:rush",
+                    "classic-set:prelude"
+                ],
+                remainingAfterCycle: 0,
+                boundaryNext: "classic-set:swing",
+                uniqueFirstCycle: 4,
+                noAdjacentRepeat: true
+            },
+            empty: null,
+            single: "classic-set:prelude"
+        });
+    });
+
     test("예약 수신기 generation이 이전 채널 rolling buffer와 늦은 청크를 격리한다", async ({ context, page }) => {
         await loadApp(context, page);
         const result = await page.evaluate(() => {

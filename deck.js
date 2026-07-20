@@ -414,7 +414,7 @@ function mountDeck() {
         <g>
             <text x="126" y="92" font-family="Arial" font-size="9" letter-spacing="1.3" fill="#a5a18f" text-anchor="middle">POWER</text>
             <rect x="79" y="104" width="94" height="58" rx="3" fill="#020305" opacity=".7" filter="url(#dkSoft)"/>
-            <rect x="75" y="98" width="94" height="58" rx="3" fill="url(#dkKey)" stroke="#5f6369" stroke-width="1.5"/><path d="M82 104H162" stroke="#fff" opacity=".17"/>
+            <rect id="deckPowerBtn" x="75" y="98" width="94" height="58" rx="3" fill="url(#dkKey)" stroke="#5f6369" stroke-width="1.5"/><path d="M82 104H162" stroke="#fff" opacity=".17"/>
             <text x="126" y="192" font-family="Arial" font-size="8.5" letter-spacing="1.2" fill="#9c9887" text-anchor="middle">TIMER</text>
             <rect x="84" y="204" width="36" height="25" rx="3" fill="url(#dkSwitch)" stroke="#555960"/><rect x="130" y="204" width="36" height="25" rx="3" fill="url(#dkSwitch)" stroke="#555960"/>
             <g font-family="Arial" font-size="7.5" fill="#777b82" text-anchor="middle"><text x="102" y="244">OFF / ON</text><text x="148" y="244">PLAY / REC</text></g>
@@ -537,6 +537,7 @@ function mountDeck() {
     const bindWind = (id, dir) => {
         const b = document.getElementById(id);
         const start = () => {
+            if (!unitOn("deck")) { playerSubtext.textContent = "데크 전원이 꺼져 있습니다 — POWER를 먼저 켜 주세요."; return; }
             if (!deckGuardReservedRec()) return;
             if ((recorder && !recOnB) || deckMode === "rec") return;
             if (deckMode === "play") { audio.pause(); deckSegPlaying = null; deckPlaying = false; }
@@ -699,6 +700,11 @@ function b215ManualCal(step, msg) {
 function bindDeckFrontPanel() {
     const svg = document.querySelector("#deckStage svg");
     if (!svg || typeof fpKnob !== "function") return;
+    // 유닛 전원 — 각 스킨의 그려진 POWER 버튼(bbox)에 배선한다. 하드코딩 좌표 금지.
+    if (document.getElementById("deckPowerBtn")) {
+        fpButtonFromPart(svg, "deckPowerBtn", "데크 전원", "POWER — 데크 전원 (트랜스포트 관문)", deckPowerToggle, 6);
+    }
+    if (typeof paintUnitPower === "function") paintUnitPower();
     const pct = (v) => Math.round(v * 100) + "%";
     const biasFmt = (v) => (v > 0 ? "+" : "") + Math.round(v * 100) + "% (고역 " + (v > 0 ? "밝게" : v < 0 ? "어둡게" : "평탄") + ")";
     if (deckModelId === "dragon") {
@@ -726,7 +732,6 @@ function bindDeckFrontPanel() {
         fpKnob(svg, 260, 232, 30, "rec.level", { label: "REC LEVEL — 녹음 레벨", min: 0.4, max: 2, def: 1, fmt: pct, ink: "#4b4e51" });
         fpKnob(svg, 338, 232, 30, "deck.out", { label: "OUTPUT — 데크 재생 출력", min: 0.4, max: 1.6, def: 1, fmt: pct, ink: "#4b4e51", apply: () => applyGainStaging() });
     } else if (isDoubleDeck()) {
-        fpButton(svg, 26, 190, 66, 76, "전원", "POWER — 시스템 재생/정지", () => togglePlay());
         fpButton(svg, 1854, 82, 62, 58, "B웰 배출", "EJECT II — B웰 카세트를 랙으로 배출", () => {
             if (recorder && recOnB) { playerSubtext.textContent = "녹음 중에는 배출할 수 없습니다 — REC를 먼저 멈추세요."; return; }
             if (!deckBTape) { playerSubtext.textContent = "B웰이 비어 있습니다."; return; }
@@ -1130,6 +1135,7 @@ function deckInsertTape(id) {
 }
 
 function deckPlay() {
+    if (!unitOn("deck")) { playerSubtext.textContent = "데크 전원이 꺼져 있습니다 — POWER를 먼저 켜 주세요."; return; }
     if (!deckGuardReservedRec()) return;
     if (recorder && !recOnB) { playerSubtext.textContent = "녹음 중입니다 — STOP으로 먼저 정지하세요."; return; }
     if (deckMode === "play") return;
@@ -1219,6 +1225,7 @@ function deckRec() {
         stopActiveRecordingByUser();
         return;
     }
+    if (!unitOn("deck")) { playerSubtext.textContent = "데크 전원이 꺼져 있습니다 — POWER를 먼저 켜 주세요."; return; }
     // 예약 시각인데 아직 시작 전(자동재생 차단·튠 대기) — REC 누름이 곧 시동이다
     if (typeof activeResRec !== "undefined" && activeResRec && !activeResRec.started) {
         playerSubtext.textContent = "예약 녹음을 시작합니다 — " + activeResRec.res.title;

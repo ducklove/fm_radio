@@ -27,13 +27,17 @@
         if (!Array.isArray(records) || records.length === 0) return false;
         return records.every((record) =>
             record &&
+            typeof record.id === "string" && record.id.length > 0 &&
             typeof record.title === "string" && record.title.length > 0 &&
+            typeof record.genre === "string" && record.genre.length > 0 &&
+            Array.isArray(record.moods) && record.moods.length > 0 &&
             typeof record.composer === "string" && record.composer.length > 0 &&
             typeof record.performer === "string" && record.performer.length > 0 &&
             typeof record.credit === "string" && record.credit.length > 0 &&
             Array.isArray(record.tracks) && record.tracks.length > 0 &&
             record.tracks.every((track) =>
-                track && typeof track.t === "string" && track.t.length > 0 &&
+                track && typeof track.id === "string" && track.id.length > 0 &&
+                typeof track.t === "string" && track.t.length > 0 &&
                 typeof track.f === "string" && track.f.length > 0));
     }
 

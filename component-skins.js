@@ -917,6 +917,11 @@ function mfaDeckSvg(spec) {
         '<text x="76" y="76" font-family="Arial" font-size="31" font-weight="700" letter-spacing="2" fill="' + ink + '">' + spec.brand + '</text>' +
         '<text x="76" y="108" font-family="Arial" font-size="16" font-weight="700" letter-spacing="2.2" fill="' + sub + '">' + spec.model + '</text>' +
         '<text x="76" y="132" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1.35" fill="' + sub + '" textLength="300" lengthAdjust="spacingAndGlyphs">' + architecture + '</text>' + modelDetail +
+        // 유닛 전원 — 좌하단 래칭 버튼 (모듈 패널과 MIC 베이 사이의 공용 여백)
+        '<text x="120" y="352" font-family="Arial" font-size="11" font-weight="700" letter-spacing="1.6" fill="' + sub + '" text-anchor="middle">POWER</text>' +
+        '<rect x="80" y="362" width="88" height="48" rx="4" fill="#000" opacity=".5"/>' +
+        '<rect id="deckPowerBtn" x="76" y="358" width="88" height="48" rx="4" fill="#101114" stroke="' + sub + '" stroke-width="1.4"/>' +
+        '<rect x="84" y="366" width="72" height="14" rx="3" fill="#4e5257" pointer-events="none"/><path d="M86 369 H150" stroke="#fff" opacity=".22" pointer-events="none"/>' +
         signature + tapeDoor + reels + doorIdentity + meterBlock +
         '<text x="1120" y="330" font-family="Arial" font-size="13" font-weight="700" letter-spacing="2" fill="' + sub + '">TAPE COUNTER</text><rect x="1112" y="334" width="216" height="72" rx="8" fill="#111317" stroke="#65696e" stroke-width="2"/><rect x="1120" y="340" width="200" height="58" rx="6" fill="#030608" stroke="#27343a"/><path d="M1128 347 H1312" stroke="#fff" stroke-width="2" opacity=".08"/><text id="deckCounter" x="1245" y="381" font-family="Courier New" font-size="30" font-weight="700" fill="' + (spec.display || '#ff4f34') + '" text-anchor="end">00:00</text><text id="deckCounterMax" x="1254" y="381" font-family="Arial" font-size="13" font-weight="700" fill="#777b80">/ 30:00</text>' +
         '<circle cx="1420" cy="369" r="13" fill="url(#' + uid + 'Reel)"/><circle cx="1420" cy="369" r="10" fill="#16090a"/><circle id="deckRecLed" cx="1420" cy="369" r="9" fill="#3a1210"/><text x="1420" y="406" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.3" fill="' + sub + '" text-anchor="middle">REC</text>' +
@@ -1012,6 +1017,10 @@ function mfaCtf1250Svg() {
     <text x="76" y="338" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.6" fill="#595c5e">CLOSED LOOP DUAL CAPSTAN · DC SERVO</text>
     <rect x="76" y="350" width="110" height="26" rx="4" fill="#1c1e22" stroke="#54575c" stroke-width="1.2"/>
     <text x="131" y="369" font-family="Arial" font-size="13" font-weight="700" letter-spacing="1.1" fill="#d4d0c4" text-anchor="middle">DOLBY NR</text>
+    <rect x="204" y="348" width="120" height="34" rx="4" fill="#000" opacity=".45"/>
+    <rect id="deckPowerBtn" x="200" y="344" width="120" height="34" rx="4" fill="url(#ctfShell)" stroke="#6a6d72" stroke-width="1.4"/>
+    <path d="M206 350 H314" stroke="#fff" opacity=".3" pointer-events="none"/>
+    <text x="260" y="366" font-family="Arial" font-size="12" font-weight="700" letter-spacing="1.8" fill="#33363a" text-anchor="middle" pointer-events="none">POWER</text>
     <rect x="424" y="102" width="612" height="290" rx="11" fill="#0a0a0c" opacity=".4" filter="url(#ctfBlur2)"/>
     <rect x="432" y="96" width="596" height="288" rx="10" fill="url(#ctfShell)" stroke="#585b61" stroke-width="2"/>
     <path d="M438 100 H1022" stroke="#8b8e93" stroke-width="1.5" opacity=".6"/>
@@ -1136,7 +1145,7 @@ function mfaW990Svg() {
     <path d="M60 140H100 M67 132L80 121L93 132" fill="none" stroke="#d5d5d1" stroke-width="3" pointer-events="none"/>
     <text x="80" y="168" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.4" fill="#343639" text-anchor="middle">EJECT</text>
     <text x="80" y="205" font-family="Arial" font-size="9" font-weight="700" letter-spacing="1.4" fill="#343639" text-anchor="middle">POWER</text>
-    <rect x="38" y="216" width="84" height="42" rx="2" fill="#17191c" stroke="#292c30"/><rect x="45" y="222" width="70" height="15" rx="2" fill="#55585b"/><path d="M48 224H112" stroke="#fff" opacity=".25"/>
+    <rect id="deckPowerBtn" x="38" y="216" width="84" height="42" rx="2" fill="#17191c" stroke="#292c30"/><rect x="45" y="222" width="70" height="15" rx="2" fill="#55585b" pointer-events="none"/><path d="M48 224H112" stroke="#fff" opacity=".25" pointer-events="none"/>
     <circle cx="80" cy="292" r="8" fill="#321814" stroke="#27292c"/><circle cx="80" cy="292" r="4" fill="#7e2d20"/>
     <text x="80" y="315" font-family="Arial" font-size="8" font-weight="700" letter-spacing="1.1" fill="#343639" text-anchor="middle">TIMER STANDBY</text>
     <circle cx="43" cy="366" r="5" fill="#34363a" stroke="#b7b8b5"/><circle cx="117" cy="366" r="5" fill="#34363a" stroke="#b7b8b5"/>

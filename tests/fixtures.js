@@ -22,6 +22,14 @@ function contentType(p) {
 }
 
 async function mockExternal(context) {
+    // 유닛 전원 문법(v136): 기존 동작 테스트는 '켜진 랙'을 전제로 작성됐다.
+    // 전 유닛을 통전 상태로 시드하고, 첫 설치(전부 꺼짐) 동선은 전용 테스트로 검증한다.
+    await context.addInitScript(() => {
+        if (!localStorage.getItem("fmRadio.unitPower")) {
+            localStorage.setItem("fmRadio.unitPower", JSON.stringify({ tuner: true, amp: true, deck: true }));
+        }
+    });
+
     await context.route("https://cdn.jsdelivr.net/npm/hls.js@1.5.17", (route) =>
         route.fulfill({
             body: fs.readFileSync(path.join(NM, "hls.js/dist/hls.min.js")),
