@@ -48,6 +48,14 @@ test.describe("플랫폼 운영 리팩토링", () => {
         expect(pkg.engines.node).toBe(">=22.12.0");
     });
 
+    test("macOS 트레이는 좌클릭 패널과 우클릭 메뉴를 분리한다", () => {
+        const main = read("tray/main.js");
+
+        expect(main).toContain('tray.on("click", toggleWindow)');
+        expect(main).toContain('tray.on("right-click", () => tray.popUpContextMenu(buildMenu()))');
+        expect(main).toContain('if (!IS_MAC) tray.setContextMenu(buildMenu())');
+    });
+
     test("트레이 셸은 현재 iframe의 source·origin·generation·nonce만 IPC로 전달한다", async ({ page }) => {
         await page.addInitScript(() => {
             window.__trayEvents = { states: [], views: [] };

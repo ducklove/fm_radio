@@ -345,7 +345,8 @@ const TUNER_SKINS = {
             swTravel: 7,
             led: { on: "#ff4a3a", off: "#3a1512" },
             digit: { lit: "#57b0ff", glow: "#2a6fd0", dim: "#16324d", dimGlow: "#0d1f30" },
-            // 실물 MR78의 전원은 VOLUME 노브 통합(반시계 끝 = OFF) — 전원 히트를 VOLUME 노브에,
+            // 실물 MR78의 전원은 VOLUME 노브 통합(반시계 끝 = OFF). 앱에서는 역할이 분명하도록 POWER로 표기하고,
+            // 전원 히트는 같은 우측 노브에 둔다.
             // 채널 목록은 좌측 PANLOC으로 옮긴다 (우측 PANLOC = 몰입 모드와 대칭인 앱 문법)
             hits: { power: [1510, 470, 140, 130], dial: [430, 95, 1080, 170], rec: [310, 470, 140, 130], if: [550, 470, 140, 130], blend: [790, 470, 140, 130], mute: [1030, 470, 140, 130], mode: [1270, 470, 140, 130], rf: [65, 520, 80, 80], knob: [1755, 215, 132] }
         },
@@ -486,7 +487,7 @@ const TUNER_SKINS = {
             <ellipse cx="1715" cy="177" rx="30" ry="22" fill="#ffffff" opacity=".04" pointer-events="none"/>
             <!-- 하단 노브 행 (글라스 위) -->
             <g font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2" fill="#7ee08a" text-anchor="middle">
-                <text x="380" y="442">SELECTIVITY</text><text x="620" y="442">METER</text><text x="860" y="442">FILTER</text><text x="1100" y="442">MUTING</text><text x="1340" y="442">MODE</text><text x="1580" y="442">VOLUME</text>
+                <text x="380" y="442">SELECTIVITY</text><text x="620" y="442">METER</text><text x="860" y="442">FILTER</text><text x="1100" y="442">MUTING</text><text x="1340" y="442">MODE</text><text x="1580" y="442">POWER</text>
             </g>
             <g font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="600" letter-spacing="1.1" fill="#65a872" text-anchor="middle">
                 <text x="380" y="468">REC</text><text x="620" y="468">TIMER</text><text x="860" y="468">HI BLEND</text><text x="1100" y="468">MUTE</text><text x="1340" y="468">STEREO/MONO</text><text x="1580" y="468">PWR · OFF</text>
@@ -500,9 +501,9 @@ const TUNER_SKINS = {
                 <circle cx="1344" cy="541" r="43" fill="#000" opacity=".48" filter="url(#lzSoft)"/><circle cx="1340" cy="533" r="43" fill="url(#mrChrome)" stroke="#dfe2e4" stroke-width="1.2"/><circle cx="1340" cy="533" r="34" fill="url(#mrKnob)" stroke="#111318" stroke-width="2"/><path d="M1314 516 A31 31 0 0 1 1345 502" stroke="#fff" stroke-width="1.8" opacity=".18" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwMode" x="1338" y="497" width="4" height="18" rx="2" fill="#e3e5e6"/>
                 <circle cx="1584" cy="541" r="43" fill="#000" opacity=".48" filter="url(#lzSoft)"/><circle cx="1580" cy="533" r="43" fill="url(#mrChrome)" stroke="#dfe2e4" stroke-width="1.2"/><circle cx="1580" cy="533" r="34" fill="url(#mrKnob)" stroke="#111318" stroke-width="2"/><path d="M1554 516 A31 31 0 0 1 1585 502" stroke="#fff" stroke-width="1.8" opacity=".18" fill="none" stroke-linecap="round" pointer-events="none"/><rect id="tsSwPwr" x="1578" y="497" width="4" height="18" rx="2" fill="#e3e5e6"/>
             </g>
-            <!-- PANLOC (좌 = 전원) -->
+            <!-- PANLOC (좌 = 채널 목록, 우 = 몰입 모드와 대칭인 장식) -->
             <circle cx="105" cy="560" r="20" fill="#1c1c22" stroke="#8a8a92" stroke-width="1.6"/>
-            <circle id="tsSwPwr" cx="105" cy="556" r="9" fill="#55555c"/>
+            <circle cx="105" cy="556" r="9" fill="#55555c"/>
             <text x="105" y="608" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.7" fill="#7ee08a" text-anchor="middle">PANLOC</text>
             <circle cx="1895" cy="560" r="20" fill="#1c1c22" stroke="#8a8a92" stroke-width="1.6"/>
             <circle cx="1895" cy="556" r="9" fill="#55555c"/>

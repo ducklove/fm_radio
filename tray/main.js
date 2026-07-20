@@ -511,7 +511,9 @@ function refreshTray() {
         const short = stationName.length > 18 ? stationName.slice(0, 17) + "…" : stationName;
         tray.setTitle(state.loading ? "📻 …" : state.playing ? `📻 ${short}` : "📻");
     }
-    tray.setContextMenu(buildMenu());
+    // macOS에서 메뉴를 Tray에 상시 연결하면 좌클릭으로 패널을 열 때 네이티브 메뉴까지
+    // 함께 표시될 수 있다. 맥 메뉴는 아래 right-click 핸들러에서만 팝업한다.
+    if (!IS_MAC) tray.setContextMenu(buildMenu());
 }
 
 function createTray() {
@@ -526,6 +528,9 @@ function createTray() {
         tray = new Tray(icon);
     }
     tray.on("click", toggleWindow);
+    if (IS_MAC) {
+        tray.on("right-click", () => tray.popUpContextMenu(buildMenu()));
+    }
     refreshTray();
 }
 
