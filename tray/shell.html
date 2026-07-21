@@ -158,8 +158,11 @@
 
     <script>
         const params = new URLSearchParams(location.search);
-        const TUNER_URL = params.get("tuner");
-        const SYSTEM_URL = params.get("system");
+        const VIEW_URLS = {
+            tuner: params.get("tuner"),
+            turntable: params.get("turntable"),
+            system: params.get("system")
+        };
 
         let frame = document.getElementById("widgetFrame");
         const miniBar = document.getElementById("miniBar");
@@ -198,7 +201,7 @@
         }
 
         function loadView(view) {
-            const rawUrl = view === "system" ? SYSTEM_URL : TUNER_URL;
+            const rawUrl = VIEW_URLS[view] || VIEW_URLS.tuner;
             let target;
             try {
                 target = parseFrameTarget(rawUrl);
@@ -224,11 +227,25 @@
                 nonce,
                 origin: target.origin,
                 targetOrigin: target.opaque ? "*" : target.origin,
-                // widget.html은 nonce를 왕복한다. 전체 랙은 기존 계약상 nonce 없이
-                // 상태를 보내므로 교체된 WindowProxy + origin 경계로 격리한다.
-                requiresNonce: view === "tuner"
+                // widget.html·turntable.html은 nonce를 왕복한다. 전체 랙은 기존 계약상
+                // nonce 없이 상태를 보내므로 교체된 WindowProxy + origin 경계로 격리한다.
+                requiresNonce: view !== "system"
             };
             previousFrame.replaceWith(nextFrame);
+            // 턴테이블 보기: file://에서는 fetch가 막혀 음반 카탈로그를 메인이 읽어 밀어준다
+            if (view === "turntable") {
+                nextFrame.addEventListener("load", async () => {
+                    if (activeLoad && activeLoad.frame !== nextFrame) return;
+                    try {
+                        const records = await trayBridge.getRecords();
+                        if (Array.isArray(records) && activeLoad && activeLoad.frame === nextFrame) {
+                            postToFrame({ type: "fmRadio:records", records });
+                        }
+                    } catch (error) {
+                        console.error("음반 카탈로그 전달 실패:", error);
+                    }
+                }, { once: true });
+            }
             nextFrame.src = target.url.href;
             currentView = view;
             return true;
@@ -244,7 +261,7 @@
         }
 
         function setView(view) {
-            const next = view === "system" ? "system" : "tuner";
+            const next = (view === "system" || view === "turntable") ? view : "tuner";
             if (next === currentView) return;
             if (loadView(next)) trayBridge.sendView(next);
         }

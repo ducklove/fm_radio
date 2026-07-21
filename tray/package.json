@@ -33,6 +33,8 @@
     ],
     "extraResources": [
       { "from": "../widget.html", "to": "web/widget.html" },
+      { "from": "../turntable.html", "to": "web/turntable.html" },
+      { "from": "../records.json", "to": "web/records.json" },
       { "from": "../stations.js", "to": "web/stations.js" },
       { "from": "../player-core.js", "to": "web/player-core.js" },
       { "from": "../icons", "to": "web/icons" }

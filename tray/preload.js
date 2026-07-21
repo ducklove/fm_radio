@@ -14,9 +14,13 @@ const trayBridge = Object.freeze({
     sendState(message) {
         if (isStateMessage(message)) ipcRenderer.send("widget-state", message);
     },
-    // 현재 보기(tuner|system)를 알려 창 크기를 맞추게 한다
+    // 현재 보기(tuner|turntable|system)를 알려 창 크기를 맞추게 한다
     sendView(view) {
-        if (view === "tuner" || view === "system") ipcRenderer.send("widget-view", view);
+        if (view === "tuner" || view === "turntable" || view === "system") ipcRenderer.send("widget-view", view);
+    },
+    // 턴테이블 보기용 음반 카탈로그 — file://에서는 fetch가 막혀 메인 프로세스가 읽어 준다
+    getRecords() {
+        return ipcRenderer.invoke("records-get");
     },
     // 슬림 바에서 '펼치기' — 전체 플레이어로 복귀 요청
     requestFull() {

@@ -856,6 +856,7 @@
                 <input type="range" id="volume" min="0" max="100" value="80" aria-label="볼륨">
             </div>
             <span class="skin-link is-active" id="tunerLink" aria-current="page">튜너형</span>
+            <a class="skin-link" id="turntableLink" href="turntable.html">턴테이블형</a>
             <a class="home-link" id="systemLink" href="index.html">오디오 시스템 ↗</a>
         </div>
         <div class="tuner-brand" aria-hidden="true">
@@ -941,6 +942,12 @@
                 event.preventDefault();
                 if (window.parent && window.parent !== window) {
                     postIntegrationMessage(window.parent, { type: "fmRadio:openView", view: "system" });
+                }
+            });
+            document.getElementById("turntableLink").addEventListener("click", (event) => {
+                event.preventDefault();
+                if (window.parent && window.parent !== window) {
+                    postIntegrationMessage(window.parent, { type: "fmRadio:openView", view: "turntable" });
                 }
             });
         }

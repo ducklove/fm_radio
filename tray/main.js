@@ -21,6 +21,7 @@ const IS_MAC = process.platform === "darwin";
 // 전체 화면은 랙 페이지의 '⛶ 전체 화면' 버튼(HTML 풀스크린)으로만 진입한다
 const SIZE = {
     tuner: { w: 540, h: 300 },
+    turntable: { w: 560, h: 430 },
     system: { w: 520, h: 840 },
     bar: { w: 340, h: 58 }
 };
@@ -39,6 +40,7 @@ if (app.isPackaged) {
 const webRoot = app.isPackaged ? path.join(process.resourcesPath, "web") : path.join(__dirname, "..");
 const shellFileUrl = pathToFileURL(path.join(__dirname, "shell.html"));
 const tunerFileUrl = pathToFileURL(path.join(webRoot, "widget.html"));
+const turntableFileUrl = pathToFileURL(path.join(webRoot, "turntable.html"));
 
 function sameFile(left, right) {
     try {
@@ -98,6 +100,7 @@ function isTrustedNavigation(rawUrl) {
         const candidate = new URL(rawUrl);
         return sameFile(candidate, shellFileUrl)
             || sameFile(candidate, tunerFileUrl)
+            || sameFile(candidate, turntableFileUrl)
             || isWithinBase(candidate, systemBaseUrl);
     } catch (error) {
         return false;
@@ -170,7 +173,7 @@ function loadStations() {
 
 const { stations, groupLabels } = loadStations();
 
-const defaultSettings = { stationId: stations[0].id, volume: 80, autoplayOnStart: false };
+const defaultSettings = { stationId: stations[0].id, volume: 80, autoplayOnStart: false, recordId: null, recordTrack: 0 };
 let settings = { ...defaultSettings };
 let saveTimer = null;
 
@@ -247,6 +250,14 @@ function createWindow() {
     tunerUrl.searchParams.set("chrome", "tray");
     if (settings.autoplayOnStart) tunerUrl.searchParams.set("autoplay", "1");
 
+    // 턴테이블형: 로컬 turntable.html — 마지막으로 듣던 음반·트랙으로 부팅
+    const turntableUrl = new URL(turntableFileUrl.href);
+    turntableUrl.searchParams.set("chrome", "tray");
+    if (settings.recordId) {
+        turntableUrl.searchParams.set("record", settings.recordId);
+        turntableUrl.searchParams.set("track", String(settings.recordTrack || 0));
+    }
+
     // 오디오 시스템: 배포판 전체 랙(온라인) — macOS 앱과 동일하게 배포판을 로드
     const systemUrl = new URL(systemBaseUrl.href);
     systemUrl.searchParams.set("view", "rack");
@@ -259,7 +270,7 @@ function createWindow() {
     }
 
     win.loadFile(path.join(__dirname, "shell.html"), {
-        query: { tuner: tunerUrl.href, system: systemUrl.href }
+        query: { tuner: tunerUrl.href, turntable: turntableUrl.href, system: systemUrl.href }
     });
 
     // 위젯/랙 밖의 탐색과 새 창은 셸 안에서 실행하지 않는다.
@@ -456,6 +467,7 @@ function buildMenu() {
             label: "보기",
             submenu: [
                 { label: "튜너형", type: "radio", checked: currentView === "tuner", click: () => sendCommand({ setView: "tuner" }) },
+                { label: "턴테이블형", type: "radio", checked: currentView === "turntable", click: () => sendCommand({ setView: "turntable" }) },
                 { label: "오디오 시스템", type: "radio", checked: currentView === "system", click: () => sendCommand({ setView: "system" }) }
             ]
         },
@@ -504,7 +516,7 @@ function refreshTray() {
     const fallback = stations.find((station) => station.id === settings.stationId);
     const stationName = state.stationName || (fallback ? fallback.name : "");
     const status = state.loading ? "연결 중…" : state.playing ? "재생 중" : "정지";
-    const viewLabel = currentView === "system" ? "오디오 시스템" : "튜너";
+    const viewLabel = currentView === "system" ? "오디오 시스템" : currentView === "turntable" ? "턴테이블" : "튜너";
     tray.setToolTip(`Mad for Audio · ${viewLabel} — ${stationName} ${status}`);
     if (IS_MAC) {
         // 메뉴바 나우플레잉 스트립 — 재생 중에만 곡명(채널명)을 붙이고 평소엔 📻만 남긴다
@@ -543,10 +555,23 @@ function isTrustedIpcSender(event) {
 
 // 셸이 보기를 바꾸면(사용자가 '오디오 시스템'/'미니 플레이어'를 누름) 창 크기를 맞춘다
 ipcMain.on("widget-view", (event, view) => {
-    if (!isTrustedIpcSender(event) || (view !== "tuner" && view !== "system")) return;
-    currentView = view === "system" ? "system" : "tuner";
+    if (!isTrustedIpcSender(event) || !["tuner", "turntable", "system"].includes(view)) return;
+    currentView = view;
     if (win.isVisible() && !barMode) applyViewBounds();
     refreshTray();
+});
+
+// 턴테이블 보기용 음반 카탈로그 — file:// 렌더러는 fetch가 막혀 메인이 읽어 준다
+ipcMain.handle("records-get", (event) => {
+    if (!isTrustedIpcSender(event)) return null;
+    try {
+        const raw = fs.readFileSync(path.join(webRoot, "records.json"), "utf8").replace(/^\uFEFF/, "");
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch (error) {
+        console.error("records.json 읽기 실패:", error);
+        return null;
+    }
 });
 
 // 슬림 바에서 '펼치기'
@@ -580,6 +605,16 @@ ipcMain.on("widget-state", (event, message) => {
     if (message.mode === "radio" && message.station && message.station !== settings.stationId) {
         settings.stationId = message.station;
         saveSettings();
+    }
+    // 턴테이블 보기: 마지막으로 듣던 음반·트랙을 기억해 다음 부팅에 복원한다
+    if (message.mode === "media" && typeof message.record === "string" && message.record) {
+        const track = Number(message.track);
+        const nextTrack = Number.isFinite(track) ? Math.max(0, Math.floor(track)) : 0;
+        if (message.record !== settings.recordId || nextTrack !== settings.recordTrack) {
+            settings.recordId = message.record.slice(0, 120);
+            settings.recordTrack = nextTrack;
+            saveSettings();
+        }
     }
     if (Number.isFinite(volume) && state.volume !== settings.volume) {
         settings.volume = state.volume;
