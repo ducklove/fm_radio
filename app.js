@@ -4462,6 +4462,7 @@ function normalizeStoredReservations(raw) {
 
 const DOW_KO = ["일", "월", "화", "수", "목", "금", "토"];
 let schedState = { stationId: null, day: 0, view: "list", seq: 0 };
+let schedSongTimer = null;   // '지금 나온 곡' 자동 갱신 타이머 (편성표 열려 있는 동안)
 const storedReservations = loadJson("fmRadio.reservations", []);
 let reservations = normalizeStoredReservations(storedReservations);
 if (JSON.stringify(storedReservations) !== JSON.stringify(reservations)) {
@@ -5993,6 +5994,11 @@ function openSchedule(view) {
 
 function closeSchedule() {
     schedOverlayEl.hidden = true;
+    stopNowSongRefresh();
+}
+
+function stopNowSongRefresh() {
+    if (schedSongTimer) { clearInterval(schedSongTimer); schedSongTimer = null; }
 }
 
 function schedSetDay(day) {
@@ -6070,6 +6076,7 @@ function findReservationFor(stationId, ymd, item) {
 
 async function renderSched() {
     updateSchedTabs();
+    stopNowSongRefresh();   // 이전 채널의 '지금 나온 곡' 갱신은 멈춘다 — 새로 그리며 다시 건다
     const st = stations.find((s) => s.id === schedState.stationId);
     if (!st) return;
     if (!FMSchedule.supports(st.id)) {
@@ -6188,6 +6195,53 @@ async function renderSched() {
     });
 
     if (onairRow) onairRow.scrollIntoView({ block: "center" });
+
+    // MBC 채널은 '지금 나온 곡'(실시간 선곡)을 ON AIR 프로그램 아래 함께 보여준다
+    showNowSongFor(st.id, isToday, onairRow, mySeq);
+}
+
+// ON AIR 프로그램 행에 '지금 나온 곡'을 붙이고, 창이 열려 있는 동안 30초마다 갱신한다.
+// MBC(FM4U·표준FM)만 공개 선곡을 제공한다 — 그 밖의 채널은 아무것도 붙지 않는다.
+function showNowSongFor(stationId, isToday, onairRow, mySeq) {
+    if (!isToday || !onairRow || !FMSchedule.supportsNowSong(stationId)) return;
+
+    const line = document.createElement("div");
+    line.className = "sp-song";
+    line.textContent = "🎵 지금 나온 곡 불러오는 중…";
+    (onairRow.querySelector(".sp-main") || onairRow).appendChild(line);
+
+    const stale = () => mySeq !== schedState.seq || schedOverlayEl.hidden || !line.isConnected;
+    const paint = async () => {
+        let song;
+        try {
+            song = await FMSchedule.getNowSong(stationId);
+        } catch (error) {
+            if (!stale()) line.textContent = "🎵 지금 나온 곡을 불러오지 못했어요";
+            return;
+        }
+        if (stale()) return;
+        if (!song) { line.textContent = "🎵 지금 나온 곡 정보가 아직 없어요"; return; }
+        line.textContent = "";
+        const label = document.createElement("span");
+        label.className = "sp-song-label";
+        label.textContent = "🎵 지금 나온 곡";
+        const title = document.createElement("span");
+        title.className = "sp-song-title";
+        title.textContent = song.title;
+        line.append(label, title);
+        if (song.artist) {
+            const artist = document.createElement("span");
+            artist.className = "sp-song-artist";
+            artist.textContent = song.artist;
+            line.appendChild(artist);
+        }
+    };
+
+    paint();
+    schedSongTimer = setInterval(() => {
+        if (stale()) { stopNowSongRefresh(); return; }
+        paint();
+    }, 30000);
 }
 
 // ----- 예약 관리 -----

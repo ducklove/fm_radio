@@ -184,6 +184,40 @@
     padding: 2px 7px;
 }
 
+/* ON AIR 프로그램 아래 '지금 나온 곡'(실시간 선곡 — MBC) */
+.sp-song {
+    margin-top: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 7px;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--muted);
+}
+
+.sp-song-label {
+    flex: none;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--accent-strong);
+    opacity: 0.85;
+}
+
+.sp-song-title {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.sp-song-artist {
+    color: var(--muted);
+}
+
+.sp-song-artist::before {
+    content: "— ";
+}
+
 .sp-rec {
     flex: none;
     display: inline-flex;

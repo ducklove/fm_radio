@@ -160,5 +160,64 @@
             || null;
     }
 
-    window.FMSchedule = { supports, todayOnly, getSchedule, programAt, fmtHM, ymdOf };
+    // ----- 지금 나온 곡(실시간 선곡) — MBC mini의 공개 선곡 피드 -----
+    // MBC(FM4U·표준FM)만 공개 선곡을 제공한다. JSONP라 CORS 없이 브라우저에서 바로 받는다.
+    // KBS 1FM 선곡표는 콩 앱 전용으로 공개 API가 데이터를 내주지 않고, SBS·CBS도 공개 소스가
+    // 없어 미지원 — 이 채널들은 편성표만 나온다.
+    const NOWSONG_URL = "https://miniapi.imbc.com/music/somitem";
+    const NOWSONG_CHANNELS = { mbcfm4u: "FM4U", mbcsfm: "STFM" };   // 앱 채널 id → MBC 채널 코드
+    const NOWSONG_TTL_MS = 15 * 1000;   // 곡은 몇 분 단위로 바뀐다 — 과호출만 막는 짧은 캐시
+    let nowSongCache = null;            // { at, byChannel: { FM4U:{...}, STFM:{...} } }
+
+    function supportsNowSong(stationId) { return !!NOWSONG_CHANNELS[stationId]; }
+
+    // "♬제목 - 가수" → { title, artist, raw }. 구분자(" - ")가 없으면 전부 제목으로.
+    function parseSomItem(raw) {
+        const text = String(raw || "").replace(/^[\s♬♪]+/, "").trim();
+        if (!text) return null;
+        const i = text.indexOf(" - ");
+        if (i === -1) return { title: text, artist: "", raw: text };
+        return { title: text.slice(0, i).trim(), artist: text.slice(i + 3).trim(), raw: text };
+    }
+
+    // JSONP — somitem은 CORS 헤더가 없어 fetch로는 막힌다. <script> 콜백으로 받는다.
+    function jsonp(url, cbParam, timeoutMs) {
+        return new Promise((resolve, reject) => {
+            const cb = "__mfaSom" + Math.random().toString(36).slice(2) + Date.now();
+            const script = document.createElement("script");
+            let settled = false;
+            const cleanup = () => {
+                settled = true;
+                try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+                if (script.parentNode) script.parentNode.removeChild(script);
+            };
+            const timer = setTimeout(() => { if (!settled) { cleanup(); reject(new Error("선곡 요청 시간 초과")); } }, timeoutMs || 8000);
+            window[cb] = (data) => { if (settled) return; clearTimeout(timer); cleanup(); resolve(data); };
+            script.onerror = () => { if (settled) return; clearTimeout(timer); cleanup(); reject(new Error("선곡 요청 실패")); };
+            script.src = url + (url.indexOf("?") === -1 ? "?" : "&") + cbParam + "=" + cb;
+            (document.head || document.documentElement).appendChild(script);
+        });
+    }
+
+    // 지금 나온 곡을 반환한다. 미지원 채널이면 null, 곡 정보가 아직 없으면 null.
+    // 결과: { title, artist, raw, at }  (at = 선곡 시각 "YYYY-MM-DD HH:MM:SS")
+    async function getNowSong(stationId) {
+        const channel = NOWSONG_CHANNELS[stationId];
+        if (!channel) return null;
+        if (!nowSongCache || Date.now() - nowSongCache.at > NOWSONG_TTL_MS) {
+            const list = await jsonp(NOWSONG_URL, "callback", 8000);
+            const byChannel = {};
+            (Array.isArray(list) ? list : []).forEach((it) => {
+                if (it && it.Channel) byChannel[it.Channel] = it;
+            });
+            nowSongCache = { at: Date.now(), byChannel };
+        }
+        const item = nowSongCache.byChannel[channel];
+        if (!item) return null;
+        const parsed = parseSomItem(item.SomItem);
+        if (!parsed) return null;
+        return { title: parsed.title, artist: parsed.artist, raw: parsed.raw, at: item.RegDate || "" };
+    }
+
+    window.FMSchedule = { supports, todayOnly, getSchedule, programAt, fmtHM, ymdOf, supportsNowSong, getNowSong };
 })();
