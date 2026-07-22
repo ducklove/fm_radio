@@ -95,7 +95,7 @@ test.describe("데스크톱", () => {
     });
 
     test("음반 장르 검색 → 검색 조건 유지·셔플백 경합 방지·라디오 전환", async ({ page }) => {
-        await page.route("https://upload.wikimedia.org/**", (route) =>
+        await page.route(/^https:\/\/(upload\.wikimedia\.org|archive\.org)\//, (route) =>
             route.fulfill({
                 body: makeWav(30),
                 contentType: "audio/wav",
@@ -732,7 +732,7 @@ test.describe("데스크톱", () => {
 
     test("예약 발화 중에도 턴테이블 재생 유지 — 백그라운드 녹음 (프리징 회귀 방지)", async ({ context, page }) => {
         // 포노 트랙을 로컬 합성 WAV로 — 외부(위키미디어)는 모킹에서 차단되어 재생이 곧 죽는다
-        await context.route("https://upload.wikimedia.org/**", (route) =>
+        await context.route(/^https:\/\/(upload\.wikimedia\.org|archive\.org)\//, (route) =>
             route.fulfill({ body: makeWav(40), contentType: "audio/wav", headers: { "Access-Control-Allow-Origin": "*" } }));
         await page.evaluate(() => playPhonoTrack(0));
         await page.waitForFunction(() => phonoActive && isPlaying, null, { timeout: 15000 });
@@ -1579,7 +1579,7 @@ test.describe("데스크톱", () => {
     });
 
     test("소스 보이싱: TT·튜너 시그니처 셸프, SE-9 8×2 구조, 10B 스코프", async ({ page, context }) => {
-        await context.route("https://upload.wikimedia.org/**", (route) =>
+        await context.route(/^https:\/\/(upload\.wikimedia\.org|archive\.org)\//, (route) =>
             route.fulfill({ body: makeWav(40), contentType: "audio/wav", headers: { "Access-Control-Allow-Origin": "*" } }));
         // GARRARD 301 포노 → low 셸프 +1.4dB
         await page.evaluate(() => { ttModelId = "g301"; mountTurntable(); playPhonoTrack(0); });
