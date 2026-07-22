@@ -1358,3 +1358,31 @@ body.mode-simple #stationMain.collapsed {
 a.mini-open {
     text-decoration: none;
 }
+
+/* ----- 기기 보기 전환 (오디오 시스템 ↔ 튜너형 ↔ 턴테이블형) -----
+   위젯 보기를 헤더 아래 전면에 얹는다. 랙을 DOM에서 들어내지 않으므로
+   오디오 요소와 Web Audio 체인이 그대로 살아 있어 전환에도 소리가 끊기지 않는다. */
+#deviceViewHost {
+    position: fixed;
+    inset: 64px 0 0 0;
+    z-index: 60;
+    background: var(--bg, #14141a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    overflow: auto;
+}
+#deviceViewHost[hidden] { display: none; }
+#deviceViewFrame {
+    width: min(560px, 100%);
+    height: min(420px, 100%);
+    border: 0;
+    border-radius: 14px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .55);
+    background: transparent;
+}
+body.mode-device-view { overflow: hidden; }
+@media (max-width: 720px) {
+    #deviceViewHost { inset: 56px 0 0 0; padding: 10px; }
+}

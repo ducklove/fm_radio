@@ -7124,3 +7124,100 @@ setInterval(updateNowProgram, 30000);
 updateResChip();
 reservationTick();
 updateNowProgram();
+
+// ----- 기기 보기 전환 (오디오 시스템 ↔ 튜너형 ↔ 턴테이블형) -----
+// 세 보기가 한 문서 안에 있으므로 전환해도 #audioPlayer와 Web Audio 체인이 그대로 살아
+// 있어 재생이 끊기지 않는다. 예전처럼 widget.html/turntable.html로 페이지 이동하면
+// 문서가 통째로 버려져 소리가 죽는다 — 그래서 iframe으로 얹는다.
+// 위젯은 chrome=embedded(controlled)로 자기 오디오를 만들지 않고 조작만 postMessage로
+// 넘기며, UI는 여기서 보내 주는 fmRadio:hostState로 칠한다.
+const DEVICE_VIEWS = ["system", "tuner", "turntable"];
+const DEVICE_VIEW_LABEL = { system: "오디오 시스템", tuner: "튜너형", turntable: "턴테이블형" };
+let deviceView = "system";
+
+function deviceViewUrl(view) {
+    if (view === "tuner") return "widget.html?chrome=embedded&skin=tuner";
+    if (view === "turntable") return "turntable.html?chrome=embedded";
+    return "";
+}
+
+function setDeviceView(view) {
+    if (DEVICE_VIEWS.indexOf(view) < 0) view = "system";
+    deviceView = view;
+    const host = document.getElementById("deviceViewHost");
+    const frame = document.getElementById("deviceViewFrame");
+    const btn = document.getElementById("deviceViewBtn");
+    if (!host || !frame) return;
+    if (view === "system") {
+        host.hidden = true;
+        frame.removeAttribute("src");
+    } else {
+        const url = deviceViewUrl(view);
+        if (frame.getAttribute("src") !== url) frame.setAttribute("src", url);
+        host.hidden = false;
+    }
+    document.body.classList.toggle("mode-device-view", view !== "system");
+    if (btn) btn.textContent = view === "system" ? "▭ 보기" : "▭ " + DEVICE_VIEW_LABEL[view];
+    saveJson("fmRadio.deviceView", view);
+    try { gtag('event', 'device_view', { view: view }); } catch (e) {}
+}
+
+function cycleDeviceView() {
+    setDeviceView(DEVICE_VIEWS[(DEVICE_VIEWS.indexOf(deviceView) + 1) % DEVICE_VIEWS.length]);
+}
+
+// 위젯 UI가 실제 재생 상태를 따라오도록 바뀔 때마다 밀어 준다.
+function pushDeviceViewState() {
+    if (deviceView === "system") return;
+    const frame = document.getElementById("deviceViewFrame");
+    if (!frame || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({
+        type: "fmRadio:hostState",
+        playing: isPlaying,
+        loading: false,
+        station: currentStation ? currentStation.id : null,
+        statusText: playerSubtext ? playerSubtext.textContent : ""
+    }, location.origin);
+}
+
+window.addEventListener("message", (event) => {
+    // 내가 띄운 보기 iframe에서 온 것만 받는다. srcdoc 프레임은 부모 출처를 그대로
+    // 물려받으므로 origin 검사만으로는 위장 메시지를 못 거른다 — source가 정확히 그
+    // 프레임의 contentWindow인지까지 확인해야 한다(회귀 가드: safety-core "트레이 제어 메시지").
+    const viewFrame = document.getElementById("deviceViewFrame");
+    if (!viewFrame || !viewFrame.contentWindow || event.source !== viewFrame.contentWindow) return;
+    if (event.origin !== location.origin) return;
+    const data = event.data;
+    if (!data || typeof data.type !== "string" || data.type.indexOf("fmRadio:") !== 0) return;
+    switch (data.type) {
+        case "fmRadio:openView":
+            setDeviceView(data.view === "system" ? "system" : data.view);
+            break;
+        case "fmRadio:toggle":
+            togglePlay();
+            break;
+        case "fmRadio:play":
+            if (data.station) selectStation(data.station); else togglePlay();
+            break;
+        case "fmRadio:setStation":
+            if (data.station) selectStation(data.station);
+            break;
+        case "fmRadio:playRecord": {
+            const idx = RECORDS.findIndex((record) => record.id === data.record);
+            if (idx >= 0) {
+                setRecord(idx);
+                playPhonoTrack(Number(data.track) || 0, false, false);
+            }
+            break;
+        }
+        case "fmRadio:setVolume":
+            setVolumeLevel(Math.max(0, Math.min(100, Number(data.value))) / 100);
+            break;
+        case "fmRadio:getState":
+            pushDeviceViewState();
+            break;
+    }
+});
+
+document.addEventListener("audiostate", pushDeviceViewState);
+setDeviceView(loadJson("fmRadio.deviceView", "system"));
