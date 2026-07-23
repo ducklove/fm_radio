@@ -904,6 +904,11 @@
         // allowedOrigin을 명시해야 하며, nonce를 주면 모든 명령·상태에 같은 값을 요구한다.
         // file:// 기반 트레이 셸은 origin이 불투명(null)이므로 source 고정 + null origin으로 제한한다.
         const isTray = params.get("chrome") === "tray";
+        // chrome=embedded — 오디오 시스템(index.html) 안에 얹혀 UI만 담당하는 모드.
+        // 이 모드에서는 자기 오디오를 만들지 않고 조작을 부모로 넘긴다. 그래야 보기를
+        // 바꿔도 부모의 오디오 요소가 그대로 살아 있어 소리가 끊기지 않는다.
+        const isControlled = params.get("chrome") === "embedded";
+        const isHosted = isTray || isControlled;   // 부모 셸 안에서 동작하는가
         function normalizeAllowedOrigin(value) {
             if (!value) return location.origin;
             try {
@@ -937,7 +942,7 @@
             return !integrationNonce || (event.data && event.data.nonce === integrationNonce);
         }
 
-        if (isTray) {
+        if (isHosted) {
             systemLink.addEventListener("click", (event) => {
                 event.preventDefault();
                 if (window.parent && window.parent !== window) {
@@ -1355,6 +1360,46 @@
                     break;
             }
         });
+
+        // ----- controlled 모드 — 소리는 부모(오디오 시스템)가 낸다 -----
+        // 조작 함수만 갈아끼워 부모로 넘기고, UI는 부모가 보내 주는 fmRadio:hostState로 칠한다.
+        // 로컬 audio는 손대지 않으므로 스트림을 두 번 받지도, 보기 전환에 소리가 끊기지도 않는다.
+        if (isControlled) {
+            const toParent = (message) => {
+                if (window.parent && window.parent !== window) postIntegrationMessage(window.parent, message);
+            };
+            play = () => toParent({ type: "fmRadio:play", station: media ? null : current.id });
+            toggle = () => toParent({ type: "fmRadio:toggle" });
+            setStation = (id, autoplay) => {
+                const station = stations.find((item) => item.id === id);
+                if (!station) return;
+                current = station;
+                applyStation();   // 다이얼·각인 등 표시만 갱신 (오디오 부작용 없음)
+                toParent({ type: "fmRadio:setStation", station: id, autoplay: autoplay !== false });
+            };
+            setVolume = (value) => {
+                const level = Math.max(0, Math.min(100, Number(value)));
+                if (Number.isNaN(level)) return;
+                volume.value = level;
+                toParent({ type: "fmRadio:setVolume", value: level });
+            };
+            seekTo = (seconds) => toParent({ type: "fmRadio:seek", time: seconds });
+
+            window.addEventListener("message", (event) => {
+                const data = event.data;
+                if (!data || data.type !== "fmRadio:hostState") return;
+                if (!isTrustedMessage(event)) return;
+                isPlaying = !!data.playing;
+                isLoading = !!data.loading;
+                if (data.station) {
+                    const station = stations.find((item) => item.id === data.station);
+                    if (station && station.id !== current.id) { current = station; applyStation(); }
+                }
+                if (typeof data.statusText === "string") setStatus(data.statusText);
+                updateUi();
+            });
+            toParent({ type: "fmRadio:getState" });
+        }
 
         // ----- 이벤트 -----
 

@@ -32,7 +32,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <link rel="stylesheet" href="styles.css?v=151">
+    <link rel="stylesheet" href="styles.css?v=150">
 </head>
 <body>
     <div class="page-shell">
@@ -52,10 +52,18 @@
                 <button class="mini-open" id="headerCrateBtn" type="button" onclick="openCrate()" title="음반 검색과 무한 랜덤 재생">♫ 음반</button>
                 <button class="mini-open" id="headerTapeBtn" type="button" onclick="openTapeCase()" title="녹음 테이프 보관함 — 라벨·재생·삭제·가져오기">⏵ 테이프</button>
                 <button class="mini-open" type="button" onclick="toggleSettings(true)" title="컴포넌트 표시와 모델을 고릅니다">⚙ 오디오 구성</button>
+                <button class="mini-open" id="deviceViewBtn" type="button" onclick="cycleDeviceView()" title="오디오 시스템 · 튜너형 · 턴테이블형 보기 전환 — 소리는 끊기지 않습니다">▭ 보기</button>
                 <button class="mini-open" type="button" onclick="toggleFocusMode()" title="컴포넌트만 남기는 몰입 모드 (ESC로 복귀)">⛶ 전체 화면</button>
                 <div class="live-clock" id="liveClock" aria-label="현재 시각">--:--:--</div>
             </div>
         </header>
+
+        <!-- 튜너형·턴테이블형 보기 — 같은 문서 안에서 iframe으로 띄운다.
+             오디오는 이 문서(#audioPlayer)가 계속 소유하므로 보기를 바꿔도 소리가 끊기지 않는다.
+             위젯은 chrome=embedded(controlled) 모드로 자기 오디오를 만들지 않고 조작만 넘긴다. -->
+        <section id="deviceViewHost" hidden aria-label="미니 기기 보기">
+            <iframe id="deviceViewFrame" title="미니 기기 보기" allow="autoplay"></iframe>
+        </section>
 
         <section class="hero-visual" aria-label="튜너 이미지와 상태 창">
             <!-- 몰입 모드 리스닝 룸 — 사용자가 제공한 실제 스피커 사진을 좌우에 배치한다.
@@ -277,23 +285,23 @@
 
     <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-    <script src="stations.js?v=151"></script>
-    <script src="player-core.js?v=151"></script>
-    <script src="native-hls-capture.js?v=151"></script>
-    <script src="store.js?v=151"></script>
-    <script src="schedule.js?v=151"></script>
-    <script src="skins.js?v=151"></script>
-    <script src="component-skins.js?v=151"></script>
-    <script src="model-registry.js?v=151"></script>
-    <script src="animation-scheduler.js?v=151"></script>
-    <script src="engine.js?v=151"></script>
-    <script src="deck.js?v=151"></script>
-    <script src="bootstrap.js?v=151"></script>
-    <script src="ui-controls.js?v=151"></script>
+    <script src="stations.js?v=150"></script>
+    <script src="player-core.js?v=150"></script>
+    <script src="native-hls-capture.js?v=150"></script>
+    <script src="store.js?v=150"></script>
+    <script src="schedule.js?v=150"></script>
+    <script src="skins.js?v=150"></script>
+    <script src="component-skins.js?v=150"></script>
+    <script src="model-registry.js?v=150"></script>
+    <script src="animation-scheduler.js?v=150"></script>
+    <script src="engine.js?v=150"></script>
+    <script src="deck.js?v=150"></script>
+    <script src="bootstrap.js?v=150"></script>
+    <script src="ui-controls.js?v=150"></script>
     <script>
         // 실행 중 버전 — 자산 링크의 ?v=가 단일 진실 (bump-version.py가 올린다)
         const RUNNING_ASSET_VERSION = (() => {
-            const link = document.querySelector('link[rel="stylesheet"][href^="styles.css?v=151"]');
+            const link = document.querySelector('link[rel="stylesheet"][href^="styles.css?v=150"]');
             const m = link && /[?&]v=(\d+)/.exec(link.getAttribute("href"));
             return m ? Number(m[1]) : null;
         })();

@@ -613,6 +613,10 @@
 
         // ----- 외부 연동 규약 — widget.html(튜너형)과 동일 -----
         const isTray = params.get("chrome") === "tray";
+        // chrome=embedded — 오디오 시스템(index.html) 안에서 UI만 담당하는 모드.
+        // 자기 오디오를 만들지 않고 조작을 부모로 넘긴다 (보기 전환 시 무중단 재생).
+        const isControlled = params.get("chrome") === "embedded";
+        const isHosted = isTray || isControlled;
         function normalizeAllowedOrigin(value) {
             if (!value) return location.origin;
             try {
@@ -646,7 +650,7 @@
             return !integrationNonce || (event.data && event.data.nonce === integrationNonce);
         }
 
-        if (isTray) {
+        if (isHosted) {
             tunerLink.addEventListener("click", (event) => {
                 event.preventDefault();
                 if (window.parent !== window) postIntegrationMessage(window.parent, { type: "fmRadio:openView", view: "tuner" });
@@ -919,6 +923,35 @@
                     break;
             }
         });
+
+        // ----- controlled 모드 — 소리는 부모(오디오 시스템)가 낸다 -----
+        // 조작만 부모로 넘기고 UI는 fmRadio:hostState로 칠한다. 로컬 audio는 건드리지 않아
+        // 보기를 바꿔도 부모의 재생이 그대로 이어진다.
+        if (isControlled) {
+            const toParent = (message) => {
+                if (window.parent && window.parent !== window) postIntegrationMessage(window.parent, message);
+            };
+            toggle = () => toParent({ type: "fmRadio:toggle" });
+            playTrack = (index) => {
+                const record = current;
+                if (!record) return;
+                trackIndex = Math.max(0, Math.min(record.tracks.length - 1, index));
+                applyTrackUi();          // 표시만 갱신
+                toParent({ type: "fmRadio:playRecord", record: recordId(record), track: trackIndex });
+            };
+            applyVolume = () => toParent({ type: "fmRadio:setVolume", value: Math.round(Number(volume.value)) });
+
+            window.addEventListener("message", (event) => {
+                const data = event.data;
+                if (!data || data.type !== "fmRadio:hostState") return;
+                if (!isTrustedMessage(event)) return;
+                isPlaying = !!data.playing;
+                isLoading = !!data.loading;
+                if (typeof data.statusText === "string") tStatus.textContent = data.statusText;
+                updateUi();
+            });
+            toParent({ type: "fmRadio:getState" });
+        }
 
         // ----- 이벤트 -----
         btnPlay.addEventListener("click", toggle);
