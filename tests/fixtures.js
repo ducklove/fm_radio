@@ -22,6 +22,13 @@ function contentType(p) {
 }
 
 async function mockExternal(context) {
+    // WebKit은 <audio> 미디어 요청이 아래 라우트 목킹·차단을 전부 우회해 실네트워크로
+    // 나간다(app.js TEST_MEDIA_BASE 참고) — 포노 재생을 로컬 60초 mp3로 돌려
+    // 모든 브라우저에서 외부 스트리밍 없이 결정적으로 만든다.
+    await context.addInitScript(() => {
+        try { localStorage.setItem("fmRadio.test.mediaBase", "/tests/.stream/sample.mp3"); } catch (e) {}
+    });
+
     await context.route("https://cdn.jsdelivr.net/npm/hls.js@1.5.17", (route) =>
         route.fulfill({
             body: fs.readFileSync(path.join(NM, "hls.js/dist/hls.min.js")),

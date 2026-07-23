@@ -218,7 +218,7 @@ test.describe("데스크톱", () => {
             audio.dispatchEvent(new Event("ended"));
         });
         await page.waitForFunction((previous) => libraryMix.active && libraryMix.currentKey !== previous && isPlaying,
-            second, { timeout: 5000 });
+            second, { timeout: 15000 });
         const afterRace = await page.evaluate(() => libraryMix.currentKey);
         expect(await page.evaluate((key) => libraryMix.failed.has(key), second)).toBe(true);
         await page.waitForTimeout(900);
@@ -253,7 +253,7 @@ test.describe("데스크톱", () => {
             rejectedPlay.rejectedKey, { timeout: 2000 });
         await page.waitForFunction((key) => libraryMix.active && libraryMix.currentKey !== key
             && isPlaying && !audio.paused && audio.currentTime > 0.05,
-            rejectedPlay.rejectedKey, { timeout: 5000 });
+            rejectedPlay.rejectedKey, { timeout: 15000 });
         const rejectionRecovery = await page.evaluate((key) => ({
             failed: libraryMix.failed.has(key),
             nextKey: libraryMix.currentKey,

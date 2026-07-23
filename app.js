@@ -3019,10 +3019,19 @@ document.addEventListener("keydown", (e) => {
 // 엔진으로 판단한다 — 크롬/파이어폭스 계열만 Vorbis를 정말 재생한다.
 const CAN_OGG = !SAFARI_LIKE;
 
+// 테스트 전용 미디어 시임 — WebKit은 <audio> 미디어 요청을 별도 미디어 스택으로 처리해
+// Playwright의 라우트 목킹·차단을 모두 우회하고 실네트워크로 나간다(목킹 WAV 대신 실제
+// archive.org mp3의 duration이 읽히는 것으로 실측 확인). 로컬호스트에서 이 키가 있을 때만
+// 포노 소스를 로컬 파일로 돌려 테스트가 외부 스트리밍 없이 결정적으로 재생하게 한다.
+const TEST_MEDIA_BASE = /^(127\.0\.0\.1|localhost)$/.test(location.hostname)
+    ? (() => { try { return localStorage.getItem("fmRadio.test.mediaBase") || ""; } catch (e) { return ""; } })()
+    : "";
+
 function phonoSrc(track) {
     // 문자열(과거 호출부)과 트랙 객체 양쪽을 받는다 — 객체면 host로 소스를 고른다.
     const f = typeof track === "string" ? track : (track && track.f) || "";
     const host = track && typeof track === "object" ? track.host : "commons";
+    if (TEST_MEDIA_BASE) return TEST_MEDIA_BASE + "?f=" + encodeURIComponent(f);
     if (host === "archive") return ARCHIVE_BASE + f;  // archive는 mp3라 WebKit도 그대로 재생
     if (CAN_OGG || !/\.(ogg|oga)$/i.test(f)) return PHONO_BASE + f;
     const name = f.split("/").pop();

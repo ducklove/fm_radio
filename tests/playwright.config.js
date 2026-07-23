@@ -11,6 +11,9 @@ module.exports = defineConfig({
     reporter: [["list"]],
     use: {
         baseURL: "http://127.0.0.1:8123/",
+        // CI에서만 재현되는 플레이키 추적용 — 재시도에서 트레이스를 남겨
+        // 워크플로가 아티팩트로 올린다 (평상시 실행 비용은 없음).
+        trace: "on-first-retry",
     },
     projects: [
         {
